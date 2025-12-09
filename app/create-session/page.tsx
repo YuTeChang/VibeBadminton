@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
 import { Session, Player } from "@/types";
 import Link from "next/link";
-import { generateRoundRobinGames, getRoundRobinPreview } from "@/lib/roundRobin";
+import { generateRoundRobinGames } from "@/lib/roundRobin";
 
 export default function CreateSession() {
   const router = useRouter();
@@ -87,17 +87,18 @@ export default function CreateSession() {
     // If round robin is enabled, generate and add all games
     // Use setTimeout to ensure session is set in context first
     if (enableRoundRobin) {
-      setTimeout(() => {
-        const roundRobinGames = generateRoundRobinGames(validPlayers);
-        if (roundRobinGames.length > 0) {
-          const gamesToAdd = roundRobinGames.map((game) => ({
-            teamA: game.teamA,
-            teamB: game.teamB,
-            winningTeam: null as "A" | "B" | null, // Unplayed games
-          }));
+      const roundRobinGames = generateRoundRobinGames(validPlayers);
+      if (roundRobinGames.length > 0) {
+        const gamesToAdd = roundRobinGames.map((game) => ({
+          teamA: game.teamA,
+          teamB: game.teamB,
+          winningTeam: null as "A" | "B" | null, // Unplayed games
+        }));
+        // Use setTimeout to ensure session is set before adding games
+        setTimeout(() => {
           addGames(gamesToAdd);
-        }
-      }, 200);
+        }, 100);
+      }
     }
 
     router.push(`/session/${session.id}`);

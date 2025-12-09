@@ -62,7 +62,7 @@ export default function SummaryPage() {
             Final Summary
           </h1>
           <p className="text-base text-japandi-text-secondary">
-            {session.name || "Badminton Session"} • {games.length} games played
+            {session.name || "Badminton Session"} • {games.filter(g => g.winningTeam !== null).length} games played
           </p>
         </div>
 

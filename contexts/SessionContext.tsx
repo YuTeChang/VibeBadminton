@@ -111,6 +111,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [session, games.length]
   );
 
+  const updateGame = useCallback((gameId: string, updates: Partial<Game>) => {
+    setGames((prev) =>
+      prev.map((game) => (game.id === gameId ? { ...game, ...updates } : game))
+    );
+  }, []);
+
   const removeLastGame = useCallback(() => {
     setGames((prev) => {
       if (prev.length === 0) return prev;
