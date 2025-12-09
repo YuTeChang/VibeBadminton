@@ -4,6 +4,8 @@ This directory contains screenshots of all pages in the VibeBadminton applicatio
 
 ## Screenshots
 
+All screenshots have been captured and are available in this directory:
+
 ### 01-home-page.png
 The home page showing:
 - Welcome message and app description
@@ -29,13 +31,25 @@ The live session page (Stats tab) showing:
 - Bottom tab navigation (Stats, Record, History)
 - Floating action button for quick game recording
 
-### Additional Screenshots Needed
+### 04-session-page-record.png
+The Record tab showing:
+- Game entry form
+- Team A and Team B player selection
+- Winner selection buttons
+- Optional score inputs
+- Save game button
 
-The following screenshots require an active session to be created:
+### 05-session-page-history.png
+The History tab showing:
+- Complete game history list
+- "Undo Last Game" button
+- All logged games with results displayed
 
-- **04-session-page-record.png** - Record tab showing the game entry form
-- **05-session-page-history.png** - History tab showing all logged games
-- **06-summary-page.png** - Final summary page with settlement table and shareable text
+### 06-summary-page.png
+The final summary page showing:
+- Final summary table with player stats (W/L, Net, Amount to Pay)
+- Shareable text section with copy button
+- Action buttons (Back to Session, New Session)
 
 ## Design System
 
