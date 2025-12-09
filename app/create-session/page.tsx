@@ -24,7 +24,7 @@ export default function CreateSession() {
     "per_person"
   );
   const [courtCostValue, setCourtCostValue] = useState("");
-  const [birdCostTotal, setBirdCostTotal] = useState("");
+  const [birdCostTotal, setBirdCostTotal] = useState("0");
   const [betPerPlayer, setBetPerPlayer] = useState("");
 
   const addPlayer = () => {
@@ -56,10 +56,12 @@ export default function CreateSession() {
     organizerId !== "" &&
     courtCostValue !== "" &&
     !isNaN(parseFloat(courtCostValue)) &&
-    birdCostTotal !== "" &&
-    !isNaN(parseFloat(birdCostTotal)) &&
+    parseFloat(courtCostValue) >= 0 &&
+    !isNaN(parseFloat(birdCostTotal || "0")) &&
+    parseFloat(birdCostTotal || "0") >= 0 &&
     betPerPlayer !== "" &&
-    !isNaN(parseFloat(betPerPlayer));
+    !isNaN(parseFloat(betPerPlayer)) &&
+    parseFloat(betPerPlayer) >= 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +75,9 @@ export default function CreateSession() {
       players: validPlayers,
       organizerId,
       courtCostType,
-      courtCostValue: parseFloat(courtCostValue),
-      birdCostTotal: parseFloat(birdCostTotal),
-      betPerPlayer: parseFloat(betPerPlayer),
+      courtCostValue: parseFloat(courtCostValue) || 0,
+      birdCostTotal: parseFloat(birdCostTotal || "0") || 0,
+      betPerPlayer: parseFloat(betPerPlayer) || 0,
     };
 
     setSession(session);
@@ -222,6 +224,7 @@ export default function CreateSession() {
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={courtCostValue}
                 onChange={(e) => setCourtCostValue(e.target.value)}
                 placeholder={courtCostType === "per_person" ? "14.40" : "72.00"}
@@ -242,9 +245,10 @@ export default function CreateSession() {
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={birdCostTotal}
                 onChange={(e) => setBirdCostTotal(e.target.value)}
-                placeholder="3.00"
+                placeholder="0.00"
                 className="w-full pl-8 pr-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
               />
             </div>
@@ -262,6 +266,7 @@ export default function CreateSession() {
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={betPerPlayer}
                 onChange={(e) => setBetPerPlayer(e.target.value)}
                 placeholder="2.00"

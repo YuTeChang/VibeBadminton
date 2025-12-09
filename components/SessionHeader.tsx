@@ -39,7 +39,7 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
           </Link>
           <button
             onClick={handleEndSession}
-            className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+            className="text-sm text-japandi-text-secondary hover:text-japandi-text-primary transition-colors"
           >
             End Session
           </button>
@@ -60,7 +60,7 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
                 •
               </span>
               <span className="text-sm text-japandi-text-muted">
-                ${formatCurrency(session.betPerPlayer)} per game
+                {formatCurrency(session.betPerPlayer)} per game
               </span>
             </div>
           </div>

@@ -42,7 +42,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           setGames(parsedGames);
         }
       } catch (error) {
-        console.error("Error loading session from localStorage:", error);
+        // Silently handle localStorage errors - may occur in private browsing mode
+        // Session will start fresh if localStorage is unavailable
       } finally {
         setIsLoaded(true);
       }

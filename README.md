@@ -9,6 +9,32 @@ A tiny web app that helps groups of friends track their badminton doubles games 
 - **Auto-Calculate**: Automatically calculates wins/losses, gambling net, and final settlement
 - **Mobile-First**: Designed for use at the court
 
+## Screenshots
+
+### Home Page
+![Home Page](docs/screenshots/01-home-page.png)
+*Welcome page with active session card and create session button*
+
+### Create Session
+![Create Session Page](docs/screenshots/02-create-session-page.png)
+*Session creation form with player inputs, financial settings, and organizer selection*
+
+### Session Page - Stats Tab
+![Session Stats Tab](docs/screenshots/03-session-page-stats.png)
+*Live stats showing wins/losses and gambling net for each player*
+
+### Session Page - Record Tab
+![Session Record Tab](docs/screenshots/04-session-page-record.png)
+*Game entry form for logging new games with team selection*
+
+### Session Page - History Tab
+![Session History Tab](docs/screenshots/05-session-page-history.png)
+*Complete game history with undo functionality*
+
+### Summary Page
+![Summary Page](docs/screenshots/06-summary-page.png)
+*Final settlement table with shareable text for easy distribution*
+
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router)

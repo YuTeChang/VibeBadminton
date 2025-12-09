@@ -36,7 +36,8 @@ export default function SummaryPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err);
+      // Silently fail - clipboard API may not be available in some contexts
+      // User can still manually copy the text
     }
   };
 
