@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
-import { Session, Player } from "@/types";
+import { Session, Player, Game } from "@/types";
 import Link from "next/link";
 import { generateRoundRobinGames } from "@/lib/roundRobin";
 
@@ -82,23 +82,27 @@ export default function CreateSession() {
       betPerPlayer: parseFloat(betPerPlayer) || 0,
     };
 
-    setSession(session);
-
-    // If round robin is enabled, generate and add all games
-    // Use setTimeout to ensure session is set in context first
+    // If round robin is enabled, generate games first
+    let roundRobinGamesToAdd: Omit<Game, "id" | "sessionId" | "gameNumber">[] = [];
     if (enableRoundRobin) {
       const roundRobinGames = generateRoundRobinGames(validPlayers);
       if (roundRobinGames.length > 0) {
-        const gamesToAdd = roundRobinGames.map((game) => ({
+        roundRobinGamesToAdd = roundRobinGames.map((game) => ({
           teamA: game.teamA,
           teamB: game.teamB,
           winningTeam: null as "A" | "B" | null, // Unplayed games
         }));
-        // Use setTimeout to ensure session is set before adding games
-        setTimeout(() => {
-          addGames(gamesToAdd);
-        }, 100);
       }
+    }
+
+    setSession(session);
+
+    // Add round robin games after session is set
+    if (roundRobinGamesToAdd.length > 0) {
+      // Use setTimeout to ensure session state is updated in context
+      setTimeout(() => {
+        addGames(roundRobinGamesToAdd);
+      }, 100);
     }
 
     router.push(`/session/${session.id}`);

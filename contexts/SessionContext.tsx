@@ -76,7 +76,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const setSession = useCallback((newSession: Session) => {
     setSessionState(newSession);
-    setGames([]); // Clear games when setting new session
+    // Only clear games if it's a different session
+    setGames((prev) => {
+      // If games belong to a different session, clear them
+      if (prev.length > 0 && prev[0]?.sessionId !== newSession.id) {
+        return [];
+      }
+      return prev;
+    });
   }, []);
 
   const addGame = useCallback(
