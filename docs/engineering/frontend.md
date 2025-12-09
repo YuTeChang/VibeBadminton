@@ -9,23 +9,31 @@
 
 ## Design System
 
+**See `docs/engineering/design-system.md` for the complete design style guide.**
+
+### Visual Style
+- **Japandi / Scandinavian Minimal**: Warm, cozy, airy aesthetic
+- **Color Palette**: Warm off-white backgrounds (`#F7F2EA`), camel/wood accents (`#D3A676`)
+- **Typography**: Clean, soft sans-serif (Inter, SF Pro, Nunito) with generous line height
+- **Components**: Rounded cards (16-24px radius), soft shadows, minimal borders
+
 ### Principles
 - **Mobile-first**: Designed for use at the badminton court
-- **Clean & Simple**: Focus on usability and clarity
+- **Clean & Simple**: Focus on usability and clarity with lots of whitespace
 - **Fast Interactions**: Quick game logging without interrupting play
 - **Visual Feedback**: Clear indicators for wins/losses, amounts, etc.
+- **Warm & Cozy**: Avoid clinical or harsh designs; maintain calm, airy feeling
 
 ### Styling Approach
 - Tailwind CSS utility classes for rapid development
-- Custom design tokens can be added to `tailwind.config.js` as needed
+- Japandi color palette defined in `tailwind.config.ts`
 - Component-based architecture for reusable UI elements
+- All components should follow the design system guidelines
 
-### Future Enhancements
-- Custom color palette and design tokens
-- Component library (buttons, cards, forms)
-- Animations and transitions
-- Dark mode support
-- Custom icons/illustrations
+### Implementation
+- Colors available via Tailwind: `japandi-background-primary`, `japandi-accent-primary`, etc.
+- Typography configured with proper font stack and line heights
+- Custom shadows and border radius values for consistent styling
 
 ## Pages
 
