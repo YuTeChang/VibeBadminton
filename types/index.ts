@@ -21,7 +21,7 @@ export interface Game {
   gameNumber: number;
   teamA: [string, string]; // player IDs
   teamB: [string, string]; // player IDs
-  winningTeam: "A" | "B";
+  winningTeam: "A" | "B" | null; // null for unplayed round robin games
   teamAScore?: number;
   teamBScore?: number;
 }

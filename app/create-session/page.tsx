@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
 import { Session, Player } from "@/types";
 import Link from "next/link";
+import { generateRoundRobinGames, getRoundRobinPreview } from "@/lib/roundRobin";
 
 export default function CreateSession() {
   const router = useRouter();
-  const { setSession } = useSession();
+  const { setSession, addGames } = useSession();
   const [sessionName, setSessionName] = useState("");
   const [sessionDate, setSessionDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -26,6 +27,7 @@ export default function CreateSession() {
   const [courtCostValue, setCourtCostValue] = useState("");
   const [birdCostTotal, setBirdCostTotal] = useState("0");
   const [betPerPlayer, setBetPerPlayer] = useState("");
+  const [enableRoundRobin, setEnableRoundRobin] = useState(false);
 
   const addPlayer = () => {
     if (players.length < 6) {
@@ -81,6 +83,23 @@ export default function CreateSession() {
     };
 
     setSession(session);
+
+    // If round robin is enabled, generate and add all games
+    // Use setTimeout to ensure session is set in context first
+    if (enableRoundRobin) {
+      setTimeout(() => {
+        const roundRobinGames = generateRoundRobinGames(validPlayers);
+        if (roundRobinGames.length > 0) {
+          const gamesToAdd = roundRobinGames.map((game) => ({
+            teamA: game.teamA,
+            teamB: game.teamB,
+            winningTeam: null as "A" | "B" | null, // Unplayed games
+          }));
+          addGames(gamesToAdd);
+        }
+      }, 200);
+    }
+
     router.push(`/session/${session.id}`);
   };
 
@@ -273,6 +292,33 @@ export default function CreateSession() {
                 className="w-full pl-8 pr-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
               />
             </div>
+          </div>
+
+          {/* Round Robin Option */}
+          <div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableRoundRobin}
+                onChange={(e) => setEnableRoundRobin(e.target.checked)}
+                className="w-5 h-5 rounded border-japandi-border-light text-japandi-accent-primary focus:ring-2 focus:ring-japandi-accent-primary"
+              />
+              <div>
+                <span className="block text-base font-medium text-japandi-text-primary">
+                  Generate Round Robin Schedule
+                </span>
+                <span className="block text-sm text-japandi-text-muted mt-1">
+                  Automatically create game combinations so everyone plays with different partners
+                </span>
+                {enableRoundRobin && players.filter((p) => p.name.trim() !== "").length >= 4 && (
+                  <div className="mt-2 p-3 bg-japandi-background-card rounded-card border border-japandi-border-light">
+                    <p className="text-sm text-japandi-text-secondary">
+                      Will generate {generateRoundRobinGames(players.filter((p) => p.name.trim() !== "")).length} games
+                    </p>
+                  </div>
+                )}
+              </div>
+            </label>
           </div>
 
           {/* Submit */}

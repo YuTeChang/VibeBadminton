@@ -38,8 +38,10 @@ export function calculatePlayerStats(
     });
   });
 
-  // Process each game
+  // Process each game (skip unplayed games with null winningTeam)
   games.forEach((game) => {
+    if (game.winningTeam === null) return; // Skip unplayed round robin games
+
     const winningTeam = game.winningTeam === "A" ? game.teamA : game.teamB;
     const losingTeam = game.winningTeam === "A" ? game.teamB : game.teamA;
 

@@ -12,7 +12,7 @@ export default function GameHistoryList({
   games,
   players,
 }: GameHistoryListProps) {
-  const { removeLastGame } = useSession();
+  const { removeLastGame, updateGame } = useSession();
 
   const getPlayerName = (playerId: string): string => {
     return players.find((p) => p.id === playerId)?.name || "Unknown";
@@ -21,6 +21,11 @@ export default function GameHistoryList({
   const formatGameResult = (game: Game): string => {
     const teamANames = game.teamA.map(getPlayerName).join(" & ");
     const teamBNames = game.teamB.map(getPlayerName).join(" & ");
+    
+    if (game.winningTeam === null) {
+      return `${teamANames} vs ${teamBNames}`;
+    }
+    
     const winnerNames =
       game.winningTeam === "A" ? teamANames : teamBNames;
     const loserNames = game.winningTeam === "A" ? teamBNames : teamANames;
@@ -63,16 +68,39 @@ export default function GameHistoryList({
           {[...games].reverse().map((game) => (
             <div
               key={game.id}
-              className="bg-japandi-background-card border border-japandi-border-light rounded-card p-5 shadow-soft"
+              className={`bg-japandi-background-card border border-japandi-border-light rounded-card p-5 shadow-soft ${
+                game.winningTeam === null ? "border-dashed opacity-75" : ""
+              }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="text-lg font-semibold text-japandi-text-primary">
                     Game {game.gameNumber}
+                    {game.winningTeam === null && (
+                      <span className="ml-2 text-sm font-normal text-japandi-text-muted">
+                        (Not played)
+                      </span>
+                    )}
                   </div>
                   <div className="text-base text-japandi-text-secondary mt-2">
                     {formatGameResult(game)}
                   </div>
+                  {game.winningTeam === null && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => updateGame(game.id, { winningTeam: "A" })}
+                        className="px-3 py-1.5 text-sm bg-japandi-accent-primary hover:bg-japandi-accent-hover text-white rounded-full transition-colors"
+                      >
+                        Team A Won
+                      </button>
+                      <button
+                        onClick={() => updateGame(game.id, { winningTeam: "B" })}
+                        className="px-3 py-1.5 text-sm bg-japandi-accent-primary hover:bg-japandi-accent-hover text-white rounded-full transition-colors"
+                      >
+                        Team B Won
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

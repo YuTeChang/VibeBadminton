@@ -8,6 +8,8 @@ interface SessionContextType {
   games: Game[];
   setSession: (session: Session) => void;
   addGame: (game: Omit<Game, "id" | "sessionId" | "gameNumber">) => void;
+  addGames: (games: Omit<Game, "id" | "sessionId" | "gameNumber">[]) => void;
+  updateGame: (gameId: string, updates: Partial<Game>) => void;
   removeLastGame: () => void;
   clearSession: () => void;
 }
@@ -93,6 +95,22 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [session, games.length]
   );
 
+  const addGames = useCallback(
+    (gamesData: Omit<Game, "id" | "sessionId" | "gameNumber">[]) => {
+      if (!session) return;
+
+      const newGames: Game[] = gamesData.map((gameData, index) => ({
+        id: `game-${Date.now()}-${index}-${Math.random()}`,
+        sessionId: session.id,
+        gameNumber: games.length + index + 1,
+        ...gameData,
+      }));
+
+      setGames((prev) => [...prev, ...newGames]);
+    },
+    [session, games.length]
+  );
+
   const removeLastGame = useCallback(() => {
     setGames((prev) => {
       if (prev.length === 0) return prev;
@@ -116,6 +134,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         games,
         setSession,
         addGame,
+        addGames,
+        updateGame,
         removeLastGame,
         clearSession,
       }}

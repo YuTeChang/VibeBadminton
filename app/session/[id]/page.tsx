@@ -97,8 +97,24 @@ export default function SessionPage() {
                         session.players.find((p) => p.id === id)?.name || "";
                       const teamA = game.teamA.map(getPlayerName).join(" & ");
                       const teamB = game.teamB.map(getPlayerName).join(" & ");
-                      const winner =
-                        game.winningTeam === "A" ? teamA : teamB;
+                      
+                      if (game.winningTeam === null) {
+                        return (
+                          <div
+                            key={game.id}
+                            className="bg-japandi-background-card border border-japandi-border-light border-dashed rounded-card p-4 text-base shadow-soft opacity-75"
+                          >
+                            <span className="font-medium text-japandi-text-primary">
+                              Game {game.gameNumber}:
+                            </span>{" "}
+                            <span className="text-japandi-text-muted">
+                              {teamA} vs {teamB} (Not played)
+                            </span>
+                          </div>
+                        );
+                      }
+                      
+                      const winner = game.winningTeam === "A" ? teamA : teamB;
 
                       return (
                         <div
