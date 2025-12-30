@@ -19,16 +19,18 @@ A simple web app that:
 
 ## Target Users
 
-- Casual badminton groups (4-6 players typically)
-- Friends who play doubles regularly
+- Casual badminton groups (4-6 players typically for doubles, 2-6 for singles)
+- Friends who play doubles or singles regularly
 - Groups that bet small amounts per game
 
 ## Key Features
 
 - ✅ Create session with players and financial settings
-- ✅ Log games with team selection
+- ✅ Support for both doubles and singles game modes
+- ✅ Log games with team/player selection
 - ✅ Real-time stats (wins/losses, gambling net)
 - ✅ Round robin scheduling (optional)
+- ✅ Multiple session management
 - ✅ Automatic final settlement calculation
 - ✅ Shareable summary text
 

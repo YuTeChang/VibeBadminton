@@ -14,6 +14,7 @@ export default function CreateSession() {
   const [sessionDate, setSessionDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [gameMode, setGameMode] = useState<"doubles" | "singles">("doubles");
   const [players, setPlayers] = useState<Player[]>([
     { id: "player-1", name: "" },
     { id: "player-2", name: "" },
@@ -46,7 +47,8 @@ export default function CreateSession() {
   };
 
   const removePlayer = (index: number) => {
-    if (players.length > 4) {
+    const minRequired = gameMode === "singles" ? 2 : 4;
+    if (players.length > minRequired) {
       setPlayers(players.filter((_, i) => i !== index));
       if (organizerId === players[index].id) {
         setOrganizerId("");
@@ -61,6 +63,7 @@ export default function CreateSession() {
   };
 
   const validPlayerCount = players.filter((p) => p.name.trim() !== "").length;
+  const minPlayersRequired = gameMode === "singles" ? 2 : 4;
   const hasValidOrganizer = organizerId !== "";
   const isValidCourtCost = courtCostValue === "" || (!isNaN(parseFloat(courtCostValue)) && parseFloat(courtCostValue) >= 0);
   const isValidBirdCost = birdCostTotal === "" || (!isNaN(parseFloat(birdCostTotal)) && parseFloat(birdCostTotal) >= 0);
@@ -69,7 +72,7 @@ export default function CreateSession() {
     (roundRobinGameCount === "" || (!isNaN(parseInt(roundRobinGameCount)) && parseInt(roundRobinGameCount) > 0));
 
   const canSubmit =
-    validPlayerCount >= 4 &&
+    validPlayerCount >= minPlayersRequired &&
     hasValidOrganizer &&
     isValidCourtCost &&
     isValidBirdCost &&
@@ -80,7 +83,16 @@ export default function CreateSession() {
     e.preventDefault();
     if (!canSubmit) return;
 
-    const validPlayers = players.filter((p) => p.name.trim() !== "");
+    // Assign default names to players without names, and include all players up to the number of valid players
+    // We need at least minPlayersRequired players with names (or we'll use defaults)
+    const minRequired = gameMode === "singles" ? 2 : 4;
+    const playersWithDefaults = players.map((p, index) => ({
+      ...p,
+      name: p.name.trim() || `Player ${index + 1}`,
+    }));
+    
+    // Take the first minRequired players (or all if more are provided)
+    const allPlayers = playersWithDefaults.slice(0, Math.max(minRequired, validPlayerCount));
     
     // Use default values if fields are empty
     const finalCourtCostValue = courtCostValue === "" 
@@ -93,16 +105,25 @@ export default function CreateSession() {
       ? DEFAULT_BET_PER_PLAYER 
       : parseFloat(betPerPlayer) || 0;
     
+    // Default session name to formatted date if not provided
+    const formattedDate = new Date(sessionDate).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const finalSessionName = sessionName.trim() || formattedDate;
+
     const session: Session = {
       id: `session-${Date.now()}`,
-      name: sessionName.trim() || undefined,
+      name: finalSessionName,
       date: new Date(sessionDate),
-      players: validPlayers,
+      players: allPlayers,
       organizerId,
       courtCostType,
       courtCostValue: finalCourtCostValue,
       birdCostTotal: finalBirdCostTotal,
       betPerPlayer: finalBetPerPlayer,
+      gameMode,
     };
 
     // If round robin is enabled, generate games first
@@ -111,7 +132,7 @@ export default function CreateSession() {
       const maxGames = roundRobinGameCount === "" 
         ? undefined 
         : (isNaN(parseInt(roundRobinGameCount)) ? undefined : parseInt(roundRobinGameCount));
-      const roundRobinGames = generateRoundRobinGames(validPlayers, maxGames);
+      const roundRobinGames = generateRoundRobinGames(allPlayers, maxGames, gameMode);
       if (roundRobinGames.length > 0) {
         roundRobinGamesToAdd = roundRobinGames.map((game) => ({
           teamA: game.teamA,
@@ -172,11 +193,59 @@ export default function CreateSession() {
             />
           </div>
 
+          {/* Game Mode Toggle */}
+          <div>
+            <label className="block text-base font-medium text-japandi-text-primary mb-3">
+              Game Mode
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setGameMode("doubles");
+                  // Ensure we have at least 4 players for doubles
+                  if (players.length < 4) {
+                    setPlayers([
+                      { id: "player-1", name: "" },
+                      { id: "player-2", name: "" },
+                      { id: "player-3", name: "" },
+                      { id: "player-4", name: "" },
+                    ]);
+                  }
+                }}
+                className={`flex-1 px-4 py-3 rounded-full font-medium transition-all active:scale-95 touch-manipulation ${
+                  gameMode === "doubles"
+                    ? "bg-japandi-accent-primary text-white shadow-button"
+                    : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                }`}
+              >
+                Doubles
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGameMode("singles");
+                  // For singles, we only need 2 players minimum
+                  if (players.length > 4) {
+                    setPlayers(players.slice(0, 4));
+                  }
+                }}
+                className={`flex-1 px-4 py-3 rounded-full font-medium transition-all active:scale-95 touch-manipulation ${
+                  gameMode === "singles"
+                    ? "bg-japandi-accent-primary text-white shadow-button"
+                    : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                }`}
+              >
+                Singles
+              </button>
+            </div>
+          </div>
+
           {/* Players */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="block text-base font-medium text-japandi-text-primary">
-                Players (4-6 players)
+                Players ({gameMode === "singles" ? "2-6" : "4-6"} players)
               </label>
               {players.length < 6 && (
                 <button
@@ -195,10 +264,10 @@ export default function CreateSession() {
                     type="text"
                     value={player.name}
                     onChange={(e) => updatePlayerName(index, e.target.value)}
-                    placeholder={`Player ${index + 1} name`}
+                    placeholder={`Player ${index + 1} name (default: Player ${index + 1})`}
                     className="flex-1 px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
                   />
-                  {players.length > 4 && (
+                  {players.length > (gameMode === "singles" ? 2 : 4) && (
                     <button
                       type="button"
                       onClick={() => removePlayer(index)}
@@ -210,9 +279,9 @@ export default function CreateSession() {
                 </div>
               ))}
             </div>
-            {validPlayerCount < 4 && (
+            {validPlayerCount < minPlayersRequired && (
               <p className="mt-2 text-sm text-red-600">
-                At least 4 players are required
+                At least {minPlayersRequired} players are required for {gameMode} mode
               </p>
             )}
           </div>
@@ -385,11 +454,11 @@ export default function CreateSession() {
                     !isValidRoundRobinCount ? "border-red-300" : "border-japandi-border-light"
                   }`}
                 />
-                {players.filter((p) => p.name.trim() !== "").length >= 4 && (
+                {validPlayerCount >= minPlayersRequired && (
                   <p className="mt-2 text-sm text-japandi-text-muted">
                     {roundRobinGameCount 
                       ? `Will generate up to ${parseInt(roundRobinGameCount) || 0} games`
-                      : `Will generate ${generateRoundRobinGames(players.filter((p) => p.name.trim() !== "")).length} games (all possible)`}
+                      : `Will generate ${generateRoundRobinGames(players.filter((p) => p.name.trim() !== "").map((p, i) => ({ ...p, name: p.name || `Player ${i + 1}` })), undefined, gameMode).length} games (all possible)`}
                   </p>
                 )}
                 {!isValidRoundRobinCount && (

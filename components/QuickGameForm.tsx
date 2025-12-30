@@ -7,8 +7,8 @@ import { useSession } from "@/contexts/SessionContext";
 interface QuickGameFormProps {
   players: Player[];
   onGameSaved: () => void;
-  initialTeamA?: [string, string];
-  initialTeamB?: [string, string];
+  initialTeamA?: [string, string] | [string];
+  initialTeamB?: [string, string] | [string];
   gameToUpdate?: Game | null;
 }
 
@@ -19,21 +19,34 @@ export default function QuickGameForm({
   initialTeamB,
   gameToUpdate,
 }: QuickGameFormProps) {
-  const { addGame, updateGame } = useSession();
-  const [teamA, setTeamA] = useState<[string | null, string | null]>(
-    initialTeamA || [null, null]
+  const { addGame, updateGame, session } = useSession();
+  const gameMode = session?.gameMode || "doubles";
+  const isSingles = gameMode === "singles";
+  
+  // For singles: [string | null], for doubles: [string | null, string | null]
+  const [teamA, setTeamA] = useState<[string | null, string | null] | [string | null]>(
+    isSingles 
+      ? (initialTeamA ? [initialTeamA[0]] : [null])
+      : (initialTeamA || [null, null])
   );
-  const [teamB, setTeamB] = useState<[string | null, string | null]>(
-    initialTeamB || [null, null]
+  const [teamB, setTeamB] = useState<[string | null, string | null] | [string | null]>(
+    isSingles
+      ? (initialTeamB ? [initialTeamB[0]] : [null])
+      : (initialTeamB || [null, null])
   );
   
   // Reset form when initial teams change
   useEffect(() => {
     if (initialTeamA && initialTeamB) {
-      setTeamA(initialTeamA);
-      setTeamB(initialTeamB);
+      if (isSingles) {
+        setTeamA([initialTeamA[0]]);
+        setTeamB([initialTeamB[0]]);
+      } else {
+        setTeamA(initialTeamA);
+        setTeamB(initialTeamB);
+      }
     }
-  }, [initialTeamA, initialTeamB]);
+  }, [initialTeamA, initialTeamB, isSingles]);
   const [winningTeam, setWinningTeam] = useState<"A" | "B" | null>(null);
   const [teamAScore, setTeamAScore] = useState<string>("");
   const [teamBScore, setTeamBScore] = useState<string>("");
@@ -44,34 +57,73 @@ export default function QuickGameForm({
     position: 0 | 1,
     playerId: string
   ) => {
-    if (team === "A") {
-      const newTeamA: [string | null, string | null] = [...teamA];
-      newTeamA[position] = newTeamA[position] === playerId ? null : playerId;
-      setTeamA(newTeamA);
+    if (isSingles) {
+      // Singles mode: only position 0 exists
+      if (team === "A") {
+        setTeamA([teamA[0] === playerId ? null : playerId]);
+      } else {
+        setTeamB([teamB[0] === playerId ? null : playerId]);
+      }
     } else {
-      const newTeamB: [string | null, string | null] = [...teamB];
-      newTeamB[position] = newTeamB[position] === playerId ? null : playerId;
-      setTeamB(newTeamB);
+      // Doubles mode
+      if (team === "A") {
+        const newTeamA: [string | null, string | null] = [...(teamA as [string | null, string | null])];
+        newTeamA[position] = newTeamA[position] === playerId ? null : playerId;
+        setTeamA(newTeamA);
+      } else {
+        const newTeamB: [string | null, string | null] = [...(teamB as [string | null, string | null])];
+        newTeamB[position] = newTeamB[position] === playerId ? null : playerId;
+        setTeamB(newTeamB);
+      }
     }
   };
 
+  // Auto-select last player when 3 of 4 players are selected in doubles mode
+  useEffect(() => {
+    if (!isSingles && players.length === 4 && !gameToUpdate) {
+      const selectedPlayers = [
+        ...(teamA as [string | null, string | null]),
+        ...(teamB as [string | null, string | null])
+      ].filter(p => p !== null);
+      
+      if (selectedPlayers.length === 3) {
+        // Find the unselected player
+        const unselectedPlayer = players.find(p => !selectedPlayers.includes(p.id));
+        if (unselectedPlayer) {
+          // Determine which team and position needs the player
+          const teamAArray = teamA as [string | null, string | null];
+          const teamBArray = teamB as [string | null, string | null];
+          
+          if (!teamAArray[0] || !teamAArray[1]) {
+            const pos = teamAArray[0] ? 1 : 0;
+            setTeamA([...teamAArray.slice(0, pos), unselectedPlayer.id, ...teamAArray.slice(pos + 1)] as [string | null, string | null]);
+          } else if (!teamBArray[0] || !teamBArray[1]) {
+            const pos = teamBArray[0] ? 1 : 0;
+            setTeamB([...teamBArray.slice(0, pos), unselectedPlayer.id, ...teamBArray.slice(pos + 1)] as [string | null, string | null]);
+          }
+        }
+      }
+    }
+  }, [teamA, teamB, players, isSingles, gameToUpdate]);
+
   const isPlayerSelected = (playerId: string): boolean => {
     return (
-      teamA.includes(playerId) ||
-      teamB.includes(playerId) ||
+      (Array.isArray(teamA) ? teamA.includes(playerId) : teamA[0] === playerId) ||
+      (Array.isArray(teamB) ? teamB.includes(playerId) : teamB[0] === playerId) ||
       false
     );
   };
 
-  const teamsComplete =
-    teamA[0] &&
-    teamA[1] &&
-    teamB[0] &&
-    teamB[1] &&
-    teamA[0] !== teamA[1] &&
-    teamB[0] !== teamB[1] &&
-    !teamA.includes(teamB[0] as string) &&
-    !teamA.includes(teamB[1] as string);
+  const teamsComplete = isSingles
+    ? teamA[0] && teamB[0] && teamA[0] !== teamB[0]
+    : (teamA as [string | null, string | null])[0] &&
+      (teamA as [string | null, string | null])[1] &&
+      (teamB as [string | null, string | null])[0] &&
+      (teamB as [string | null, string | null])[1] &&
+      (teamA as [string | null, string | null])[0] !== (teamA as [string | null, string | null])[1] &&
+      (teamB as [string | null, string | null])[0] !== (teamB as [string | null, string | null])[1] &&
+      !(teamA as [string | null, string | null]).includes((teamB as [string | null, string | null])[0] as string) &&
+      !(teamA as [string | null, string | null]).includes((teamB as [string | null, string | null])[1] as string);
 
   const canSave = teamsComplete && winningTeam !== null;
 
@@ -89,18 +141,33 @@ export default function QuickGameForm({
         });
       } else {
         // Create a new game
-        addGame({
-          teamA: [teamA[0]!, teamA[1]!],
-          teamB: [teamB[0]!, teamB[1]!],
-          winningTeam: winningTeam!,
-          teamAScore: teamAScore ? parseInt(teamAScore) : undefined,
-          teamBScore: teamBScore ? parseInt(teamBScore) : undefined,
-        });
+        if (isSingles) {
+          addGame({
+            teamA: [teamA[0]!],
+            teamB: [teamB[0]!],
+            winningTeam: winningTeam!,
+            teamAScore: teamAScore ? parseInt(teamAScore) : undefined,
+            teamBScore: teamBScore ? parseInt(teamBScore) : undefined,
+          });
+        } else {
+          addGame({
+            teamA: [(teamA as [string | null, string | null])[0]!, (teamA as [string | null, string | null])[1]!],
+            teamB: [(teamB as [string | null, string | null])[0]!, (teamB as [string | null, string | null])[1]!],
+            winningTeam: winningTeam!,
+            teamAScore: teamAScore ? parseInt(teamAScore) : undefined,
+            teamBScore: teamBScore ? parseInt(teamBScore) : undefined,
+          });
+        }
       }
 
       // Reset form
-      setTeamA([null, null]);
-      setTeamB([null, null]);
+      if (isSingles) {
+        setTeamA([null]);
+        setTeamB([null]);
+      } else {
+        setTeamA([null, null]);
+        setTeamB([null, null]);
+      }
       setWinningTeam(null);
       setTeamAScore("");
       setTeamBScore("");
@@ -125,17 +192,21 @@ export default function QuickGameForm({
       {/* Team A */}
       <div>
         <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
-          Team A
+          {isSingles ? "Player A" : "Team A"}
         </h3>
-        <div className="grid grid-cols-2 gap-4">
-          {[0, 1].map((position) => (
+        <div className={isSingles ? "" : "grid grid-cols-2 gap-4"}>
+          {(isSingles ? [0] : [0, 1]).map((position) => (
             <div key={position}>
-              <div className="text-sm text-japandi-text-muted mb-2">
-                Player {position + 1}
-              </div>
+              {!isSingles && (
+                <div className="text-sm text-japandi-text-muted mb-2">
+                  Player {position + 1}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {players.map((player) => {
-                  const isSelected = teamA[position] === player.id;
+                  const isSelected = isSingles 
+                    ? (teamA as [string | null])[0] === player.id
+                    : (teamA as [string | null, string | null])[position] === player.id;
                   const isDisabled =
                     isPlayerSelected(player.id) && !isSelected;
 
@@ -168,17 +239,21 @@ export default function QuickGameForm({
       {/* Team B */}
       <div>
         <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
-          Team B
+          {isSingles ? "Player B" : "Team B"}
         </h3>
-        <div className="grid grid-cols-2 gap-4">
-          {[0, 1].map((position) => (
+        <div className={isSingles ? "" : "grid grid-cols-2 gap-4"}>
+          {(isSingles ? [0] : [0, 1]).map((position) => (
             <div key={position}>
-              <div className="text-sm text-japandi-text-muted mb-2">
-                Player {position + 1}
-              </div>
+              {!isSingles && (
+                <div className="text-sm text-japandi-text-muted mb-2">
+                  Player {position + 1}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {players.map((player) => {
-                  const isSelected = teamB[position] === player.id;
+                  const isSelected = isSingles
+                    ? (teamB as [string | null])[0] === player.id
+                    : (teamB as [string | null, string | null])[position] === player.id;
                   const isDisabled =
                     isPlayerSelected(player.id) && !isSelected;
 

@@ -13,14 +13,15 @@ export interface Session {
   courtCostValue: number;
   birdCostTotal: number;
   betPerPlayer: number;
+  gameMode: "doubles" | "singles"; // doubles or singles mode
 }
 
 export interface Game {
   id: string;
   sessionId: string;
   gameNumber: number;
-  teamA: [string, string]; // player IDs
-  teamB: [string, string]; // player IDs
+  teamA: [string, string] | [string]; // player IDs - doubles: [string, string], singles: [string]
+  teamB: [string, string] | [string]; // player IDs - doubles: [string, string], singles: [string]
   winningTeam: "A" | "B" | null; // null for unplayed round robin games
   teamAScore?: number;
   teamBScore?: number;

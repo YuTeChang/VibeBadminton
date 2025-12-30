@@ -73,7 +73,7 @@ export default function SummaryPage() {
               <table className="min-w-full">
                 <thead className="bg-japandi-background-primary">
                   <tr>
-                    <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
+                    <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-japandi-text-primary uppercase tracking-wider min-w-[120px]">
                       Player
                     </th>
                     <th className="px-3 sm:px-5 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
@@ -90,11 +90,11 @@ export default function SummaryPage() {
                 <tbody className="divide-y divide-japandi-border-light">
                   {settlement.map((s) => (
                     <tr key={s.playerId}>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-sm sm:text-base font-medium text-japandi-text-primary">
-                        <div className="flex flex-col sm:block">
-                          <span>{s.playerName}</span>
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-sm sm:text-base font-medium text-japandi-text-primary max-w-[150px] sm:max-w-none">
+                        <div className="flex flex-col sm:block min-w-0">
+                          <span className="break-words break-all">{s.playerName}</span>
                           {s.playerId === session.organizerId && (
-                            <span className="ml-0 sm:ml-2 text-xs text-japandi-accent-primary block sm:inline">
+                            <span className="ml-0 sm:ml-2 text-xs text-japandi-accent-primary block sm:inline whitespace-nowrap">
                               (Organizer)
                             </span>
                           )}

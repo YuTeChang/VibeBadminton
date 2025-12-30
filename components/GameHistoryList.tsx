@@ -12,7 +12,9 @@ export default function GameHistoryList({
   games,
   players,
 }: GameHistoryListProps) {
-  const { removeLastGame } = useSession();
+  const { removeLastGame, session } = useSession();
+  const gameMode = session?.gameMode || "doubles";
+  const isSingles = gameMode === "singles";
   
   // Only show played games in history (filter out unplayed round robin games)
   const playedGames = games.filter(game => game.winningTeam !== null);
@@ -22,8 +24,12 @@ export default function GameHistoryList({
   };
 
   const formatGameResult = (game: Game): string => {
-    const teamANames = game.teamA.map(getPlayerName).join(" & ");
-    const teamBNames = game.teamB.map(getPlayerName).join(" & ");
+    const teamANames = isSingles 
+      ? getPlayerName(game.teamA[0])
+      : game.teamA.map(getPlayerName).join(" & ");
+    const teamBNames = isSingles
+      ? getPlayerName(game.teamB[0])
+      : game.teamB.map(getPlayerName).join(" & ");
     
     if (game.winningTeam === null) {
       return `${teamANames} vs ${teamBNames}`;

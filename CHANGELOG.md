@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased] - 2024-12-XX
+
+### Added
+- **Singles Mode Support**: Added toggle to switch between doubles and singles gameplay modes. Singles mode supports 2-6 players with 1v1 matchups.
+- **Default Player Names**: Players without names automatically get default names (Player 1, Player 2, etc.).
+- **Multiple Sessions Support**: Home page now displays all created sessions, allowing users to switch between different sessions.
+- **Session Name Default**: Session name automatically defaults to the formatted date if not provided.
+- **Auto-Select Last Player**: In 4-player doubles mode, the last player is automatically selected when 3 players are chosen.
+
+### Fixed
+- **Long Player Names**: Fixed text truncation issue in summary screen - player names now wrap properly and display fully.
+- **Mobile UI**: Removed floating action button that blocked screen on mobile. Record game functionality is now accessible via bottom tab navigation.
+- **Multiple Sessions Display**: Fixed issue where only one session was visible. All sessions are now stored and displayed on the home page.
+
+### Changed
+- **Mobile Navigation**: Replaced floating action button with bottom tab navigation for better mobile UX.
+- **Session Management**: Sessions are now stored in a list, allowing users to create and manage multiple sessions.
+- **Game Mode Architecture**: Refactored to support both doubles and singles modes while maintaining code scalability and reusability.
+
 ## [Unreleased] - 2024-12-15
 
 ### Fixed

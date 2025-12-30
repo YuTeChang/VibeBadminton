@@ -6,28 +6,44 @@ import { Session, Game, Player } from "@/types";
 interface SessionContextType {
   session: Session | null;
   games: Game[];
+  allSessions: Session[];
   setSession: (session: Session, initialGames?: Omit<Game, "id" | "sessionId" | "gameNumber">[]) => void;
   addGame: (game: Omit<Game, "id" | "sessionId" | "gameNumber">) => void;
   addGames: (games: Omit<Game, "id" | "sessionId" | "gameNumber">[]) => void;
   updateGame: (gameId: string, updates: Partial<Game>) => void;
   removeLastGame: () => void;
   clearSession: () => void;
+  loadSession: (sessionId: string) => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 const STORAGE_KEY_SESSION = "vibebadminton_session";
 const STORAGE_KEY_GAMES = "vibebadminton_games";
+const STORAGE_KEY_ALL_SESSIONS = "vibebadminton_all_sessions";
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<Session | null>(null);
   const [games, setGames] = useState<Game[]>([]);
+  const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load session and games from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
+        // Load all sessions
+        const savedAllSessions = localStorage.getItem(STORAGE_KEY_ALL_SESSIONS);
+        if (savedAllSessions) {
+          const parsedAllSessions = JSON.parse(savedAllSessions);
+          const sessionsWithDates = parsedAllSessions.map((s: Session) => ({
+            ...s,
+            date: new Date(s.date),
+            gameMode: s.gameMode || "doubles", // backward compatibility
+          }));
+          setAllSessions(sessionsWithDates);
+        }
+
         const savedSession = localStorage.getItem(STORAGE_KEY_SESSION);
         const savedGames = localStorage.getItem(STORAGE_KEY_GAMES);
         
@@ -35,6 +51,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           const parsedSession = JSON.parse(savedSession);
           // Convert date string back to Date object
           parsedSession.date = new Date(parsedSession.date);
+          // Add default gameMode for backward compatibility
+          if (!parsedSession.gameMode) {
+            parsedSession.gameMode = "doubles";
+          }
           setSessionState(parsedSession);
           
           // Only load games if they belong to this session
@@ -64,6 +84,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (isLoaded && typeof window !== "undefined") {
       if (session) {
         localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
+        
+        // Also save to all sessions list
+        setAllSessions((prev) => {
+          const existingIndex = prev.findIndex((s) => s.id === session.id);
+          let updated: Session[];
+          if (existingIndex >= 0) {
+            updated = [...prev];
+            updated[existingIndex] = session;
+          } else {
+            updated = [...prev, session];
+          }
+          localStorage.setItem(STORAGE_KEY_ALL_SESSIONS, JSON.stringify(updated));
+          return updated;
+        });
       } else {
         localStorage.removeItem(STORAGE_KEY_SESSION);
       }
@@ -160,6 +194,28 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const loadSession = useCallback((sessionId: string) => {
+    const sessionToLoad = allSessions.find((s) => s.id === sessionId);
+    if (sessionToLoad) {
+      setSessionState(sessionToLoad);
+      // Save as active session
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(sessionToLoad));
+        // Load games for this session
+        const savedGames = localStorage.getItem(STORAGE_KEY_GAMES);
+        if (savedGames) {
+          const parsedGames = JSON.parse(savedGames);
+          const filteredGames = parsedGames.filter(
+            (game: Game) => game.sessionId === sessionId
+          );
+          setGames(filteredGames);
+        } else {
+          setGames([]);
+        }
+      }
+    }
+  }, [allSessions]);
+
   const clearSession = useCallback(() => {
     setSessionState(null);
     setGames([]);
@@ -174,12 +230,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       value={{
         session,
         games,
+        allSessions,
         setSession,
         addGame,
         addGames,
         updateGame,
         removeLastGame,
         clearSession,
+        loadSession,
       }}
     >
       {children}

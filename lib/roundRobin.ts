@@ -1,21 +1,48 @@
 import { Player } from "@/types";
 
 export interface RoundRobinGame {
-  teamA: [string, string]; // player IDs
-  teamB: [string, string]; // player IDs
+  teamA: [string, string] | [string]; // player IDs - doubles: [string, string], singles: [string]
+  teamB: [string, string] | [string]; // player IDs - doubles: [string, string], singles: [string]
 }
 
 /**
- * Generate round robin game combinations for badminton doubles
- * Ensures each player plays with every other player as a teammate
+ * Generate round robin game combinations for badminton doubles or singles
+ * For doubles: Ensures each player plays with every other player as a teammate
  * and against every other player as evenly as possible
+ * For singles: Ensures each player plays against every other player
  * @param players Array of players
  * @param maxGames Optional maximum number of games to generate. If not specified, generates all possible games.
+ * @param gameMode "doubles" or "singles" mode
  */
-export function generateRoundRobinGames(players: Player[], maxGames?: number): RoundRobinGame[] {
+export function generateRoundRobinGames(players: Player[], maxGames?: number, gameMode: "doubles" | "singles" = "doubles"): RoundRobinGame[] {
   const playerIds = players.map((p) => p.id);
   let games: RoundRobinGame[] = [];
 
+  if (gameMode === "singles") {
+    // For singles, generate all 1v1 matchups
+    if (playerIds.length < 2) {
+      return games; // Need at least 2 players for singles
+    }
+
+    // Generate all unique 1v1 matchups
+    for (let i = 0; i < playerIds.length; i++) {
+      for (let j = i + 1; j < playerIds.length; j++) {
+        games.push({
+          teamA: [playerIds[i]] as [string],
+          teamB: [playerIds[j]] as [string],
+        });
+      }
+    }
+
+    // Apply maxGames limit if specified
+    if (maxGames !== undefined && games.length > maxGames) {
+      return games.slice(0, maxGames);
+    }
+
+    return games;
+  }
+
+  // Doubles mode (original logic)
   if (playerIds.length < 4) {
     return games; // Need at least 4 players for doubles
   }
@@ -136,8 +163,8 @@ export function generateRoundRobinGames(players: Player[], maxGames?: number): R
 /**
  * Get a preview of round robin games (first few games)
  */
-export function getRoundRobinPreview(players: Player[], maxGames: number = 5): RoundRobinGame[] {
-  const allGames = generateRoundRobinGames(players);
+export function getRoundRobinPreview(players: Player[], maxGames: number = 5, gameMode: "doubles" | "singles" = "doubles"): RoundRobinGame[] {
+  const allGames = generateRoundRobinGames(players, undefined, gameMode);
   return allGames.slice(0, maxGames);
 }
 

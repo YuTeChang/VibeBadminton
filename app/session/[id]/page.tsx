@@ -8,7 +8,6 @@ import LiveStatsCard from "@/components/LiveStatsCard";
 import QuickGameForm from "@/components/QuickGameForm";
 import GameHistoryList from "@/components/GameHistoryList";
 import BottomTabNav from "@/components/BottomTabNav";
-import FloatingActionButton from "@/components/FloatingActionButton";
 import { calculatePlayerStats } from "@/lib/calculations";
 import { Game } from "@/types";
 
@@ -54,9 +53,6 @@ export default function SessionPage() {
     setPrefillGame(null); // Clear prefill
   };
 
-  const handleFABClick = () => {
-    setActiveTab("record");
-  };
 
   // Get all unplayed scheduled games
   const scheduledGames = games.filter(game => game.winningTeam === null);
@@ -110,9 +106,19 @@ export default function SessionPage() {
                         Game {nextUnplayedGame.gameNumber}
                       </div>
                       <div className="text-sm sm:text-base text-japandi-text-secondary break-words">
-                        {session.players.find(p => p.id === nextUnplayedGame.teamA[0])?.name} & {session.players.find(p => p.id === nextUnplayedGame.teamA[1])?.name}
-                        {" vs "}
-                        {session.players.find(p => p.id === nextUnplayedGame.teamB[0])?.name} & {session.players.find(p => p.id === nextUnplayedGame.teamB[1])?.name}
+                        {session.gameMode === "singles" ? (
+                          <>
+                            {session.players.find(p => p.id === nextUnplayedGame.teamA[0])?.name}
+                            {" vs "}
+                            {session.players.find(p => p.id === nextUnplayedGame.teamB[0])?.name}
+                          </>
+                        ) : (
+                          <>
+                            {session.players.find(p => p.id === nextUnplayedGame.teamA[0])?.name} & {session.players.find(p => p.id === nextUnplayedGame.teamA[1])?.name}
+                            {" vs "}
+                            {session.players.find(p => p.id === nextUnplayedGame.teamB[0])?.name} & {session.players.find(p => p.id === nextUnplayedGame.teamB[1])?.name}
+                          </>
+                        )}
                       </div>
                     </div>
                     <button
@@ -150,8 +156,12 @@ export default function SessionPage() {
                     {upcomingGames.map((game) => {
                       const getPlayerName = (id: string) =>
                         session.players.find((p) => p.id === id)?.name || "";
-                      const teamA = game.teamA.map(getPlayerName).join(" & ");
-                      const teamB = game.teamB.map(getPlayerName).join(" & ");
+                      const teamA = session.gameMode === "singles" 
+                        ? getPlayerName(game.teamA[0])
+                        : game.teamA.map(getPlayerName).join(" & ");
+                      const teamB = session.gameMode === "singles"
+                        ? getPlayerName(game.teamB[0])
+                        : game.teamB.map(getPlayerName).join(" & ");
 
                       return (
                         <div
@@ -204,8 +214,12 @@ export default function SessionPage() {
                     .map((game) => {
                       const getPlayerName = (id: string) =>
                         session.players.find((p) => p.id === id)?.name || "";
-                      const teamA = game.teamA.map(getPlayerName).join(" & ");
-                      const teamB = game.teamB.map(getPlayerName).join(" & ");
+                      const teamA = session.gameMode === "singles" 
+                        ? getPlayerName(game.teamA[0])
+                        : game.teamA.map(getPlayerName).join(" & ");
+                      const teamB = session.gameMode === "singles"
+                        ? getPlayerName(game.teamB[0])
+                        : game.teamB.map(getPlayerName).join(" & ");
                       const winner = game.winningTeam === "A" ? teamA : teamB;
 
                       return (
@@ -235,11 +249,6 @@ export default function SessionPage() {
               </div>
             )}
 
-            {/* FAB for quick record */}
-            <FloatingActionButton
-              onClick={handleFABClick}
-              label="Record Game"
-            />
           </div>
         )}
 

@@ -36,11 +36,12 @@
 5. Session state stored in React Context
 
 ### Game Logging Flow
-1. User selects Team A (2 players)
-2. User selects Team B (2 players)
+1. User selects Team A (2 players for doubles, 1 player for singles)
+2. User selects Team B (2 players for doubles, 1 player for singles)
 3. User marks winning team
 4. Game object created and added to session
 5. UI updates with new game in list
+6. In 4-player doubles mode, last player auto-selected when 3 are chosen
 
 ### Summary Calculation Flow
 1. User navigates to summary page
@@ -55,9 +56,10 @@
 ## State Management
 
 ### Session Context
-- Stores current session data
+- Stores current session data (with gameMode: "doubles" | "singles")
 - Stores games array
-- Provides methods to add games, update session
+- Stores all sessions list for multi-session support
+- Provides methods to add games, update session, load session, switch between sessions
 
 ### No External State Management
 - MVP uses React built-in state

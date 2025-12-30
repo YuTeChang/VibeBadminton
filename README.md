@@ -1,16 +1,18 @@
 # VibeBadminton
 
-A tiny web app that helps groups of friends track their badminton doubles games during a session and automatically calculates wins/losses, gambling results, shared costs, and final "who owes who how much" at the end of the night.
+A tiny web app that helps groups of friends track their badminton games (doubles or singles) during a session and automatically calculates wins/losses, gambling results, shared costs, and final "who owes who how much" at the end of the night.
 
 ## Features
 
 - **Create Sessions**: Set up a badminton session with players and financial settings
+- **Game Modes**: Support for both doubles (4-6 players) and singles (2-6 players) gameplay
 - **Round Robin Scheduling**: Generate scheduled game combinations with customizable count
-- **Log Games**: Quickly log games during play (select teams, mark winner, or use scheduled games)
+- **Log Games**: Quickly log games during play (select teams/players, mark winner, or use scheduled games)
 - **Live Stats**: Real-time win/loss tracking and gambling net calculations
 - **Game Planning**: See upcoming scheduled games to plan your session time
 - **Auto-Calculate**: Automatically calculates wins/losses, gambling net, and final settlement
-- **Mobile-First**: Designed for use at the court
+- **Multiple Sessions**: Create and manage multiple sessions, switch between them easily
+- **Mobile-First**: Designed for use at the court with optimized mobile navigation
 
 ## Screenshots
 
