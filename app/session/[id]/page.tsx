@@ -19,6 +19,7 @@ export default function SessionPage() {
   const router = useRouter();
   const { session, games, setSession } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>("stats");
+  const [prefillGame, setPrefillGame] = useState<Game | null>(null);
 
   // Wait a moment for localStorage to load, then check if session exists
   useEffect(() => {
@@ -46,8 +47,6 @@ export default function SessionPage() {
     session.players,
     session.betPerPlayer
   );
-
-  const [prefillGame, setPrefillGame] = useState<Game | null>(null);
 
   const handleGameSaved = () => {
     // Switch to stats tab to show updated stats

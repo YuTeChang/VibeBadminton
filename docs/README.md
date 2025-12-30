@@ -30,19 +30,7 @@ Helps groups of 4-6 friends track badminton doubles games during a session and a
 
 ## Product Overview
 
-### Problem
-Casual badminton groups forget who won how many games and who owes what money, leading to confusion and awkward money conversations.
-
-### Solution
-A simple web app that:
-1. Lets you log games during play (select teams, mark winner)
-2. Automatically calculates final money settlement
-3. Generates shareable text for easy distribution
-
-### Target Users
-- Casual badminton groups (4-6 players)
-- Friends who play doubles regularly
-- Groups that bet small amounts per game
+See **[PRODUCT.md](PRODUCT.md)** for complete product overview, problem statement, and future roadmap.
 
 ---
 
@@ -197,26 +185,31 @@ All MVP features implemented, tested, and polished. Ready for deployment.
 ## Reference Documentation
 
 ### Essential References
+- **[Product Overview](PRODUCT.md)** - Problem, solution, target users, future features
 - **[MVP Specification](reference/mvp/mvp_spec.md)** - Complete requirements and data model
 - **[Testing Checklist](TESTING_CHECKLIST.md)** - Manual testing guide
+- **[Design Decisions](decisions.md)** - Important technical and design decisions
 
-### Detailed/Historical Docs
-For detailed technical docs, historical context, and planning materials, see `_archive/`:
-- Engineering architecture details
+### Engineering Documentation
+- **[System Overview](engineering/system_overview.md)** - Architecture and data flow
+- **[Frontend Structure](engineering/frontend.md)** - Pages, components, routing
+- **[User Flows](engineering/flows.md)** - Key interaction flows
+- **[Design System](engineering/design-system.md)** - Design tokens and styling guide
+- **[Component System](engineering/component-system.md)** - Component architecture
+
+### Test Results
+- **[Screenshot Test Results](screenshots/test-results/)** - Visual proof of all features (11 screenshots)
+
+### Historical/Planning Docs
+For historical context and planning materials, see `_archive/`:
 - Development process and progress logs
-- Design system tokens
-- AI agent system
+- AI agent system (if using AI agents)
 
 ---
 
-## AI Agents
+## AI Agents (Optional)
 
-This project uses specialized AI agents:
-- **PM Agent**: Updates documentation and tracks progress
-- **Engineer Agent**: Implements features
-- **QA Agent**: Designs tests
-
-See `docs/prompts/USAGE_GUIDE.md` for details.
+If using AI agents for development, see `_archive/prompts/` for agent prompts and context files.
 
 ---
 

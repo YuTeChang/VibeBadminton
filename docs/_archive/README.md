@@ -1,33 +1,20 @@
 # Archived Documentation
 
-This folder contains detailed reference documentation that has been consolidated into the main [README.md](../README.md).
+This folder contains historical and planning documentation that's not needed for day-to-day development.
 
 ## Contents
 
-- **engineering/** - Detailed technical architecture and design system
-- **process/** - Development process, progress logs, and decisions
-- **prompts/** - AI agent prompts and context files
-- **screenshots/** - Screenshot documentation and test results
-- **vision/** - Product vision and use cases
+- **process/** - Development history (dev_plan, progress_log, ai_context)
+- **prompts/** - AI agent prompts and context files (only needed if using AI agents)
+- **vision/** - Original product vision and use cases (consolidated into PRODUCT.md)
 
-## When to Use These
+## When to Use
 
-These detailed docs are useful for:
-- Deep technical reference
-- Historical context
-- Specific implementation details
+These docs are useful for:
+- Understanding project history
 - Planning future features
-- AI agent context
-
-## Quick Access
-
-- **Product Vision**: `vision/product_vision.md`
-- **System Architecture**: `engineering/system_overview.md`
-- **Development Plan**: `process/dev_plan.md`
-- **Design System**: `engineering/design-system.md`
-- **Test Screenshots**: `screenshots/test-results/`
+- AI agent context (if using AI agents)
 
 ---
 
-**For most users and engineers**: Start with [../README.md](../README.md) - it has everything essential in one place.
-
+**For current development**: See main [README.md](../README.md) and [PRODUCT.md](../PRODUCT.md)
