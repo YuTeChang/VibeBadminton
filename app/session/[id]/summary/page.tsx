@@ -68,61 +68,59 @@ export default function SummaryPage() {
 
         {/* Stats Table */}
         <div className="bg-japandi-background-card rounded-card border border-japandi-border-light overflow-hidden mb-6 shadow-soft">
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <div className="inline-block min-w-full align-middle">
-              <table className="min-w-full">
-                <thead className="bg-japandi-background-primary">
-                  <tr>
-                    <th className="px-3 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-japandi-text-primary uppercase tracking-wider min-w-[120px]">
-                      Player
-                    </th>
-                    <th className="px-3 sm:px-5 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
-                      W/L
-                    </th>
-                    <th className="px-3 sm:px-5 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
-                      Net
-                    </th>
-                    <th className="px-3 sm:px-5 py-3 sm:py-4 text-right text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
-                      Pay Organizer
-                    </th>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-japandi-background-primary">
+                <tr>
+                  <th className="px-4 sm:px-5 py-3 sm:py-4 text-left text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
+                    Player
+                  </th>
+                  <th className="px-4 sm:px-5 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
+                    W/L
+                  </th>
+                  <th className="px-4 sm:px-5 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
+                    Net
+                  </th>
+                  <th className="px-4 sm:px-5 py-3 sm:py-4 text-right text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
+                    Pay Organizer
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-japandi-border-light">
+                {settlement.map((s) => (
+                  <tr key={s.playerId}>
+                    <td className="px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base font-medium text-japandi-text-primary">
+                      <div className="flex flex-col sm:block">
+                        <span className="break-words">{s.playerName}</span>
+                        {s.playerId === session.organizerId && (
+                          <span className="ml-0 sm:ml-2 text-xs text-japandi-accent-primary font-medium block sm:inline whitespace-nowrap">
+                            (Organizer)
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-center text-japandi-text-secondary">
+                      {s.wins}-{s.losses}
+                    </td>
+                    <td
+                      className={`px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-center font-semibold ${
+                        s.gamblingNet > 0
+                          ? "text-green-700"
+                          : s.gamblingNet < 0
+                          ? "text-japandi-text-secondary"
+                          : "text-japandi-text-muted"
+                      }`}
+                    >
+                      {s.gamblingNet > 0 && "+"}
+                      {formatCurrency(s.gamblingNet)}
+                    </td>
+                    <td className="px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-right font-semibold text-japandi-text-primary">
+                      {formatCurrency(s.amountToPayOrganizer)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-japandi-border-light">
-                  {settlement.map((s) => (
-                    <tr key={s.playerId}>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-sm sm:text-base font-medium text-japandi-text-primary max-w-[150px] sm:max-w-none">
-                        <div className="flex flex-col sm:block min-w-0">
-                          <span className="break-words break-all">{s.playerName}</span>
-                          {s.playerId === session.organizerId && (
-                            <span className="ml-0 sm:ml-2 text-xs text-japandi-accent-primary block sm:inline whitespace-nowrap">
-                              (Organizer)
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-center text-japandi-text-secondary">
-                        {s.wins}-{s.losses}
-                      </td>
-                      <td
-                        className={`px-3 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-center font-medium ${
-                          s.gamblingNet > 0
-                            ? "text-japandi-accent-primary"
-                            : s.gamblingNet < 0
-                            ? "text-japandi-text-secondary"
-                            : "text-japandi-text-muted"
-                        }`}
-                      >
-                        {s.gamblingNet > 0 && "+"}
-                        {formatCurrency(s.gamblingNet)}
-                      </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-sm sm:text-base text-right font-semibold text-japandi-text-primary">
-                        {formatCurrency(s.amountToPayOrganizer)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -139,13 +137,13 @@ export default function SummaryPage() {
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
-          <pre className="bg-japandi-background-primary rounded-card p-4 text-sm text-japandi-text-primary whitespace-pre-wrap font-mono">
+          <div className="bg-japandi-background-primary rounded-card p-4 text-sm text-japandi-text-primary whitespace-pre-wrap font-mono select-text cursor-text border border-japandi-border-light">
             {shareableText}
-          </pre>
+          </div>
         </div>
 
         {/* Actions */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               href={`/session/${session.id}`}
@@ -160,16 +158,18 @@ export default function SummaryPage() {
               Back to Home
             </Link>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="pt-2">
             <Link
               href="/create-session"
-              className="flex-1 px-5 py-3 bg-japandi-accent-primary hover:bg-japandi-accent-hover active:scale-95 text-white font-semibold rounded-full transition-all text-center shadow-button touch-manipulation"
+              className="block w-full px-5 py-3 bg-japandi-accent-primary hover:bg-japandi-accent-hover active:scale-95 text-white font-semibold rounded-full transition-all text-center shadow-button touch-manipulation"
             >
               New Session
             </Link>
+          </div>
+          <div className="pt-1">
             <button
               onClick={handleEndSession}
-              className="flex-1 px-5 py-3 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-semibold rounded-full transition-all shadow-button touch-manipulation"
+              className="w-full px-5 py-3 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-semibold rounded-full transition-all shadow-button touch-manipulation"
             >
               End Session
             </button>
