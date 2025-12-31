@@ -93,29 +93,6 @@ export async function runMigration(): Promise<MigrationResult> {
           if (s.match(/^\s*$/)) return false;
           return true;
         });
-      
-      // Verify critical columns exist before creating indexes
-      // This prevents "column does not exist" errors
-      const verifyColumnBeforeIndex = async (table: string, column: string, indexStatement: string) => {
-        try {
-          const checkResult = await client.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_schema = 'public' 
-            AND table_name = $1 
-            AND column_name = $2
-          `, [table, column]);
-          
-          if (checkResult.rows.length === 0) {
-            console.log(`[Migration] ⚠️  Column ${table}.${column} does not exist yet, skipping index creation`);
-            return false;
-          }
-          return true;
-        } catch {
-          return false;
-        }
-      };
-
       const client = await pool.connect();
       
       // Helper to verify column exists before creating index
