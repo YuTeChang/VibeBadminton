@@ -14,10 +14,30 @@ function CreateSessionContent() {
   const initialGroupId = searchParams.get("groupId");
   
   const { setSession } = useSession();
-  const [sessionName, setSessionName] = useState("");
+  
+  // Helper to format date and time for default session name
+  const getDefaultSessionName = (date: Date) => {
+    const d = new Date(date);
+    const dateStr = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const timeStr = d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return `${dateStr} ${timeStr}`;
+  };
+  
   const [sessionDate, setSessionDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [sessionTime, setSessionTime] = useState(
+    new Date().toTimeString().slice(0, 5) // HH:MM format
+  );
+  const [sessionName, setSessionName] = useState("");
   const [gameMode, setGameMode] = useState<"doubles" | "singles">("doubles");
   const [players, setPlayers] = useState<Player[]>([
     { id: "player-1", name: "" },
@@ -204,14 +224,17 @@ function CreateSessionContent() {
       ? parseFloat(betPerPlayer) || DEFAULT_BET_PER_PLAYER 
       : DEFAULT_BET_PER_PLAYER;
     
-    // Default session name to current date (YYYY-MM-DD format) if not provided
-    const defaultSessionName = new Date(sessionDate).toISOString().split('T')[0]; // YYYY-MM-DD
+    // Combine date and time for the session date
+    const sessionDateTime = new Date(`${sessionDate}T${sessionTime}`);
+    
+    // Default session name to date and time if not provided
+    const defaultSessionName = getDefaultSessionName(sessionDateTime);
     const finalSessionName = sessionName.trim() || defaultSessionName;
     
     const session: Session = {
       id: `session-${Date.now()}`,
       name: finalSessionName,
-      date: new Date(sessionDate),
+      date: sessionDateTime,
       players: allPlayers,
       organizerId: finalOrganizerId,
       courtCostType,
@@ -257,9 +280,12 @@ function CreateSessionContent() {
     }
 
     // Navigate to session page
+    // If created from a group, navigate back to group page to show the new session
     if (selectedGroupId) {
-      // If created from a group, navigate to session but allow easy return
-      router.push(`/session/${session.id}?groupId=${selectedGroupId}`);
+      // Use replace to avoid back button issues, and the group page will refresh on mount
+      router.replace(`/group/${selectedGroupId}`);
+      // Force a refresh to ensure data is reloaded
+      router.refresh();
     } else {
       router.push(`/session/${session.id}`);
     }
@@ -312,10 +338,21 @@ function CreateSessionContent() {
               type="text"
               value={sessionName}
               onChange={(e) => setSessionName(e.target.value)}
-              placeholder="e.g., Friday Night Session"
+              placeholder={(() => {
+                const sessionDateTime = new Date(`${sessionDate}T${sessionTime}`);
+                return getDefaultSessionName(sessionDateTime);
+              })()}
               className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
               aria-label="Session name (optional)"
             />
+            <p className="mt-2 text-sm text-japandi-text-muted">
+              {sessionName.trim() 
+                ? `Will be saved as: "${sessionName.trim()}"`
+                : `Will default to: "${(() => {
+                    const sessionDateTime = new Date(`${sessionDate}T${sessionTime}`);
+                    return getDefaultSessionName(sessionDateTime);
+                  })()}"`}
+            </p>
           </div>
 
           {/* Date */}

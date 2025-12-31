@@ -85,9 +85,19 @@ export default function GroupPage() {
   // Refresh data when pathname changes (e.g., when navigating back to this page)
   useEffect(() => {
     if (pathname === `/group/${groupId}`) {
+      console.log('[GroupPage] Pathname changed, refreshing data...');
       loadGroupData();
     }
   }, [pathname, groupId, loadGroupData]);
+  
+  // Also refresh when component mounts (in case we navigated here from create-session)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      console.log('[GroupPage] Component mounted, loading data...');
+      loadGroupData();
+    }, 100); // Small delay to ensure navigation is complete
+    return () => clearTimeout(timer);
+  }, [groupId]); // Only depend on groupId, not loadGroupData to avoid loops
 
   // Refresh data when page becomes visible (e.g., when navigating back from creating a session)
   useEffect(() => {
