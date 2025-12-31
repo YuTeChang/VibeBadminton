@@ -1,4 +1,4 @@
-import { sql } from '@/lib/db';
+import { createSupabaseClient } from '@/lib/supabase';
 import { Session, Player } from '@/types';
 
 export interface SessionRow {
@@ -33,15 +33,25 @@ export class SessionService {
    */
   static async getAllSessions(): Promise<Session[]> {
     try {
-      const sessionsResult = await sql<SessionRow>`
-        SELECT * FROM sessions
-        ORDER BY created_at DESC
-      `;
+      const supabase = createSupabaseClient();
+      
+      const { data: sessionsData, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (sessionsError) {
+        throw sessionsError;
+      }
+
+      if (!sessionsData) {
+        return [];
+      }
 
       const sessionsWithPlayers = await Promise.all(
-        sessionsResult.rows.map(async (session) => {
+        sessionsData.map(async (session) => {
           const players = await this.getPlayersBySessionId(session.id);
-          return this.mapRowToSession(session, players);
+          return this.mapRowToSession(session as any, players);
         })
       );
 
@@ -57,18 +67,28 @@ export class SessionService {
    */
   static async getSessionById(sessionId: string): Promise<Session | null> {
     try {
-      const result = await sql<SessionRow>`
-        SELECT * FROM sessions WHERE id = ${sessionId}
-      `;
+      const supabase = createSupabaseClient();
+      
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
 
-      if (result.rows.length === 0) {
+      if (sessionError) {
+        if (sessionError.code === 'PGRST116') {
+          // No rows returned
+          return null;
+        }
+        throw sessionError;
+      }
+
+      if (!sessionData) {
         return null;
       }
 
-      const sessionRow = result.rows[0];
       const players = await this.getPlayersBySessionId(sessionId);
-
-      return this.mapRowToSession(sessionRow, players);
+      return this.mapRowToSession(sessionData as any, players);
     } catch (error) {
       console.error('[SessionService] Error fetching session:', error);
       throw new Error('Failed to fetch session');
@@ -83,34 +103,42 @@ export class SessionService {
     roundRobinCount?: number | null
   ): Promise<Session> {
     try {
+      const supabase = createSupabaseClient();
+      
       // Insert session
-      await sql`
-        INSERT INTO sessions (
-          id, name, date, organizer_id, court_cost_type,
-          court_cost_value, bird_cost_total, bet_per_player,
-          game_mode, round_robin_count
-        ) VALUES (
-          ${session.id},
-          ${session.name || null},
-          ${session.date.toISOString()},
-          ${session.organizerId},
-          ${session.courtCostType},
-          ${session.courtCostValue},
-          ${session.birdCostTotal},
-          ${session.betPerPlayer},
-          ${session.gameMode},
-          ${roundRobinCount || null}
-        )
-      `;
+      const { error: sessionError } = await supabase
+        .from('sessions')
+        .insert({
+          id: session.id,
+          name: session.name || null,
+          date: session.date.toISOString(),
+          organizer_id: session.organizerId,
+          court_cost_type: session.courtCostType,
+          court_cost_value: session.courtCostValue,
+          bird_cost_total: session.birdCostTotal,
+          bet_per_player: session.betPerPlayer,
+          game_mode: session.gameMode,
+          round_robin_count: roundRobinCount || null,
+        });
+
+      if (sessionError) {
+        throw sessionError;
+      }
 
       // Insert players in batch
       if (session.players.length > 0) {
-        // Insert players one by one (Vercel Postgres doesn't support batch inserts easily)
-        for (const player of session.players) {
-          await sql`
-            INSERT INTO players (id, session_id, name)
-            VALUES (${player.id}, ${session.id}, ${player.name})
-          `;
+        const playersData = session.players.map(player => ({
+          id: player.id,
+          session_id: session.id,
+          name: player.name,
+        }));
+
+        const { error: playersError } = await supabase
+          .from('players')
+          .insert(playersData);
+
+        if (playersError) {
+          throw playersError;
         }
       }
 
@@ -126,9 +154,16 @@ export class SessionService {
    */
   static async deleteSession(sessionId: string): Promise<void> {
     try {
-      await sql`
-        DELETE FROM sessions WHERE id = ${sessionId}
-      `;
+      const supabase = createSupabaseClient();
+      
+      const { error } = await supabase
+        .from('sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) {
+        throw error;
+      }
     } catch (error) {
       console.error('[SessionService] Error deleting session:', error);
       throw new Error('Failed to delete session');
@@ -140,13 +175,19 @@ export class SessionService {
    */
   static async getPlayersBySessionId(sessionId: string): Promise<Player[]> {
     try {
-      const result = await sql<PlayerRow>`
-        SELECT id, name FROM players
-        WHERE session_id = ${sessionId}
-        ORDER BY created_at
-      `;
+      const supabase = createSupabaseClient();
+      
+      const { data: playersData, error: playersError } = await supabase
+        .from('players')
+        .select('id, name')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
 
-      return result.rows.map((row) => ({
+      if (playersError) {
+        throw playersError;
+      }
+
+      return (playersData || []).map((row) => ({
         id: row.id,
         name: row.name,
       }));
@@ -160,7 +201,7 @@ export class SessionService {
    * Map database row to Session type
    */
   private static mapRowToSession(
-    row: SessionRow,
+    row: any,
     players: Player[]
   ): Session {
     return {
@@ -170,9 +211,9 @@ export class SessionService {
       players,
       organizerId: row.organizer_id,
       courtCostType: row.court_cost_type as 'per_person' | 'total',
-      courtCostValue: parseFloat(row.court_cost_value),
-      birdCostTotal: parseFloat(row.bird_cost_total),
-      betPerPlayer: parseFloat(row.bet_per_player),
+      courtCostValue: parseFloat(String(row.court_cost_value || 0)),
+      birdCostTotal: parseFloat(String(row.bird_cost_total || 0)),
+      betPerPlayer: parseFloat(String(row.bet_per_player || 0)),
       gameMode: row.game_mode as 'doubles' | 'singles',
     };
   }

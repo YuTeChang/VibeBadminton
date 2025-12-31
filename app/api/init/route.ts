@@ -1,20 +1,18 @@
 import { NextResponse } from 'next/server';
-import { initDatabase } from '@/lib/db';
 
 /**
- * Initialize database schema
- * Call this endpoint once after setting up Vercel Postgres
+ * Database initialization endpoint
+ * 
+ * Note: Database schema should be initialized via Supabase SQL Editor.
+ * Run the SQL from scripts/init-db-schema.sql in Supabase Dashboard.
+ * 
+ * This endpoint is kept for backwards compatibility but does nothing.
  */
 export async function POST() {
-  try {
-    await initDatabase();
-    return NextResponse.json({ success: true, message: 'Database initialized' });
-  } catch (error) {
-    console.error('[API] Error initializing database:', error);
-    return NextResponse.json(
-      { error: 'Failed to initialize database', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ 
+    success: true, 
+    message: 'Database schema should be initialized via Supabase SQL Editor. See scripts/init-db-schema.sql',
+    note: 'This endpoint is deprecated. Use Supabase SQL Editor instead.'
+  });
 }
 

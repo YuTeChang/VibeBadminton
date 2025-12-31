@@ -10,15 +10,12 @@
     "test:screenshots": "node scripts/screenshot-test.js",
     "predeploy": "npm run lint && npm run build",
     "setup:vercel": "node scripts/setup-vercel.js",
-    "init:db": "node scripts/init-db-final.mjs",
     "init:db:sql": "cat scripts/init-db-schema.sql"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
-    "@vercel/postgres": "^0.10.0",
     "clsx": "^2.1.1",
     "next": "14.2.5",
-    "pg": "^8.16.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^3.4.0"

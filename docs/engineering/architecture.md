@@ -48,15 +48,15 @@ VibeBadminton follows a **modern full-stack Next.js architecture** with clear se
 │  └────────────────────────────────────────────────────────┘ │
 │                          ↓                                    │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │  Database Layer (lib/db.ts)                           │ │
-│  │  - Vercel Postgres connection                          │ │
-│  │  - SQL query execution                                 │ │
-│  │  - Schema initialization                              │ │
+│  │  Database Layer (lib/supabase.ts)                     │ │
+│  │  - Supabase REST API client                            │ │
+│  │  - HTTP-based database operations                      │ │
+│  │  - No direct SQL connections                           │ │
 │  └────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│              Vercel Postgres (Database)                      │
+│              Supabase (PostgreSQL via REST API)              │
 │  - sessions table                                            │
 │  - players table                                             │
 │  - games table                                               │
@@ -115,7 +115,7 @@ lib/
 ### Location
 - **API Routes**: `app/api/**/*.ts` (Next.js API routes)
 - **Services**: `lib/services/**/*.ts`
-- **Database**: `lib/db.ts`
+- **Database**: `lib/supabase.ts` (Supabase REST API client)
 
 ### Responsibilities
 1. **API Endpoints**
@@ -175,7 +175,7 @@ lib/
 5. HTTP POST → /api/sessions (backend)
 6. Validation → API route handler (backend)
 7. Business logic → SessionService.createSession() (backend)
-8. Database insert → SQL query via lib/db.ts (backend)
+8. Database insert → Supabase REST API via lib/supabase.ts (backend)
 9. Response → JSON with created session (backend → frontend)
 10. State update → SessionContext updates with server response (frontend)
 11. UI refresh → Component re-renders with new data (frontend)

@@ -1,20 +1,24 @@
 import { NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import { createSupabaseClient } from '@/lib/supabase';
 
-// Simple DB connectivity check
+// Simple DB connectivity check using Supabase REST API
 export async function GET() {
   try {
-    const result = await sql<{ ok: number }>`SELECT 1 as ok`;
-    const ok = result.rows[0]?.ok === 1;
+    const supabase = createSupabaseClient();
+    
+    // Test connection by querying sessions count
+    const { count, error } = await supabase
+      .from('sessions')
+      .select('*', { count: 'exact', head: true });
 
-    const sessionsCountResult = await sql<{ count: string }>`
-      SELECT COUNT(*)::text as count FROM sessions
-    `;
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json({
-      ok,
+      ok: true,
       db: 'connected',
-      sessionsCount: Number(sessionsCountResult.rows[0]?.count ?? 0),
+      sessionsCount: count ?? 0,
     });
   } catch (error) {
     return NextResponse.json(

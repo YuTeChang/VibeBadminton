@@ -1,4 +1,4 @@
-import { sql } from '@/lib/db';
+import { createSupabaseClient } from '@/lib/supabase';
 import { Game } from '@/types';
 
 export interface GameRow {
@@ -23,13 +23,19 @@ export class GameService {
    */
   static async getGamesBySessionId(sessionId: string): Promise<Game[]> {
     try {
-      const result = await sql<GameRow>`
-        SELECT * FROM games
-        WHERE session_id = ${sessionId}
-        ORDER BY game_number ASC
-      `;
+      const supabase = createSupabaseClient();
+      
+      const { data: gamesData, error: gamesError } = await supabase
+        .from('games')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('game_number', { ascending: true });
 
-      return result.rows.map((row) => this.mapRowToGame(row));
+      if (gamesError) {
+        throw gamesError;
+      }
+
+      return (gamesData || []).map((row) => this.mapRowToGame(row as any));
     } catch (error) {
       console.error('[GameService] Error fetching games:', error);
       throw new Error('Failed to fetch games');
@@ -45,44 +51,49 @@ export class GameService {
     gameNumber?: number
   ): Promise<Game> {
     try {
+      const supabase = createSupabaseClient();
+      
       // Get current max game number if not provided
       let nextGameNumber = gameNumber;
       if (!nextGameNumber) {
-        const maxResult = await sql<{ max_number: number | null }>`
-          SELECT MAX(game_number) as max_number FROM games
-          WHERE session_id = ${sessionId}
-        `;
-        nextGameNumber = (maxResult.rows[0]?.max_number || 0) + 1;
+        const { data: maxData, error: maxError } = await supabase
+          .from('games')
+          .select('game_number')
+          .eq('session_id', sessionId)
+          .order('game_number', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (maxError && maxError.code !== 'PGRST116') {
+          // PGRST116 is "no rows returned", which is fine
+          throw maxError;
+        }
+
+        nextGameNumber = (maxData?.game_number || 0) + 1;
       }
 
       const gameId = `${sessionId}-game-${nextGameNumber}`;
 
-      await sql`
-        INSERT INTO games (
-          id, session_id, game_number, team_a, team_b,
-          winning_team, team_a_score, team_b_score
-        ) VALUES (
-          ${gameId},
-          ${sessionId},
-          ${nextGameNumber},
-          ${JSON.stringify(game.teamA)},
-          ${JSON.stringify(game.teamB)},
-          ${game.winningTeam || null},
-          ${game.teamAScore || null},
-          ${game.teamBScore || null}
-        )
-      `;
+      const { data: insertedGame, error: insertError } = await supabase
+        .from('games')
+        .insert({
+          id: gameId,
+          session_id: sessionId,
+          game_number: nextGameNumber,
+          team_a: game.teamA,
+          team_b: game.teamB,
+          winning_team: game.winningTeam || null,
+          team_a_score: game.teamAScore || null,
+          team_b_score: game.teamBScore || null,
+        })
+        .select()
+        .single();
 
-      return {
-        id: gameId,
-        sessionId,
-        gameNumber: nextGameNumber,
-        teamA: game.teamA,
-        teamB: game.teamB,
-        winningTeam: game.winningTeam,
-        teamAScore: game.teamAScore,
-        teamBScore: game.teamBScore,
-      };
+      if (insertError) {
+        throw insertError;
+      }
+
+      return this.mapRowToGame(insertedGame as any);
     } catch (error) {
       console.error('[GameService] Error creating game:', error);
       throw new Error('Failed to create game');
@@ -97,43 +108,33 @@ export class GameService {
     games: Omit<Game, 'id' | 'sessionId' | 'gameNumber'>[]
   ): Promise<Game[]> {
     try {
-      const createdGames: Game[] = [];
-
-      // Insert games one by one (Vercel Postgres doesn't support batch inserts easily)
-      for (let i = 0; i < games.length; i++) {
-        const game = games[i];
+      const supabase = createSupabaseClient();
+      
+      const gamesData = games.map((game, i) => {
         const gameNumber = i + 1;
         const gameId = `${sessionId}-game-${gameNumber}`;
-
-        await sql`
-          INSERT INTO games (
-            id, session_id, game_number, team_a, team_b,
-            winning_team, team_a_score, team_b_score
-          ) VALUES (
-            ${gameId},
-            ${sessionId},
-            ${gameNumber},
-            ${JSON.stringify(game.teamA)},
-            ${JSON.stringify(game.teamB)},
-            ${game.winningTeam || null},
-            ${game.teamAScore || null},
-            ${game.teamBScore || null}
-          )
-        `;
-
-        createdGames.push({
+        return {
           id: gameId,
-          sessionId,
-          gameNumber,
-          teamA: game.teamA,
-          teamB: game.teamB,
-          winningTeam: game.winningTeam,
-          teamAScore: game.teamAScore,
-          teamBScore: game.teamBScore,
-        });
+          session_id: sessionId,
+          game_number: gameNumber,
+          team_a: game.teamA,
+          team_b: game.teamB,
+          winning_team: game.winningTeam || null,
+          team_a_score: game.teamAScore || null,
+          team_b_score: game.teamBScore || null,
+        };
+      });
+
+      const { data: insertedGames, error: insertError } = await supabase
+        .from('games')
+        .insert(gamesData)
+        .select();
+
+      if (insertError) {
+        throw insertError;
       }
 
-      return createdGames;
+      return (insertedGames || []).map((row) => this.mapRowToGame(row as any));
     } catch (error) {
       console.error('[GameService] Error creating games:', error);
       throw new Error('Failed to create games');
@@ -149,48 +150,43 @@ export class GameService {
     updates: Partial<Game>
   ): Promise<Game> {
     try {
-      const updateFields: string[] = [];
-      const values: any[] = [];
-
+      const supabase = createSupabaseClient();
+      
+      const updateData: any = {};
+      
       if (updates.teamA !== undefined) {
-        updateFields.push(`team_a = $${values.length + 1}`);
-        values.push(JSON.stringify(updates.teamA));
+        updateData.team_a = updates.teamA;
       }
       if (updates.teamB !== undefined) {
-        updateFields.push(`team_b = $${values.length + 1}`);
-        values.push(JSON.stringify(updates.teamB));
+        updateData.team_b = updates.teamB;
       }
       if (updates.winningTeam !== undefined) {
-        updateFields.push(`winning_team = $${values.length + 1}`);
-        values.push(updates.winningTeam);
+        updateData.winning_team = updates.winningTeam;
       }
       if (updates.teamAScore !== undefined) {
-        updateFields.push(`team_a_score = $${values.length + 1}`);
-        values.push(updates.teamAScore);
+        updateData.team_a_score = updates.teamAScore;
       }
       if (updates.teamBScore !== undefined) {
-        updateFields.push(`team_b_score = $${values.length + 1}`);
-        values.push(updates.teamBScore);
+        updateData.team_b_score = updates.teamBScore;
       }
 
-      if (updateFields.length === 0) {
+      if (Object.keys(updateData).length === 0) {
         throw new Error('No fields to update');
       }
 
-      updateFields.push(`updated_at = NOW()`);
-      values.push(gameId, sessionId);
+      const { data: updatedGame, error: updateError } = await supabase
+        .from('games')
+        .update(updateData)
+        .eq('id', gameId)
+        .eq('session_id', sessionId)
+        .select()
+        .single();
 
-      const query = `
-        UPDATE games
-        SET ${updateFields.join(', ')}
-        WHERE id = $${values.length - 1} AND session_id = $${values.length}
-        RETURNING *
-      `;
+      if (updateError) {
+        throw updateError;
+      }
 
-      const result = await sql.query(query, values);
-      const row = result.rows[0] as GameRow;
-
-      return this.mapRowToGame(row);
+      return this.mapRowToGame(updatedGame as any);
     } catch (error) {
       console.error('[GameService] Error updating game:', error);
       throw new Error('Failed to update game');
@@ -202,10 +198,17 @@ export class GameService {
    */
   static async deleteGame(sessionId: string, gameId: string): Promise<void> {
     try {
-      await sql`
-        DELETE FROM games
-        WHERE id = ${gameId} AND session_id = ${sessionId}
-      `;
+      const supabase = createSupabaseClient();
+      
+      const { error: deleteError } = await supabase
+        .from('games')
+        .delete()
+        .eq('id', gameId)
+        .eq('session_id', sessionId);
+
+      if (deleteError) {
+        throw deleteError;
+      }
     } catch (error) {
       console.error('[GameService] Error deleting game:', error);
       throw new Error('Failed to delete game');
@@ -215,7 +218,7 @@ export class GameService {
   /**
    * Map database row to Game type
    */
-  private static mapRowToGame(row: GameRow): Game {
+  private static mapRowToGame(row: any): Game {
     const parseJson = <T,>(value: unknown): T => {
       if (typeof value === 'string') {
         return JSON.parse(value) as T;
