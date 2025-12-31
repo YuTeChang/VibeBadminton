@@ -123,21 +123,68 @@ export async function POST() {
 
 /**
  * GET endpoint to check migration status
+ * Uses direct Postgres query to check if table exists in information_schema
  */
 export async function GET() {
   try {
-    const { createSupabaseClient } = await import('@/lib/supabase');
-    const supabase = createSupabaseClient();
-    
-    // Check if groups table exists
-    const { error } = await supabase.from('groups').select('id').limit(1);
-    const groupsExists = !error || error.code !== 'PGRST116';
-    
-    const automaticMigrationAvailable = !!(
+    const connectionString = 
       process.env.POSTGRES_URL || 
       process.env.POSTGRES_URL_NON_POOLING ||
-      process.env.DATABASE_URL
-    );
+      process.env.DATABASE_URL;
+
+    let groupsExists = false;
+    let automaticMigrationAvailable = !!connectionString;
+
+    if (connectionString) {
+      // Use direct Postgres query to check if table exists
+      try {
+        const { Pool } = await import('pg');
+        const pool = new Pool({
+          connectionString,
+          ssl: connectionString.includes('supabase') ? { rejectUnauthorized: false } : undefined,
+        });
+
+        try {
+          const client = await pool.connect();
+          try {
+            // Check if groups table exists in information_schema
+            const result = await client.query(`
+              SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'groups'
+              );
+            `);
+            groupsExists = result.rows[0]?.exists === true;
+          } finally {
+            client.release();
+          }
+          await pool.end();
+        } catch (pgError: any) {
+          console.error('[Migrate] Postgres check error:', pgError);
+          // Fall back to Supabase client check
+          groupsExists = false;
+        }
+      } catch (importError) {
+        console.error('[Migrate] Failed to import pg:', importError);
+        // Fall back to Supabase client check
+      }
+    }
+
+    // Fallback: Use Supabase client if Postgres check failed
+    if (!connectionString || groupsExists === false) {
+      try {
+        const { createSupabaseClient } = await import('@/lib/supabase');
+        const supabase = createSupabaseClient();
+        const { error } = await supabase.from('groups').select('id').limit(1);
+        
+        // Only consider it exists if there's no error or error is just "no rows"
+        groupsExists = !error || error.code === 'PGRST116';
+      } catch (supabaseError) {
+        console.error('[Migrate] Supabase check error:', supabaseError);
+        groupsExists = false;
+      }
+    }
     
     return NextResponse.json({
       migrationNeeded: !groupsExists,
@@ -152,8 +199,8 @@ export async function GET() {
   } catch (error: any) {
     return NextResponse.json({
       migrationNeeded: true,
+      groupsTableExists: false,
       error: error.message || 'Unknown error'
     }, { status: 500 });
   }
 }
-

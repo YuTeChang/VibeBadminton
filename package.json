@@ -5,12 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node scripts/run-migration.js",
     "start": "next start",
     "lint": "next lint",
     "test:screenshots": "node scripts/screenshot-test.js",
     "predeploy": "npm run lint && npm run build",
     "setup:vercel": "node scripts/setup-vercel.js",
-    "init:db:sql": "cat scripts/init-db-schema.sql"
+    "init:db:sql": "cat scripts/init-db-schema.sql",
+    "migrate:run": "node scripts/run-migration.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",

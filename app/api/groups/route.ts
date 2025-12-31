@@ -9,7 +9,14 @@ export async function GET() {
     const supabase = createSupabaseClient();
     const { error: tableError } = await supabase.from('groups').select('id').limit(1);
     
-    if (tableError && tableError.code === 'PGRST116') {
+    // Check if table doesn't exist (not just "no rows")
+    const tableMissing = tableError && 
+      (tableError.code === '42P01' ||
+       tableError.message?.toLowerCase().includes('does not exist') ||
+       tableError.message?.toLowerCase().includes('relation') && 
+       !tableError.message?.toLowerCase().includes('permission'));
+    
+    if (tableMissing) {
       return NextResponse.json(
         { 
           error: 'Groups table does not exist',
@@ -73,7 +80,14 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseClient();
     const { error: tableError } = await supabase.from('groups').select('id').limit(1);
     
-    if (tableError && (tableError.code === 'PGRST116' || tableError.message?.includes('does not exist'))) {
+    // Check if table doesn't exist (not just "no rows")
+    const tableMissing = tableError && 
+      (tableError.code === '42P01' ||
+       tableError.message?.toLowerCase().includes('does not exist') ||
+       (tableError.message?.toLowerCase().includes('relation') && 
+        !tableError.message?.toLowerCase().includes('permission')));
+    
+    if (tableMissing) {
       return NextResponse.json(
         { 
           error: 'Groups table does not exist',

@@ -19,7 +19,13 @@ export async function POST() {
       .select('id')
       .limit(1);
     
-    const groupsTableExists = !groupsError || groupsError.code !== 'PGRST116';
+    // Table exists if no error or error is just "no rows" (PGRST116)
+    // Table doesn't exist if error indicates missing relation
+    const groupsTableExists = !groupsError || 
+      (groupsError.code === 'PGRST116') ||
+      (!groupsError.message?.toLowerCase().includes('does not exist') && 
+       !groupsError.message?.toLowerCase().includes('relation') &&
+       groupsError.code !== '42P01');
     
     // Check if sessions table exists (to determine if this is a new or existing DB)
     const { data: sessionsCheck, error: sessionsError } = await supabase
@@ -106,8 +112,18 @@ export async function GET() {
       supabase.from('sessions').select('id').limit(1)
     ]);
     
-    const groupsExists = !groupsCheck.error || groupsCheck.error.code !== 'PGRST116';
-    const sessionsExists = !sessionsCheck.error || sessionsCheck.error.code !== 'PGRST116';
+    // More accurate table existence check
+    const groupsExists = !groupsCheck.error || 
+      (groupsCheck.error.code === 'PGRST116') ||
+      (!groupsCheck.error.message?.toLowerCase().includes('does not exist') && 
+       !groupsCheck.error.message?.toLowerCase().includes('relation') &&
+       groupsCheck.error.code !== '42P01');
+    
+    const sessionsExists = !sessionsCheck.error || 
+      (sessionsCheck.error.code === 'PGRST116') ||
+      (!sessionsCheck.error.message?.toLowerCase().includes('does not exist') && 
+       !sessionsCheck.error.message?.toLowerCase().includes('relation') &&
+       sessionsCheck.error.code !== '42P01');
     
     return NextResponse.json({
       ok: true,

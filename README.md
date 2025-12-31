@@ -2,6 +2,12 @@
 
 A web app that helps groups of friends track their badminton games (doubles or singles) during a session and automatically calculates wins/losses, gambling results, shared costs, and final "who owes who how much" at the end of the night.
 
+## Live Demo
+
+🌐 **Live App**: [View on Vercel](https://poweredbypace.vercel.app)
+
+> **Note**: Update the URL above if your deployment uses a different domain.
+
 ## Features
 
 ### Core Features
@@ -70,8 +76,11 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
 3. Initialize database:
-   - Run the SQL schema from `scripts/init-db-schema.sql` in your Supabase SQL Editor
-   - Or use the migration script `scripts/migrate-add-groups.sql` if you have an existing database
+   - **New database**: Run the SQL schema from `scripts/init-db-schema.sql` in your Supabase SQL Editor
+   - **Existing database**: Run the migration script `scripts/migrate-add-groups.sql` in Supabase SQL Editor
+   - **Automatic migration**: On Vercel deployments, migrations run automatically via `postbuild` script
+     - Ensure `POSTGRES_URL` or `POSTGRES_URL_NON_POOLING` is set in Vercel environment variables
+     - Or run manually: `npm run migrate:run` (requires connection string in environment)
 
 4. Run the development server:
 ```bash
