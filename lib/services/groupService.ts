@@ -263,34 +263,45 @@ export class GroupService {
         .select('*')
         .eq('group_id', groupId);
       
-      // Always run fallback query to catch any sessions missed due to replication lag
-      // This ensures newly created sessions are found even if the main query misses them
-      const { data: allSessionsCheck, error: allError } = await supabase
+      // Also query for very recent sessions (last 5 minutes) to catch brand new ones
+      // This helps with replication lag for newly created sessions
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentSessions, error: recentError } = await supabase
         .from('sessions')
-        .select('id, group_id, name, date, created_at')
-        .order('created_at', { ascending: false })
-        .limit(200);
+        .select('*')
+        .eq('group_id', groupId)
+        .gte('created_at', fiveMinutesAgo);
       
-      if (allSessionsCheck && !allError) {
-        const matchingSessions = allSessionsCheck.filter(s => s.group_id === groupId);
+      // Merge recent sessions with main results
+      if (recentSessions && !recentError && recentSessions.length > 0) {
+        const mainSessionIds = new Set((sessionsData || []).map(s => s.id));
+        const missingRecentSessions = recentSessions.filter(s => !mainSessionIds.has(s.id));
         
-        // If fallback found sessions that main query missed, merge them
-        if (matchingSessions.length > 0) {
-          const mainSessionIds = new Set((sessionsData || []).map(s => s.id));
-          const missingSessions = matchingSessions.filter(s => !mainSessionIds.has(s.id));
-          
+        if (missingRecentSessions.length > 0) {
+          sessionsData = [...(sessionsData || []), ...missingRecentSessions];
+        }
+      }
+      
+      // Run a second full query as additional fallback (with small delay for replication)
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      const { data: fallbackSessions, error: fallbackError } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('group_id', groupId);
+      
+      // Merge fallback results if it found more sessions
+      if (fallbackSessions && !fallbackError) {
+        const currentSessionIds = new Set((sessionsData || []).map(s => s.id));
+        
+        if (fallbackSessions.length > (sessionsData?.length || 0)) {
+          // Fallback has more sessions, use it
+          sessionsData = fallbackSessions;
+        } else {
+          // Check for any sessions in fallback that aren't in current results
+          const missingSessions = fallbackSessions.filter(s => !currentSessionIds.has(s.id));
           if (missingSessions.length > 0) {
-            // Fetch full data for missing sessions
-            const missingSessionIds = missingSessions.map(s => s.id);
-            const { data: fullSessions, error: fullError } = await supabase
-              .from('sessions')
-              .select('*')
-              .in('id', missingSessionIds);
-            
-            if (fullSessions && fullSessions.length > 0 && !fullError) {
-              // Merge with existing sessions
-              sessionsData = [...(sessionsData || []), ...fullSessions];
-            }
+            sessionsData = [...(sessionsData || []), ...missingSessions];
           }
         }
       }
