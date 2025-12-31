@@ -113,15 +113,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const loadFromLocalStorage = () => {
     try {
-      // Load groups
+      // Load groups (don't mark as loaded - API will override this)
       const savedGroups = localStorage.getItem(STORAGE_KEY_GROUPS);
       if (savedGroups) {
         const parsedGroups = JSON.parse(savedGroups);
         setGroups(parsedGroups);
-        hasLoadedGroupsRef.current = true; // Mark as loaded from localStorage
+        // Don't set hasLoadedGroupsRef - let API load override this
       }
 
-      // Load sessions
+      // Load sessions (don't mark as loaded - API will override this)
       const savedAllSessions = localStorage.getItem(STORAGE_KEY_ALL_SESSIONS);
       if (savedAllSessions) {
         const parsedAllSessions = JSON.parse(savedAllSessions);
@@ -132,7 +132,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           bettingEnabled: s.bettingEnabled ?? true,
         }));
         setAllSessions(sessionsWithDates);
-        hasLoadedSessionsRef.current = true; // Mark as loaded from localStorage
+        // Don't set hasLoadedSessionsRef - let API load override this
       }
 
       const savedSession = localStorage.getItem(STORAGE_KEY_SESSION);
@@ -554,24 +554,31 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [apiAvailable]);
 
   // Lazy load all sessions and groups - only when explicitly needed (e.g., on home page)
+  // Always tries API first to ensure fresh data, even if localStorage has cached data
   const ensureSessionsAndGroupsLoaded = useCallback(async () => {
     if (typeof window === "undefined") return;
     
-    // Prevent duplicate calls - use refs instead of state length to avoid dependency issues
-    if (isLoadingSessionsRef.current || hasLoadedSessionsRef.current) {
-      // Already loading or loaded, skip
+    // Prevent duplicate simultaneous calls (but allow refresh if data was already loaded)
+    if (isLoadingSessionsRef.current) {
+      // Already loading, skip
     } else if (apiAvailable) {
       isLoadingSessionsRef.current = true;
       try {
         const sessions = await ApiClient.getAllSessions();
+        // Always update state with API response (even if empty - clears stale localStorage data)
         setAllSessions(sessions);
         hasLoadedSessionsRef.current = true;
         if (typeof window !== "undefined") {
-          localStorage.setItem(STORAGE_KEY_ALL_SESSIONS, JSON.stringify(sessions));
+          // Update localStorage with fresh API data (or clear if empty)
+          if (sessions.length === 0) {
+            localStorage.removeItem(STORAGE_KEY_ALL_SESSIONS);
+          } else {
+            localStorage.setItem(STORAGE_KEY_ALL_SESSIONS, JSON.stringify(sessions));
+          }
         }
       } catch (error) {
         console.warn('[SessionContext] Failed to load sessions:', error);
-        // Try localStorage fallback
+        // Only use localStorage as fallback if API fails (not if API returns empty)
         const saved = localStorage.getItem(STORAGE_KEY_ALL_SESSIONS);
         if (saved) {
           try {
@@ -581,27 +588,37 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           } catch {
             // Ignore parse errors
           }
+        } else {
+          // No localStorage fallback, set empty array
+          setAllSessions([]);
+          hasLoadedSessionsRef.current = true;
         }
       } finally {
         isLoadingSessionsRef.current = false;
       }
     }
     
-    // Load groups if not already loaded or loading
-    if (isLoadingGroupsRef.current || hasLoadedGroupsRef.current) {
-      // Already loading or loaded, skip
+    // Load groups - always try API first (even if already loaded from localStorage)
+    if (isLoadingGroupsRef.current) {
+      // Already loading, skip
     } else if (apiAvailable) {
       isLoadingGroupsRef.current = true;
       try {
         const fetchedGroups = await ApiClient.getAllGroups();
+        // Always update state with API response (even if empty - clears stale localStorage data)
         setGroups(fetchedGroups);
         hasLoadedGroupsRef.current = true;
         if (typeof window !== "undefined") {
-          localStorage.setItem(STORAGE_KEY_GROUPS, JSON.stringify(fetchedGroups));
+          // Update localStorage with fresh API data (or clear if empty)
+          if (fetchedGroups.length === 0) {
+            localStorage.removeItem(STORAGE_KEY_GROUPS);
+          } else {
+            localStorage.setItem(STORAGE_KEY_GROUPS, JSON.stringify(fetchedGroups));
+          }
         }
       } catch (error) {
         console.warn('[SessionContext] Failed to load groups:', error);
-        // Try localStorage fallback
+        // Only use localStorage as fallback if API fails (not if API returns empty)
         const saved = localStorage.getItem(STORAGE_KEY_GROUPS);
         if (saved) {
           try {
@@ -611,6 +628,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           } catch {
             // Ignore parse errors
           }
+        } else {
+          // No localStorage fallback, set empty array
+          setGroups([]);
+          hasLoadedGroupsRef.current = true;
         }
       } finally {
         isLoadingGroupsRef.current = false;

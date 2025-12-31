@@ -13,6 +13,12 @@ export default function Home() {
   const [groupSessionCounts, setGroupSessionCounts] = useState<Record<string, number>>({});
   const [sessionGameCounts, setSessionGameCounts] = useState<Record<string, number>>({});
   const hasLoadedDataRef = useRef(false);
+  
+  // Force refresh on mount to ensure we get fresh data from API (not stale localStorage)
+  useEffect(() => {
+    // Reset loaded flags to force fresh API load
+    hasLoadedDataRef.current = false;
+  }, []);
 
   useEffect(() => {
     // Prevent duplicate calls
