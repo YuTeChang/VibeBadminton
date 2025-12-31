@@ -255,26 +255,7 @@ export class GroupService {
    */
   static async getGroupSessions(groupId: string): Promise<Session[]> {
     try {
-      console.log('[GroupService.getGroupSessions] Fetching sessions for group:', groupId);
       const supabase = createSupabaseClient();
-      
-      // Log which key is actually being used
-      const usingServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const keyPrefix = usingServiceKey 
-        ? (process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20) || 'unknown')
-        : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) || 'unknown');
-      
-      console.log('[GroupService.getGroupSessions] Supabase client config:', {
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'missing',
-        serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'missing',
-        anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'set' : 'missing',
-        usingServiceKey,
-        keyPrefix: `${keyPrefix}...`,
-      });
-
-      // Get all sessions - order in JavaScript to avoid Supabase ordering bug with duplicate dates
-      // Filter by group_id (must match exactly and not be null)
-      console.log('[GroupService.getGroupSessions] Executing query with groupId:', groupId, 'type:', typeof groupId);
       
       // Query sessions with group_id filter
       let { data: sessionsData, error: sessionsError } = await supabase
@@ -282,30 +263,27 @@ export class GroupService {
         .select('*')
         .eq('group_id', groupId);
       
-      // If no results, try a more explicit query to check for replication lag
+      // If no results, try alternative query to handle potential replication lag
       if ((!sessionsData || sessionsData.length === 0) && !sessionsError) {
-        console.log('[GroupService.getGroupSessions] Main query returned empty, trying alternative query...');
-        // Try querying all sessions and filtering in memory (to check if it's a query issue)
+        // Try querying all sessions and filtering in memory
         const { data: allSessionsCheck, error: allError } = await supabase
           .from('sessions')
           .select('id, group_id, name, date, created_at')
           .order('created_at', { ascending: false })
           .limit(100);
         
-        if (allSessionsCheck) {
+        if (allSessionsCheck && !allError) {
           const matchingSessions = allSessionsCheck.filter(s => s.group_id === groupId);
-          console.log('[GroupService.getGroupSessions] Alternative query found', matchingSessions.length, 'matching sessions:', matchingSessions);
           
           if (matchingSessions.length > 0) {
-            // If we found sessions with the alternative query, fetch full data for them
+            // Fetch full data for matching sessions
             const sessionIds = matchingSessions.map(s => s.id);
             const { data: fullSessions, error: fullError } = await supabase
               .from('sessions')
               .select('*')
               .in('id', sessionIds);
             
-            if (fullSessions && fullSessions.length > 0) {
-              console.log('[GroupService.getGroupSessions] Using sessions from alternative query');
+            if (fullSessions && fullSessions.length > 0 && !fullError) {
               sessionsData = fullSessions;
               sessionsError = fullError;
             }
@@ -313,104 +291,27 @@ export class GroupService {
         }
       }
       
-      console.log('[GroupService.getGroupSessions] Raw query response:', {
-        dataLength: sessionsData?.length || 0,
-        hasError: !!sessionsError,
-        errorMessage: sessionsError?.message,
-        errorCode: sessionsError?.code,
-      });
-      
       // Sort by date descending, then by created_at descending as tiebreaker
       if (sessionsData) {
         sessionsData.sort((a, b) => {
           const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
           if (dateDiff !== 0) return dateDiff;
-          // If dates are equal, sort by created_at
           const createdDiff = new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
           return createdDiff;
         });
       }
-      
-      console.log('[GroupService.getGroupSessions] Query result:', {
-        groupId,
-        sessionsFound: sessionsData?.length || 0,
-        sessions: sessionsData?.map(s => ({ id: s.id, name: s.name, group_id: s.group_id, date: s.date })),
-        error: sessionsError?.message,
-        errorCode: sessionsError?.code,
-        errorDetails: sessionsError?.details,
-      });
-      
-      // Also try a count query to see total
-      const { count } = await supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('group_id', groupId);
-      console.log('[GroupService.getGroupSessions] Count query result:', count);
 
       if (sessionsError) {
-        console.error('[GroupService.getGroupSessions] Supabase query error:', {
+        console.error('[GroupService] Error fetching group sessions:', {
+          groupId,
           message: sessionsError.message,
           code: sessionsError.code,
-          details: sessionsError.details,
-          hint: sessionsError.hint,
         });
         throw sessionsError;
       }
 
       if (!sessionsData || sessionsData.length === 0) {
-        console.log('[GroupService.getGroupSessions] No sessions found for groupId:', groupId);
-        console.log('[GroupService.getGroupSessions] Query returned:', {
-          data: sessionsData,
-          dataLength: sessionsData?.length,
-          error: sessionsError,
-        });
-        
-        // Double-check with a simpler query to debug
-        const { data: checkData, error: checkError } = await supabase
-          .from('sessions')
-          .select('id, group_id')
-          .eq('group_id', groupId)
-          .limit(1);
-        console.log('[GroupService.getGroupSessions] Debug query result:', {
-          found: checkData?.length || 0,
-          error: checkError?.message,
-          checkData: checkData,
-        });
-        
-        // Also check all sessions to see what group_ids exist
-        const { data: allSessionsSample, error: sampleError } = await supabase
-          .from('sessions')
-          .select('id, group_id')
-          .limit(10);
-        console.log('[GroupService.getGroupSessions] Sample sessions with group_ids:', {
-          count: allSessionsSample?.length || 0,
-          error: sampleError?.message,
-          sessions: allSessionsSample?.map(s => ({ id: s.id, group_id: s.group_id, group_id_type: typeof s.group_id })),
-        });
-        
-        // If we got data from the debug query but not the main query, there's a transformation issue
-        if (checkData && checkData.length > 0 && !sessionsError) {
-          console.warn('[GroupService.getGroupSessions] WARNING: Debug query found sessions but main query returned empty!');
-          // Try to fetch the full session data for the found sessions
-          const sessionIds = checkData.map(s => s.id);
-          const { data: fullSessions, error: fullError } = await supabase
-            .from('sessions')
-            .select('*')
-            .in('id', sessionIds);
-          console.log('[GroupService.getGroupSessions] Full sessions fetch:', {
-            count: fullSessions?.length || 0,
-            error: fullError?.message,
-          });
-          if (fullSessions && fullSessions.length > 0) {
-            // Use the full sessions data we just fetched
-            sessionsData = fullSessions;
-          }
-        }
-        
-        // If still no data, return empty
-        if (!sessionsData || sessionsData.length === 0) {
-          return [];
-        }
+        return [];
       }
 
       // Fetch players for each session

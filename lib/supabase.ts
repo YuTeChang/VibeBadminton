@@ -16,13 +16,13 @@ export function createSupabaseClient() {
     );
   }
 
-  // Log which key is being used (always log in production for debugging)
-  const isServiceRole = supabaseKey === process.env.SUPABASE_SERVICE_ROLE_KEY;
-  console.log('[SupabaseClient] Using', isServiceRole ? 'SERVICE_ROLE_KEY' : 'ANON_KEY', {
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    env: process.env.NODE_ENV,
-  });
+  // Log which key is being used (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    const isServiceRole = supabaseKey === process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!isServiceRole) {
+      console.warn('[SupabaseClient] Using ANON_KEY instead of SERVICE_ROLE_KEY - RLS may block queries');
+    }
+  }
 
   return createClient(supabaseUrl, supabaseKey, {
     auth: {
