@@ -264,33 +264,22 @@ export class GroupService {
         .eq('group_id', groupId)
         .order('created_at', { ascending: false });
       
-      // If main query found sessions, use them and skip fallback queries
-      // Fallback queries are only needed when main query returns empty (replication lag)
-      if (!sessionsData || sessionsData.length === 0 || sessionsError) {
-        // Main query failed or returned empty, try fallback queries
-        // Query for very recent sessions (last 5 minutes) to catch brand new ones
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-        const { data: recentSessions, error: recentError } = await supabase
-          .from('sessions')
-          .select('*')
-          .eq('group_id', groupId)
-          .gte('created_at', fiveMinutesAgo);
+      // If main query failed or returned empty, try fallback query (for replication lag)
+      if (sessionsError || !sessionsData || sessionsData.length === 0) {
+        console.warn('[GroupService] Main query returned empty or error, trying fallback query');
         
-        if (recentSessions && !recentError && recentSessions.length > 0) {
-          sessionsData = recentSessions;
-        }
-        
-        // Run a second full query as additional fallback (with small delay for replication)
+        // Run a fallback query (with small delay for replication)
         await new Promise(resolve => setTimeout(resolve, 150));
         
         const { data: fallbackSessions, error: fallbackError } = await supabase
           .from('sessions')
           .select('*')
-          .eq('group_id', groupId);
+          .eq('group_id', groupId)
+          .order('created_at', { ascending: false });
         
-        // Use fallback if it has more sessions
-        if (fallbackSessions && !fallbackError && fallbackSessions.length > (sessionsData?.length || 0)) {
+        if (fallbackSessions && !fallbackError) {
           sessionsData = fallbackSessions;
+          console.log('[GroupService] Fallback query found', fallbackSessions.length, 'sessions');
         }
       }
       
@@ -322,57 +311,55 @@ export class GroupService {
         new Map(sessionsData.map(s => [s.id, s])).values()
       );
 
-      // Fetch players for each session
-      const sessionsWithPlayers = await Promise.all(
-        uniqueSessions.map(async (session) => {
-          try {
-            const { data: playersData, error: playersError } = await supabase
-              .from('players')
-              .select('id, name, group_player_id')
-              .eq('session_id', session.id);
+      if (uniqueSessions.length === 0) {
+        return [];
+      }
 
-            if (playersError) {
-              console.error(`[GroupService] Error fetching players for session ${session.id}:`, playersError);
-            }
+      // Batch fetch all players for all sessions in a single query (optimize N+1 problem)
+      const sessionIds = uniqueSessions.map(s => s.id);
+      const { data: allPlayersData, error: playersError } = await supabase
+        .from('players')
+        .select('id, name, group_player_id, session_id')
+        .in('session_id', sessionIds)
+        .order('created_at', { ascending: true });
 
-            return {
-              id: session.id,
-              name: session.name || undefined,
-              date: new Date(session.date),
-              players: (playersData || []).map((p) => ({
-                id: p.id,
-                name: p.name,
-                groupPlayerId: p.group_player_id || undefined,
-              })),
-              organizerId: session.organizer_id,
-              courtCostType: session.court_cost_type as 'per_person' | 'total',
-              courtCostValue: parseFloat(String(session.court_cost_value || 0)),
-              birdCostTotal: parseFloat(String(session.bird_cost_total || 0)),
-              betPerPlayer: parseFloat(String(session.bet_per_player || 0)),
-              gameMode: session.game_mode as 'doubles' | 'singles',
-              groupId: session.group_id || undefined,
-              bettingEnabled: session.betting_enabled ?? true,
-            } as Session;
-          } catch (error) {
-            console.error(`[GroupService] Error processing session ${session.id}:`, error);
-            // Return session with empty players array if player fetch fails
-            return {
-              id: session.id,
-              name: session.name || undefined,
-              date: new Date(session.date),
-              players: [],
-              organizerId: session.organizer_id,
-              courtCostType: session.court_cost_type as 'per_person' | 'total',
-              courtCostValue: parseFloat(String(session.court_cost_value || 0)),
-              birdCostTotal: parseFloat(String(session.bird_cost_total || 0)),
-              betPerPlayer: parseFloat(String(session.bet_per_player || 0)),
-              gameMode: session.game_mode as 'doubles' | 'singles',
-              groupId: session.group_id || undefined,
-              bettingEnabled: session.betting_enabled ?? true,
-            } as Session;
-          }
-        })
-      );
+      if (playersError) {
+        console.error('[GroupService] Error batch fetching players:', playersError);
+        // Continue with empty players - sessions will still be returned
+      }
+
+      // Group players by session_id for O(1) lookup
+      const playersBySessionId = new Map<string, any[]>();
+      (allPlayersData || []).forEach((player: any) => {
+        const sessionId = player.session_id;
+        if (!playersBySessionId.has(sessionId)) {
+          playersBySessionId.set(sessionId, []);
+        }
+        playersBySessionId.get(sessionId)!.push({
+          id: player.id,
+          name: player.name,
+          groupPlayerId: player.group_player_id || undefined,
+        });
+      });
+
+      // Map sessions with their players
+      const sessionsWithPlayers = uniqueSessions.map((session: any) => {
+        const players = playersBySessionId.get(session.id) || [];
+        return {
+          id: session.id,
+          name: session.name || undefined,
+          date: new Date(session.date),
+          players: players,
+          organizerId: session.organizer_id,
+          courtCostType: session.court_cost_type as 'per_person' | 'total',
+          courtCostValue: parseFloat(String(session.court_cost_value || 0)),
+          birdCostTotal: parseFloat(String(session.bird_cost_total || 0)),
+          betPerPlayer: parseFloat(String(session.bet_per_player || 0)),
+          gameMode: session.game_mode as 'doubles' | 'singles',
+          groupId: session.group_id || undefined,
+          bettingEnabled: session.betting_enabled ?? true,
+        } as Session;
+      });
 
       // Filter out any null/undefined sessions (shouldn't happen, but safety check)
       return sessionsWithPlayers.filter(s => s !== null && s !== undefined);
