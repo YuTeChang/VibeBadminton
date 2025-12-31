@@ -19,11 +19,39 @@ CREATE TABLE IF NOT EXISTS group_players (
 );
 
 -- Add new columns to sessions table
-ALTER TABLE sessions ADD COLUMN IF NOT EXISTS group_id VARCHAR(255) REFERENCES groups(id) ON DELETE CASCADE;
+-- First add the column without foreign key constraint
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS group_id VARCHAR(255);
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS betting_enabled BOOLEAN NOT NULL DEFAULT true;
 
+-- Add foreign key constraint for group_id (only if it doesn't exist)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'sessions_group_id_fkey'
+  ) THEN
+    ALTER TABLE sessions 
+    ADD CONSTRAINT sessions_group_id_fkey 
+    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
 -- Add new column to players table
-ALTER TABLE players ADD COLUMN IF NOT EXISTS group_player_id VARCHAR(255) REFERENCES group_players(id);
+-- First add the column without foreign key constraint
+ALTER TABLE players ADD COLUMN IF NOT EXISTS group_player_id VARCHAR(255);
+
+-- Add foreign key constraint for group_player_id (only if it doesn't exist)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'players_group_player_id_fkey'
+  ) THEN
+    ALTER TABLE players 
+    ADD CONSTRAINT players_group_player_id_fkey 
+    FOREIGN KEY (group_player_id) REFERENCES group_players(id);
+  END IF;
+END $$;
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_group_players_group_id ON group_players(group_id);
