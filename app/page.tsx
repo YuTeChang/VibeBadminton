@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession } from "@/contexts/SessionContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ApiClient } from "@/lib/api/client";
 
@@ -12,8 +12,12 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [groupSessionCounts, setGroupSessionCounts] = useState<Record<string, number>>({});
   const [sessionGameCounts, setSessionGameCounts] = useState<Record<string, number>>({});
+  const hasLoadedDataRef = useRef(false);
 
   useEffect(() => {
+    // Prevent duplicate calls
+    if (hasLoadedDataRef.current) return;
+    
     const loadData = async () => {
       try {
         // Ensure sessions and groups are loaded (lazy load on home page)
@@ -61,14 +65,11 @@ export default function Home() {
       }
       
       setIsLoaded(true);
+      hasLoadedDataRef.current = true;
     };
 
-    // Only load when groups are available from context
-    // This ensures we don't run before SessionContext has loaded groups
-    if (groups !== undefined) {
-      loadData();
-    }
-  }, [groups]);
+    loadData();
+  }, [ensureSessionsAndGroupsLoaded, groups]); // Depend on groups to reload when they're actually loaded
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("en-US", {

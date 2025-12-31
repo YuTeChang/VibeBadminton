@@ -38,6 +38,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // Track loading state to prevent duplicate calls
   const isLoadingDataRef = useRef(false);
   const loadingGamesRef = useRef<Set<string>>(new Set());
+  const isLoadingSessionsRef = useRef(false);
+  const isLoadingGroupsRef = useRef(false);
 
   // Initialize API availability and load saved session on mount (don't load all sessions/groups yet)
   useEffect(() => {
@@ -503,8 +505,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const ensureSessionsAndGroupsLoaded = useCallback(async () => {
     if (typeof window === "undefined") return;
     
-    // Load sessions if not already loaded
-    if (allSessions.length === 0 && apiAvailable) {
+    // Prevent duplicate calls
+    if (isLoadingSessionsRef.current && isLoadingGroupsRef.current) {
+      return;
+    }
+    
+    // Load sessions if not already loaded or loading
+    if (!isLoadingSessionsRef.current && allSessions.length === 0 && apiAvailable) {
+      isLoadingSessionsRef.current = true;
       try {
         const sessions = await ApiClient.getAllSessions();
         setAllSessions(sessions);
@@ -523,11 +531,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             // Ignore parse errors
           }
         }
+      } finally {
+        isLoadingSessionsRef.current = false;
       }
     }
     
-    // Load groups if not already loaded
-    if (groups.length === 0 && apiAvailable) {
+    // Load groups if not already loaded or loading
+    if (!isLoadingGroupsRef.current && groups.length === 0 && apiAvailable) {
+      isLoadingGroupsRef.current = true;
       try {
         const fetchedGroups = await ApiClient.getAllGroups();
         setGroups(fetchedGroups);
@@ -546,6 +557,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             // Ignore parse errors
           }
         }
+      } finally {
+        isLoadingGroupsRef.current = false;
       }
     }
   }, [apiAvailable, allSessions.length, groups.length]);
