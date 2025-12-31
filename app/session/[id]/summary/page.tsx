@@ -1,9 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "@/contexts/SessionContext";
-import { ApiClient } from "@/lib/api/client";
 import {
   calculateFinalSettlement,
   formatCurrency,
@@ -16,76 +15,75 @@ import { Session, Game } from "@/types";
 export default function SummaryPage() {
   const params = useParams();
   const router = useRouter();
-  const { session, games, clearSession, loadSession, allSessions } = useSession();
+  const { session, games, clearSession, loadSession } = useSession();
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [localSession, setLocalSession] = useState<Session | null>(null);
   const [localGames, setLocalGames] = useState<Game[]>([]);
+  
+  // Track loading state to prevent duplicate calls
+  const isLoadingRef = useRef(false);
+  const sessionIdRef = useRef<string | null>(null);
 
-  // Load session from API if not in context
+  // Load session using context's loadSession (which handles API calls)
   useEffect(() => {
-    const loadSessionData = async () => {
-      const sessionId = params.id as string;
-      if (!sessionId) {
-        setNotFound(true);
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if session is already loaded in context
-      if (session && session.id === sessionId) {
-        setLocalSession(session);
-        setLocalGames(games);
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if session exists in allSessions (already fetched)
-      const existingSession = allSessions.find(s => s.id === sessionId);
-      if (existingSession) {
-        // loadSession will fetch both session and games
-        await loadSession(sessionId);
-        setLocalSession(existingSession);
-        // Use games from context (loaded by loadSession)
-        setLocalGames(games);
-        setIsLoading(false);
-        return;
-      }
-
-      // Try to fetch from API
-      try {
-        const apiSession = await ApiClient.getSession(sessionId);
-        if (apiSession) {
-          setLocalSession(apiSession);
-          try {
-            const apiGames = await ApiClient.getGames(sessionId);
-            setLocalGames(apiGames);
-          } catch {
-            setLocalGames([]);
-          }
-          setIsLoading(false);
-          return;
-        }
-      } catch (error) {
-        console.warn('[SummaryPage] Failed to fetch session from API:', error);
-      }
-
-      // Session not found anywhere
+    const sessionId = params.id as string;
+    if (!sessionId) {
       setNotFound(true);
       setIsLoading(false);
+      return;
+    }
+
+    // Skip if already loading this session
+    if (isLoadingRef.current && sessionIdRef.current === sessionId) {
+      return;
+    }
+
+    // Skip if session is already loaded and matches
+    if (session && session.id === sessionId && games.length >= 0) {
+      setLocalSession(session);
+      setLocalGames(games);
+      setIsLoading(false);
+      return;
+    }
+
+    // Load session via context (handles API calls and caching)
+    const loadData = async () => {
+      if (isLoadingRef.current) return;
+      isLoadingRef.current = true;
+      sessionIdRef.current = sessionId;
+      
+      try {
+        await loadSession(sessionId);
+        // After loadSession completes, sync local state
+        // We'll use the sync effect below to update local state
+      } catch (error) {
+        console.warn('[SummaryPage] Failed to load session:', error);
+        setNotFound(true);
+        setIsLoading(false);
+      } finally {
+        isLoadingRef.current = false;
+      }
     };
 
     // Small delay to allow context to hydrate first
-    const timer = setTimeout(loadSessionData, 300);
+    const timer = setTimeout(loadData, 100);
     return () => clearTimeout(timer);
-  }, [params.id, session, games, allSessions, loadSession]);
+  }, [params.id, loadSession]);
 
-  // Sync local state with context when context updates
+  // Sync local state with context when context updates (after loadSession completes)
   useEffect(() => {
-    if (session && session.id === params.id) {
+    const sessionId = params.id as string;
+    if (session && session.id === sessionId) {
       setLocalSession(session);
       setLocalGames(games);
+      setIsLoading(false);
+      setNotFound(false);
+    } else if (sessionId && !session) {
+      // Session not found after loading
+      setNotFound(true);
+      setIsLoading(false);
     }
   }, [session, games, params.id]);
 

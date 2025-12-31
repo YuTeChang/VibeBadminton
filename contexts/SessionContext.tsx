@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { Session, Game, Group } from "@/types";
 import { ApiClient, isApiAvailable } from "@/lib/api/client";
 
@@ -33,11 +33,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
+  
+  // Track loading state to prevent duplicate calls
+  const isLoadingDataRef = useRef(false);
+  const loadingGamesRef = useRef<Set<string>>(new Set());
 
   // Load sessions and groups from API (primary) or localStorage (fallback) on mount
   useEffect(() => {
     const loadData = async () => {
       if (typeof window === "undefined") return;
+      
+      // Prevent duplicate calls
+      if (isLoadingDataRef.current) return;
+      isLoadingDataRef.current = true;
 
       try {
         // Check if API is available
@@ -349,7 +357,46 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadSession = useCallback(async (sessionId: string) => {
-    const sessionToLoad = allSessions.find((s) => s.id === sessionId);
+    // Prevent duplicate simultaneous calls for the same session
+    if (loadingGamesRef.current.has(sessionId)) {
+      return;
+    }
+    
+    // First check if session is already in allSessions
+    let sessionToLoad = allSessions.find((s) => s.id === sessionId);
+    
+    // If not in allSessions, fetch it from API
+    if (!sessionToLoad && apiAvailable) {
+      try {
+        sessionToLoad = await ApiClient.getSession(sessionId);
+        // Add to allSessions cache for future use
+        if (sessionToLoad) {
+          setAllSessions(prev => {
+            // Avoid duplicates
+            if (prev.find(s => s.id === sessionId)) return prev;
+            return [sessionToLoad!, ...prev];
+          });
+        }
+      } catch (error) {
+        console.warn('[SessionContext] Failed to fetch session from API:', error);
+        // Try localStorage as fallback
+        if (typeof window !== "undefined") {
+          const savedSession = localStorage.getItem(STORAGE_KEY_SESSION);
+          if (savedSession) {
+            try {
+              const parsed = JSON.parse(savedSession);
+              if (parsed.id === sessionId) {
+                parsed.date = new Date(parsed.date);
+                sessionToLoad = parsed;
+              }
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+    }
+    
     if (sessionToLoad) {
       setSessionState(sessionToLoad);
       // Save as active session
@@ -359,6 +406,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       
       // Load games from API if available, otherwise from localStorage
       if (apiAvailable) {
+        loadingGamesRef.current.add(sessionId);
         try {
           const dbGames = await ApiClient.getGames(sessionId);
           setGames(dbGames);
@@ -369,6 +417,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           console.warn('[SessionContext] Failed to load games from API, using localStorage fallback');
           loadGamesFromLocalStorage(sessionId);
+        } finally {
+          loadingGamesRef.current.delete(sessionId);
         }
       } else {
         loadGamesFromLocalStorage(sessionId);
