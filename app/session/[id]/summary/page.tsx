@@ -178,6 +178,12 @@ export default function SummaryPage() {
                   <th className="px-3 sm:px-4 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
                     +/-
                   </th>
+                  <th className="px-3 sm:px-4 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
+                    Pts For
+                  </th>
+                  <th className="px-3 sm:px-4 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
+                    Pts Against
+                  </th>
                   {bettingEnabled && (
                     <>
                       <th className="px-3 sm:px-4 py-3 sm:py-4 text-center text-xs font-semibold text-japandi-text-primary uppercase tracking-wider">
@@ -220,6 +226,12 @@ export default function SummaryPage() {
                     >
                       {s.pointDifferential > 0 && "+"}
                       {s.pointDifferential}
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 sm:py-4 text-sm sm:text-base text-center text-japandi-text-primary">
+                      {s.pointsScored}
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 sm:py-4 text-sm sm:text-base text-center text-japandi-text-primary">
+                      {s.pointsConceded}
                     </td>
                     {bettingEnabled && (
                       <>
