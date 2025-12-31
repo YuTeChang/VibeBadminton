@@ -56,12 +56,16 @@ async function runMigration() {
     
     // Remove any existing SSL parameters from connection string to avoid conflicts
     // We'll handle SSL via the Pool's ssl option instead
+    // This is critical: sslmode=require in the connection string enforces cert validation
+    // which conflicts with rejectUnauthorized: false
     let cleanConnectionString = connectionString
-      .replace(/[?&]sslmode=[^&]*/g, '')
-      .replace(/[?&]ssl=[^&]*/g, '')
-      .replace(/[?&]sslcert=[^&]*/g, '')
-      .replace(/[?&]sslkey=[^&]*/g, '')
-      .replace(/[?&]sslrootcert=[^&]*/g, '');
+      .replace(/[?&]sslmode=[^&]*/gi, '')  // Case insensitive
+      .replace(/[?&]ssl=[^&]*/gi, '')
+      .replace(/[?&]sslcert=[^&]*/gi, '')
+      .replace(/[?&]sslkey=[^&]*/gi, '')
+      .replace(/[?&]sslrootcert=[^&]*/gi, '')
+      .replace(/[?&]supa=[^&]*/gi, '')  // Remove Supabase pooler params
+      .replace(/[?&]pgbouncer=[^&]*/gi, '');  // Remove pgbouncer params
     
     // Clean up any trailing ? or & after removing params
     cleanConnectionString = cleanConnectionString.replace(/[?&]$/, '');

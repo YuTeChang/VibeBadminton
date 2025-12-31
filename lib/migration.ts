@@ -22,12 +22,13 @@ export interface MigrationResult {
  */
 export async function runMigration(): Promise<MigrationResult> {
   // Get Postgres connection string (declare outside try for error logging)
+  // Prefer NON_POOLING for migrations as they need direct connections
   const connectionString = 
-    process.env.POSTGRES_URL || 
     process.env.POSTGRES_URL_NON_POOLING ||
-    process.env.DATABASE_URL ||
+    process.env.VERCEL_POSTGRES_URL_NON_POOLING ||
+    process.env.POSTGRES_URL || 
     process.env.VERCEL_POSTGRES_URL ||
-    process.env.VERCEL_POSTGRES_URL_NON_POOLING;
+    process.env.DATABASE_URL;
 
   try {
     if (!connectionString) {
@@ -52,12 +53,16 @@ export async function runMigration(): Promise<MigrationResult> {
     
     // Remove any existing SSL parameters from connection string to avoid conflicts
     // We'll handle SSL via the Pool's ssl option instead
+    // This is critical: sslmode=require in the connection string enforces cert validation
+    // which conflicts with rejectUnauthorized: false
     let cleanConnectionString = connectionString
-      .replace(/[?&]sslmode=[^&]*/g, '')
-      .replace(/[?&]ssl=[^&]*/g, '')
-      .replace(/[?&]sslcert=[^&]*/g, '')
-      .replace(/[?&]sslkey=[^&]*/g, '')
-      .replace(/[?&]sslrootcert=[^&]*/g, '');
+      .replace(/[?&]sslmode=[^&]*/gi, '')  // Case insensitive
+      .replace(/[?&]ssl=[^&]*/gi, '')
+      .replace(/[?&]sslcert=[^&]*/gi, '')
+      .replace(/[?&]sslkey=[^&]*/gi, '')
+      .replace(/[?&]sslrootcert=[^&]*/gi, '')
+      .replace(/[?&]supa=[^&]*/gi, '')  // Remove Supabase pooler params
+      .replace(/[?&]pgbouncer=[^&]*/gi, '');  // Remove pgbouncer params
     
     // Clean up any trailing ? or & after removing params
     cleanConnectionString = cleanConnectionString.replace(/[?&]$/, '');
