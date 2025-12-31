@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * Standalone database migration script
  * 
@@ -7,7 +7,7 @@
  * 
  * Usage:
  *   npm run migrate:run
- *   node scripts/run-migration.js
+ *   npx tsx scripts/run-migration.ts
  * 
  * Environment variables needed:
  *   POSTGRES_URL, POSTGRES_URL_NON_POOLING, DATABASE_URL, or VERCEL_POSTGRES_URL
@@ -23,12 +23,10 @@ try {
   // dotenv not available, that's OK
 }
 
-// Import the migration function (using require for CommonJS compatibility)
-async function runMigrationScript() {
+import { runMigration } from '../lib/migration';
+
+async function main() {
   try {
-    // Dynamic import for ES modules
-    const { runMigration } = await import('../lib/migration.js');
-    
     console.log('🔄 Starting database migration...');
     console.log(`   Environment: ${process.env.VERCEL ? 'Vercel' : 'Local'}`);
     
@@ -57,7 +55,7 @@ async function runMigrationScript() {
       console.log('ℹ️  Or run manually: POST to /api/migrate or run migration SQL files manually');
       process.exit(0); // Exit with 0 to not fail the build
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Migration script error:', error.message || error);
     console.error('   Stack:', error.stack);
     console.log('');
@@ -67,4 +65,5 @@ async function runMigrationScript() {
 }
 
 // Run migration
-runMigrationScript();
+main();
+

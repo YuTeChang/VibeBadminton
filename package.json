@@ -5,14 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/run-migration.js",
+    "postbuild": "npx tsx scripts/run-migration.ts",
     "start": "next start",
     "lint": "next lint",
     "test:screenshots": "node scripts/screenshot-test.js",
     "predeploy": "npm run lint && npm run build",
     "setup:vercel": "node scripts/setup-vercel.js",
     "init:db:sql": "cat scripts/init-db-schema.sql",
-    "migrate:run": "node scripts/run-migration.js",
+    "migrate:run": "npx tsx scripts/run-migration.ts",
     "migrate:check": "bash scripts/check-migration-logs.sh",
     "deploy:preview": "bash scripts/deploy-and-check.sh --preview",
     "deploy:prod": "bash scripts/deploy-and-check.sh --prod",
@@ -39,6 +39,7 @@
     "playwright": "^1.57.0",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
+    "tsx": "^4.21.0",
     "typescript": "^5.5.4"
   }
 }
