@@ -100,9 +100,37 @@ async function runMigration() {
       
       try {
         console.log(`   Executing ${statements.length} SQL statements...`);
-        for (const statement of statements) {
-          if (statement.trim()) {
-            await client.query(statement);
+        for (let i = 0; i < statements.length; i++) {
+          const statement = statements[i].trim();
+          if (statement) {
+            try {
+              await client.query(statement);
+              console.log(`[Migration] Executed statement ${i + 1}/${statements.length}`);
+            } catch (stmtError) {
+              // If policy already exists, that's OK - continue
+              if (stmtError.message?.includes('already exists') && 
+                  statement.toUpperCase().includes('CREATE POLICY')) {
+                console.log(`[Migration] Policy already exists, skipping: ${statement.substring(0, 50)}...`);
+                continue;
+              }
+              // If table/column/index already exists, that's OK - continue
+              if (stmtError.message?.includes('already exists') || 
+                  stmtError.code === '42P07' ||  // duplicate_table
+                  stmtError.code === '42710' ||   // duplicate_object
+                  stmtError.code === '42P16') {   // invalid_table_definition (constraint already exists)
+                console.log(`[Migration] Already exists, skipping: ${statement.substring(0, 50)}...`);
+                continue;
+              }
+              // If constraint already exists (different error message)
+              if (stmtError.message?.includes('constraint') && 
+                  (stmtError.message?.includes('already exists') || 
+                   stmtError.message?.includes('duplicate'))) {
+                console.log(`[Migration] Constraint already exists, skipping: ${statement.substring(0, 50)}...`);
+                continue;
+              }
+              // Otherwise, rethrow the error
+              throw new Error(`Statement ${i + 1} failed: ${stmtError.message}\nSQL: ${statement.substring(0, 100)}`);
+            }
           }
         }
       } finally {
