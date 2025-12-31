@@ -258,18 +258,34 @@ export class GroupService {
       console.log('[GroupService.getGroupSessions] Fetching sessions for group:', groupId);
       const supabase = createSupabaseClient();
       
+      // Log which key is actually being used
+      const usingServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const keyPrefix = usingServiceKey 
+        ? (process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 20) || 'unknown')
+        : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) || 'unknown');
+      
       console.log('[GroupService.getGroupSessions] Supabase client config:', {
         url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'missing',
         serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'missing',
         anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'set' : 'missing',
+        usingServiceKey,
+        keyPrefix: `${keyPrefix}...`,
       });
 
       // Get all sessions - order in JavaScript to avoid Supabase ordering bug with duplicate dates
       // Filter by group_id (must match exactly and not be null)
-      const { data: sessionsData, error: sessionsError } = await supabase
+      console.log('[GroupService.getGroupSessions] Executing query with groupId:', groupId, 'type:', typeof groupId);
+      let { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
         .select('*')
         .eq('group_id', groupId);
+      
+      console.log('[GroupService.getGroupSessions] Raw query response:', {
+        dataLength: sessionsData?.length || 0,
+        hasError: !!sessionsError,
+        errorMessage: sessionsError?.message,
+        errorCode: sessionsError?.code,
+      });
       
       // Sort by date descending, then by created_at descending as tiebreaker
       if (sessionsData) {
@@ -310,6 +326,12 @@ export class GroupService {
 
       if (!sessionsData || sessionsData.length === 0) {
         console.log('[GroupService.getGroupSessions] No sessions found for groupId:', groupId);
+        console.log('[GroupService.getGroupSessions] Query returned:', {
+          data: sessionsData,
+          dataLength: sessionsData?.length,
+          error: sessionsError,
+        });
+        
         // Double-check with a simpler query to debug
         const { data: checkData, error: checkError } = await supabase
           .from('sessions')
@@ -319,18 +341,43 @@ export class GroupService {
         console.log('[GroupService.getGroupSessions] Debug query result:', {
           found: checkData?.length || 0,
           error: checkError?.message,
+          checkData: checkData,
         });
         
         // Also check all sessions to see what group_ids exist
-        const { data: allSessionsSample } = await supabase
+        const { data: allSessionsSample, error: sampleError } = await supabase
           .from('sessions')
           .select('id, group_id')
           .limit(10);
-        console.log('[GroupService.getGroupSessions] Sample sessions with group_ids:', 
-          allSessionsSample?.map(s => ({ id: s.id, group_id: s.group_id, group_id_type: typeof s.group_id }))
-        );
+        console.log('[GroupService.getGroupSessions] Sample sessions with group_ids:', {
+          count: allSessionsSample?.length || 0,
+          error: sampleError?.message,
+          sessions: allSessionsSample?.map(s => ({ id: s.id, group_id: s.group_id, group_id_type: typeof s.group_id })),
+        });
         
-        return [];
+        // If we got data from the debug query but not the main query, there's a transformation issue
+        if (checkData && checkData.length > 0 && !sessionsError) {
+          console.warn('[GroupService.getGroupSessions] WARNING: Debug query found sessions but main query returned empty!');
+          // Try to fetch the full session data for the found sessions
+          const sessionIds = checkData.map(s => s.id);
+          const { data: fullSessions, error: fullError } = await supabase
+            .from('sessions')
+            .select('*')
+            .in('id', sessionIds);
+          console.log('[GroupService.getGroupSessions] Full sessions fetch:', {
+            count: fullSessions?.length || 0,
+            error: fullError?.message,
+          });
+          if (fullSessions && fullSessions.length > 0) {
+            // Use the full sessions data we just fetched
+            sessionsData = fullSessions;
+          }
+        }
+        
+        // If still no data, return empty
+        if (!sessionsData || sessionsData.length === 0) {
+          return [];
+        }
       }
 
       // Fetch players for each session
