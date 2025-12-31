@@ -21,10 +21,10 @@ interface SessionContextType {
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
-const STORAGE_KEY_SESSION = "sportsanalyze_session";
-const STORAGE_KEY_GAMES = "sportsanalyze_games";
-const STORAGE_KEY_ALL_SESSIONS = "sportsanalyze_all_sessions";
-const STORAGE_KEY_GROUPS = "sportsanalyze_groups";
+const STORAGE_KEY_SESSION = "poweredbypace_session";
+const STORAGE_KEY_GAMES = "poweredbypace_games";
+const STORAGE_KEY_ALL_SESSIONS = "poweredbypace_all_sessions";
+const STORAGE_KEY_GROUPS = "poweredbypace_groups";
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<Session | null>(null);

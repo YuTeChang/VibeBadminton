@@ -91,7 +91,7 @@ useEffect(() => {
 - **Real-time Needs**: Users need to see changes within seconds
 - **Collaborative**: Multiple people editing same session simultaneously
 
-## Recommended Approach for VibeBadminton
+## Recommended Approach for PoweredByPace
 
 ### Phase 1: Event-Driven (Current)
 ✅ **Best for low usage**
@@ -176,7 +176,7 @@ useEffect(() => {
 
 ## Recommendation
 
-**For VibeBadminton's current usage level:**
+**For PoweredByPace's current usage level:**
 - ✅ **Use event-driven sync** (current approach)
 - ✅ Add manual "Refresh" button
 - ✅ Optimistic updates for instant feedback

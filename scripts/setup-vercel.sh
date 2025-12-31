@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# SportsAnalyze Vercel Setup Script
+# PoweredByPace Vercel Setup Script
 # This script helps set up Vercel Postgres and configure the project
 
 set -e
 
-echo "🚀 SportsAnalyze Vercel Setup"
+echo "🚀 PoweredByPace Vercel Setup"
 echo "=============================="
 echo ""
 
@@ -91,7 +91,7 @@ read -p "Initialize database now? (y/n) " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "🔄 Starting dev server in background..."
-    npm run dev > /tmp/sportsanalyze-dev.log 2>&1 &
+    npm run dev > /tmp/poweredbypace-dev.log 2>&1 &
     DEV_PID=$!
     echo "   PID: $DEV_PID"
     

@@ -1,4 +1,4 @@
-# SportsAnalyze
+# PoweredByPace
 
 A web app that helps groups of friends track their badminton games (doubles or singles) during a session and automatically calculates wins/losses, gambling results, shared costs, and final "who owes who how much" at the end of the night.
 
@@ -94,7 +94,7 @@ See [docs/SETUP_BACKEND.md](docs/SETUP_BACKEND.md) for detailed instructions.
 ## Project Structure
 
 ```
-SportsAnalyze/
+PoweredByPace/
 ├── app/                    # Next.js app directory
 │   ├── page.tsx           # Home page (groups and sessions)
 │   ├── create-group/      # Create group page

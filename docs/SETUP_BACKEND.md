@@ -2,7 +2,7 @@
 
 ## Overview
 
-VibeBadminton uses **Supabase (PostgreSQL)** for shared session storage. This allows multiple users to see and edit the same sessions and groups.
+PoweredByPace uses **Supabase (PostgreSQL)** for shared session storage. This allows multiple users to see and edit the same sessions and groups.
 
 ## Architecture
 

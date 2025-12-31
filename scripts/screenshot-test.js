@@ -1,5 +1,5 @@
 /**
- * Screenshot Testing Script for SportsAnalyze
+ * Screenshot Testing Script for PoweredByPace
  * 
  * This script tests all features and takes screenshots of each page.
  * Run with: node scripts/screenshot-test.js

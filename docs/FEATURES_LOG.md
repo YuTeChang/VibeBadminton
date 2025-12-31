@@ -1,6 +1,6 @@
 # Features Development Log
 
-This document tracks all features, improvements, and fixes added to SportsAnalyze.
+This document tracks all features, improvements, and fixes added to PoweredByPace.
 
 ## Latest Updates (2025-01-XX)
 

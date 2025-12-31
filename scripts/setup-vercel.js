@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * SportsAnalyze Vercel Setup Script
+ * PoweredByPace Vercel Setup Script
  * Interactive setup script using Vercel CLI
  */
 
@@ -28,7 +28,7 @@ function exec(command, options = {}) {
 }
 
 async function main() {
-  console.log('🚀 SportsAnalyze Vercel Setup');
+  console.log('🚀 PoweredByPace Vercel Setup');
   console.log('==============================\n');
 
   // Check if Vercel CLI is installed

@@ -40,7 +40,7 @@ export default function Home() {
       // Load game counts for all sessions from localStorage
       if (typeof window !== "undefined") {
         try {
-          const savedGames = localStorage.getItem("sportsanalyze_games");
+          const savedGames = localStorage.getItem("poweredbypace_games");
           if (savedGames) {
             const parsedGames = JSON.parse(savedGames);
             const counts: Record<string, number> = {};
@@ -80,7 +80,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
       <div className="max-w-md w-full space-y-6 sm:space-y-8 text-center">
         <h1 className="text-3xl sm:text-4xl font-bold text-japandi-text-primary">
-          SportsAnalyze
+          PoweredByPace
         </h1>
         <p className="text-base sm:text-lg text-japandi-text-secondary px-4">
           Track your badminton games and automatically calculate who owes what

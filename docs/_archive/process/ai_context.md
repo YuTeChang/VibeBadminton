@@ -1,4 +1,4 @@
-# VibeBadminton – AI Context / Instructions
+# PoweredByPace – AI Context / Instructions
 
 **Purpose**: This file provides quick context for AI assistants working on this project.
 
@@ -6,11 +6,11 @@
 
 ## Project Overview
 
-**VibeBadminton** is a tiny web/mobile app that helps groups of friends track their badminton doubles games during a session and automatically calculates wins/losses, gambling results, shared costs, and final "who owes who how much" at the end of the night.
+**PoweredByPace** is a tiny web/mobile app that helps groups of friends track their badminton doubles games during a session and automatically calculates wins/losses, gambling results, shared costs, and final "who owes who how much" at the end of the night.
 
 **Tech Stack**: Next.js 14, TypeScript, Tailwind CSS (no backend for MVP)
 
-**Project Root**: `/Users/yute.chang/code/VibeBadminton`
+**Project Root**: `/Users/yute.chang/code/PoweredByPace`
 
 ---
 

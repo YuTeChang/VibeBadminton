@@ -3,7 +3,7 @@ import "./globals.css";
 import { SessionProvider } from "@/contexts/SessionContext";
 
 export const metadata: Metadata = {
-  title: "SportsAnalyze - Track Your Games & Settle Up",
+  title: "PoweredByPace - Track Your Games & Settle Up",
   description: "Track badminton doubles games and automatically calculate who owes what",
 };
 

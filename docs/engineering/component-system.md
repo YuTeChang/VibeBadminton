@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the centralized component system and design tokens used throughout the VibeBadminton app. The system is designed to:
+This document describes the centralized component system and design tokens used throughout the PoweredByPace app. The system is designed to:
 
 1. **Centralize styling** - All design decisions live in one place
 2. **Enable flexibility** - Easy to override or extend when needed

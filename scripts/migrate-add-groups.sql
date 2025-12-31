@@ -1,4 +1,4 @@
--- Migration: Add groups feature to SportsAnalyze
+-- Migration: Add groups feature to PoweredByPace
 -- Run this in Supabase SQL Editor to add groups to an existing database
 
 -- Create groups table (for recurring badminton groups)

@@ -1,4 +1,4 @@
--- SportsAnalyze Database Schema
+-- PoweredByPace Database Schema
 -- Run this in Supabase SQL Editor or via psql
 
 -- Create groups table (for recurring badminton groups)

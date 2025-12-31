@@ -1,8 +1,8 @@
-# SportsAnalyze Documentation
+# PoweredByPace Documentation
 
 **A web app for tracking badminton games and calculating money settlements.**
 
-> **📖 This is the main documentation file.** Everything you need to understand and work with SportsAnalyze is here. Detailed reference docs are linked at the bottom.
+> **📖 This is the main documentation file.** Everything you need to understand and work with PoweredByPace is here. Detailed reference docs are linked at the bottom.
 
 ## Quick Start
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-SportsAnalyze follows a **modern full-stack Next.js architecture** with clear separation between frontend (client-side React) and backend (server-side API routes + database).
+PoweredByPace follows a **modern full-stack Next.js architecture** with clear separation between frontend (client-side React) and backend (server-side API routes + database).
 
 ## Architecture Diagram
 

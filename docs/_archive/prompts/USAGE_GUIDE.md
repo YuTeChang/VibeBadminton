@@ -1,6 +1,6 @@
 # Agent Usage Guide
 
-This guide explains how to use the specialized AI agents for the VibeBadminton project.
+This guide explains how to use the specialized AI agents for the PoweredByPace project.
 
 ---
 
