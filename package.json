@@ -14,7 +14,9 @@
     "init:db:sql": "cat scripts/init-db-schema.sql",
     "migrate:run": "node scripts/run-migration.js",
     "migrate:psql": "bash scripts/run-migration-psql.sh",
-    "migrate:vercel": "bash scripts/run-migration-vercel.sh"
+    "migrate:vercel": "bash scripts/run-migration-vercel.sh",
+    "migrate:check": "bash scripts/check-migration-logs.sh",
+    "migrate:auto": "bash scripts/migrate-and-check.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",

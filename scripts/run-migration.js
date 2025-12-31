@@ -105,8 +105,11 @@ async function runMigration() {
           if (statement) {
             try {
               await client.query(statement);
-              console.log(`[Migration] Executed statement ${i + 1}/${statements.length}`);
+              console.log(`[Migration] ✓ Statement ${i + 1}/${statements.length}: ${statement.substring(0, 60).replace(/\n/g, ' ')}...`);
             } catch (stmtError) {
+              console.error(`[Migration] ✗ Statement ${i + 1}/${statements.length} FAILED:`);
+              console.error(`[Migration]   SQL: ${statement.substring(0, 200).replace(/\n/g, ' ')}`);
+              console.error(`[Migration]   Error: ${stmtError.message}`);
               // If policy already exists, that's OK - continue
               if (stmtError.message?.includes('already exists') && 
                   statement.toUpperCase().includes('CREATE POLICY')) {

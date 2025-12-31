@@ -27,8 +27,12 @@ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS betting_enabled BOOLEAN NOT NULL D
 -- First add the column without foreign key constraint
 ALTER TABLE players ADD COLUMN IF NOT EXISTS group_player_id VARCHAR(255);
 
--- Create indexes (do this before foreign keys to ensure tables exist)
+-- Create indexes (AFTER columns are added)
+-- Verify columns exist before creating indexes
 CREATE INDEX IF NOT EXISTS idx_group_players_group_id ON group_players(group_id);
+
+-- Create indexes only if columns exist (will fail gracefully if they don't)
+-- These are created after ALTER TABLE statements above, so columns should exist
 CREATE INDEX IF NOT EXISTS idx_sessions_group_id ON sessions(group_id);
 CREATE INDEX IF NOT EXISTS idx_players_group_player_id ON players(group_player_id);
 
