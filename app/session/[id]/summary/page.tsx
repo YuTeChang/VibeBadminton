@@ -1,33 +1,120 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "@/contexts/SessionContext";
+import { ApiClient } from "@/lib/api/client";
 import {
   calculateFinalSettlement,
   formatCurrency,
   generateShareableText,
 } from "@/lib/calculations";
 import Link from "next/link";
+import { Session, Game } from "@/types";
 
 export default function SummaryPage() {
   const params = useParams();
   const router = useRouter();
-  const { session, games, clearSession } = useSession();
+  const { session, games, clearSession, loadSession, allSessions } = useSession();
   const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [localSession, setLocalSession] = useState<Session | null>(null);
+  const [localGames, setLocalGames] = useState<Game[]>([]);
 
-  if (!session) {
+  // Load session from API if not in context
+  useEffect(() => {
+    const loadSessionData = async () => {
+      const sessionId = params.id as string;
+      if (!sessionId) {
+        setNotFound(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if session is already loaded in context
+      if (session && session.id === sessionId) {
+        setLocalSession(session);
+        setLocalGames(games);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if session exists in allSessions (already fetched)
+      const existingSession = allSessions.find(s => s.id === sessionId);
+      if (existingSession) {
+        loadSession(sessionId);
+        setLocalSession(existingSession);
+        try {
+          const apiGames = await ApiClient.getGames(sessionId);
+          setLocalGames(apiGames);
+        } catch {
+          setLocalGames([]);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Try to fetch from API
+      try {
+        const apiSession = await ApiClient.getSession(sessionId);
+        if (apiSession) {
+          setLocalSession(apiSession);
+          try {
+            const apiGames = await ApiClient.getGames(sessionId);
+            setLocalGames(apiGames);
+          } catch {
+            setLocalGames([]);
+          }
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.warn('[SummaryPage] Failed to fetch session from API:', error);
+      }
+
+      // Session not found anywhere
+      setNotFound(true);
+      setIsLoading(false);
+    };
+
+    // Small delay to allow context to hydrate first
+    const timer = setTimeout(loadSessionData, 300);
+    return () => clearTimeout(timer);
+  }, [params.id, session, games, allSessions, loadSession]);
+
+  // Sync local state with context when context updates
+  useEffect(() => {
+    if (session && session.id === params.id) {
+      setLocalSession(session);
+      setLocalGames(games);
+    }
+  }, [session, games, params.id]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-japandi-background-primary">
-        <p className="text-japandi-text-secondary">No session found</p>
-        <Link href="/create-session" className="ml-4 text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors">
-          Create Session
+        <p className="text-japandi-text-secondary">Loading session...</p>
+      </div>
+    );
+  }
+
+  if (notFound || !localSession) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-japandi-background-primary gap-4">
+        <p className="text-japandi-text-secondary">Session not found</p>
+        <Link href="/create-session" className="text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors">
+          Create New Session
         </Link>
       </div>
     );
   }
 
-  const settlement = calculateFinalSettlement(session, games);
+  // Use local state for rendering
+  const currentSession = localSession;
+  const currentGames = localGames;
+
+  const settlement = calculateFinalSettlement(currentSession, currentGames);
   const shareableText = generateShareableText(settlement);
 
   const handleCopy = async () => {
@@ -66,7 +153,7 @@ export default function SummaryPage() {
             Final Summary
           </h1>
           <p className="text-base text-japandi-text-secondary">
-            {session.name || "Badminton Session"} • {games.filter(g => g.winningTeam !== null).length} games played
+            {currentSession.name || "Badminton Session"} • {currentGames.filter(g => g.winningTeam !== null).length} games played
           </p>
         </div>
 
@@ -96,7 +183,7 @@ export default function SummaryPage() {
                     <td className="px-4 sm:px-5 py-3 sm:py-4 text-sm sm:text-base font-medium text-japandi-text-primary">
                         <div className="flex flex-col sm:block">
                         <span className="break-words">{s.playerName}</span>
-                          {s.playerId === session.organizerId && (
+                          {s.playerId === currentSession.organizerId && (
                           <span className="ml-0 sm:ml-2 text-xs text-japandi-accent-primary font-medium block sm:inline whitespace-nowrap">
                               (Organizer)
                             </span>
@@ -150,7 +237,7 @@ export default function SummaryPage() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
-              href={`/session/${session.id}`}
+              href={`/session/${currentSession.id}`}
               className="flex-1 px-5 py-3 bg-japandi-background-card hover:bg-japandi-background-primary active:scale-95 text-japandi-text-primary border border-japandi-border-light font-semibold rounded-full transition-all text-center touch-manipulation"
             >
               Back to Session

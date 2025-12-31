@@ -3,37 +3,102 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "@/contexts/SessionContext";
+import { ApiClient } from "@/lib/api/client";
 import SessionHeader from "@/components/SessionHeader";
 import LiveStatsCard from "@/components/LiveStatsCard";
 import QuickGameForm from "@/components/QuickGameForm";
 import GameHistoryList from "@/components/GameHistoryList";
 import BottomTabNav from "@/components/BottomTabNav";
 import { calculatePlayerStats } from "@/lib/calculations";
-import { Game } from "@/types";
+import { Game, Session } from "@/types";
+import Link from "next/link";
 
 type Tab = "stats" | "record" | "history";
 
 export default function SessionPage() {
   const params = useParams();
   const router = useRouter();
-  const { session, games, setSession } = useSession();
+  const { session, games, setSession, loadSession, allSessions } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>("stats");
   const [prefillGame, setPrefillGame] = useState<Game | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [localSession, setLocalSession] = useState<Session | null>(null);
+  const [localGames, setLocalGames] = useState<Game[]>([]);
 
-  // Wait a moment for localStorage to load, then check if session exists
+  // Load session from API if not in context
   useEffect(() => {
-    if (params.id) {
-      // Give localStorage time to load (SessionContext loads on mount)
-      const timer = setTimeout(() => {
-        if (!session || session.id !== params.id) {
-          router.push("/create-session");
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [session, params.id, router]);
+    const loadSessionData = async () => {
+      const sessionId = params.id as string;
+      if (!sessionId) {
+        setNotFound(true);
+        setIsLoading(false);
+        return;
+      }
 
-  if (!session) {
+      // Check if session is already loaded in context
+      if (session && session.id === sessionId) {
+        setLocalSession(session);
+        setLocalGames(games);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if session exists in allSessions (already fetched)
+      const existingSession = allSessions.find(s => s.id === sessionId);
+      if (existingSession) {
+        loadSession(sessionId);
+        setLocalSession(existingSession);
+        // Games will be loaded by loadSession, but we need to wait
+        try {
+          const apiGames = await ApiClient.getGames(sessionId);
+          setLocalGames(apiGames);
+        } catch {
+          // Games might not be loaded yet, use empty array
+          setLocalGames([]);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Try to fetch from API
+      try {
+        const apiSession = await ApiClient.getSession(sessionId);
+        if (apiSession) {
+          setLocalSession(apiSession);
+          // Also fetch games
+          try {
+            const apiGames = await ApiClient.getGames(sessionId);
+            setLocalGames(apiGames);
+          } catch {
+            setLocalGames([]);
+          }
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.warn('[SessionPage] Failed to fetch session from API:', error);
+      }
+
+      // Session not found anywhere
+      setNotFound(true);
+      setIsLoading(false);
+    };
+
+    // Small delay to allow context to hydrate first
+    const timer = setTimeout(loadSessionData, 300);
+    return () => clearTimeout(timer);
+  }, [params.id, session, games, allSessions, loadSession]);
+
+  // Sync local state with context when context updates
+  useEffect(() => {
+    if (session && session.id === params.id) {
+      setLocalSession(session);
+      setLocalGames(games);
+    }
+  }, [session, games, params.id]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-japandi-background-primary">
         <p className="text-japandi-text-secondary">Loading session...</p>
@@ -41,10 +106,25 @@ export default function SessionPage() {
     );
   }
 
+  if (notFound || !localSession) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-japandi-background-primary gap-4">
+        <p className="text-japandi-text-secondary">Session not found</p>
+        <Link href="/create-session" className="text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors">
+          Create New Session
+        </Link>
+      </div>
+    );
+  }
+
+  // Use local state for rendering (more reliable than context during loading)
+  const currentSession = localSession;
+  const currentGames = localGames;
+
   const playerStats = calculatePlayerStats(
-    games,
-    session.players,
-    session.betPerPlayer
+    currentGames,
+    currentSession.players,
+    currentSession.betPerPlayer
   );
 
   const handleGameSaved = () => {
@@ -55,7 +135,7 @@ export default function SessionPage() {
 
 
   // Get all unplayed scheduled games
-  const scheduledGames = games.filter(game => game.winningTeam === null);
+  const scheduledGames = currentGames.filter(game => game.winningTeam === null);
   
   // Get first unplayed round robin game (next game)
   const nextUnplayedGame = scheduledGames[0] || null;
@@ -64,11 +144,11 @@ export default function SessionPage() {
   const upcomingGames = scheduledGames.slice(1, 11);
   
   // Get only played games for Recent Games section
-  const playedGames = games.filter(game => game.winningTeam !== null);
+  const playedGames = currentGames.filter(game => game.winningTeam !== null);
 
   return (
     <div className="min-h-screen bg-japandi-background-primary pb-20">
-      <SessionHeader session={session} />
+      <SessionHeader session={currentSession} />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Stats Tab */}
@@ -78,7 +158,7 @@ export default function SessionPage() {
               Live Stats
             </h2>
             <div className="space-y-4">
-              {session.players.map((player) => {
+              {currentSession.players.map((player) => {
                 const stats = playerStats.find(
                   (s) => s.playerId === player.id
                 );
@@ -106,17 +186,17 @@ export default function SessionPage() {
                         Game {nextUnplayedGame.gameNumber}
                       </div>
                       <div className="text-sm sm:text-base text-japandi-text-secondary break-words">
-                        {session.gameMode === "singles" ? (
+                        {currentSession.gameMode === "singles" ? (
                           <>
-                            {session.players.find(p => p.id === nextUnplayedGame.teamA[0])?.name}
+                            {currentSession.players.find(p => p.id === nextUnplayedGame.teamA[0])?.name}
                             {" vs "}
-                            {session.players.find(p => p.id === nextUnplayedGame.teamB[0])?.name}
+                            {currentSession.players.find(p => p.id === nextUnplayedGame.teamB[0])?.name}
                           </>
                         ) : (
                           <>
-                        {session.players.find(p => p.id === nextUnplayedGame.teamA[0])?.name} & {session.players.find(p => p.id === nextUnplayedGame.teamA[1])?.name}
+                        {currentSession.players.find(p => p.id === nextUnplayedGame.teamA[0])?.name} & {currentSession.players.find(p => p.id === nextUnplayedGame.teamA[1])?.name}
                         {" vs "}
-                        {session.players.find(p => p.id === nextUnplayedGame.teamB[0])?.name} & {session.players.find(p => p.id === nextUnplayedGame.teamB[1])?.name}
+                        {currentSession.players.find(p => p.id === nextUnplayedGame.teamB[0])?.name} & {currentSession.players.find(p => p.id === nextUnplayedGame.teamB[1])?.name}
                           </>
                         )}
                       </div>
@@ -155,11 +235,11 @@ export default function SessionPage() {
                   <div className="space-y-2">
                     {upcomingGames.map((game) => {
                       const getPlayerName = (id: string) =>
-                        session.players.find((p) => p.id === id)?.name || "";
-                      const teamA = session.gameMode === "singles" 
+                        currentSession.players.find((p) => p.id === id)?.name || "";
+                      const teamA = currentSession.gameMode === "singles" 
                         ? getPlayerName(game.teamA[0])
                         : game.teamA.map(getPlayerName).join(" & ");
-                      const teamB = session.gameMode === "singles"
+                      const teamB = currentSession.gameMode === "singles"
                         ? getPlayerName(game.teamB[0])
                         : game.teamB.map(getPlayerName).join(" & ");
 
@@ -213,11 +293,11 @@ export default function SessionPage() {
                     .reverse()
                     .map((game) => {
                       const getPlayerName = (id: string) =>
-                        session.players.find((p) => p.id === id)?.name || "";
-                      const teamA = session.gameMode === "singles" 
+                        currentSession.players.find((p) => p.id === id)?.name || "";
+                      const teamA = currentSession.gameMode === "singles" 
                         ? getPlayerName(game.teamA[0])
                         : game.teamA.map(getPlayerName).join(" & ");
-                      const teamB = session.gameMode === "singles"
+                      const teamB = currentSession.gameMode === "singles"
                         ? getPlayerName(game.teamB[0])
                         : game.teamB.map(getPlayerName).join(" & ");
                       const winner = game.winningTeam === "A" ? teamA : teamB;
@@ -268,7 +348,7 @@ export default function SessionPage() {
                 <div className="space-y-2 sm:space-y-3 max-h-64 overflow-y-auto">
                   {scheduledGames.map((game) => {
                     const getPlayerName = (id: string) =>
-                      session.players.find((p) => p.id === id)?.name || "";
+                      currentSession.players.find((p) => p.id === id)?.name || "";
                     const teamA = game.teamA.map(getPlayerName).join(" & ");
                     const teamB = game.teamB.map(getPlayerName).join(" & ");
                     const isPrefilled = prefillGame?.id === game.id;
@@ -310,7 +390,7 @@ export default function SessionPage() {
             )}
 
             <QuickGameForm
-              players={session.players}
+              players={currentSession.players}
               onGameSaved={handleGameSaved}
               initialTeamA={prefillGame?.teamA}
               initialTeamB={prefillGame?.teamB}
@@ -322,7 +402,7 @@ export default function SessionPage() {
         {/* History Tab */}
         {activeTab === "history" && (
           <div>
-            <GameHistoryList games={games} players={session.players} />
+            <GameHistoryList games={currentGames} players={currentSession.players} />
           </div>
         )}
       </div>
@@ -330,7 +410,7 @@ export default function SessionPage() {
       <BottomTabNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        gameCount={games.length}
+        gameCount={currentGames.length}
       />
     </div>
   );
