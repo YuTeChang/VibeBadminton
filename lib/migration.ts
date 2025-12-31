@@ -19,16 +19,15 @@ export interface MigrationResult {
  * Run the database migration
  */
 export async function runMigration(): Promise<MigrationResult> {
-  try {
-    // Get Postgres connection string
-    // Check multiple possible environment variable names
-    const connectionString = 
-      process.env.POSTGRES_URL || 
-      process.env.POSTGRES_URL_NON_POOLING ||
-      process.env.DATABASE_URL ||
-      process.env.VERCEL_POSTGRES_URL ||
-      process.env.VERCEL_POSTGRES_URL_NON_POOLING;
+  // Get Postgres connection string (declare outside try for error logging)
+  const connectionString = 
+    process.env.POSTGRES_URL || 
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.DATABASE_URL ||
+    process.env.VERCEL_POSTGRES_URL ||
+    process.env.VERCEL_POSTGRES_URL_NON_POOLING;
 
+  try {
     if (!connectionString) {
       return {
         success: false,
