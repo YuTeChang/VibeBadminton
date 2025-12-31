@@ -246,6 +246,10 @@ export async function runMigration(): Promise<MigrationResult> {
     process.env.VERCEL_POSTGRES_URL ||
     process.env.DATABASE_URL;
 
+  // Declare pool and client outside try block so they're accessible in catch
+  let pool: any = null;
+  let client: any = null;
+
   try {
     if (!connectionString) {
       return {
@@ -289,25 +293,24 @@ export async function runMigration(): Promise<MigrationResult> {
       ? { rejectUnauthorized: false } 
       : undefined;
     
-    const pool = new Pool({
-      connectionString: cleanConnectionString,
-      ssl: sslConfig,
-      connectionTimeoutMillis: 10000, // 10 second timeout
-      query_timeout: 30000, // 30 second query timeout
-    });
-
-    // Add timeout wrapper for connection attempt
-    const connectWithTimeout = async (timeoutMs: number = 10000) => {
-      return Promise.race([
-        pool.connect(),
-        new Promise<any>((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), timeoutMs)
-        )
-      ]);
-    };
-
-    let client: any = null;
     try {
+      pool = new Pool({
+        connectionString: cleanConnectionString,
+        ssl: sslConfig,
+        connectionTimeoutMillis: 10000, // 10 second timeout
+        query_timeout: 30000, // 30 second query timeout
+      });
+
+      // Add timeout wrapper for connection attempt
+      const connectWithTimeout = async (timeoutMs: number = 10000) => {
+        return Promise.race([
+          pool.connect(),
+          new Promise<any>((_, reject) => 
+            setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), timeoutMs)
+          )
+        ]);
+      };
+
       client = await connectWithTimeout(10000);
       
       // Test connection with a simple query
@@ -413,7 +416,7 @@ export async function runMigration(): Promise<MigrationResult> {
   } catch (error: any) {
     // Clean up pool if connection was attempted
     try {
-      if (typeof pool !== 'undefined') {
+      if (pool !== null) {
         await pool.end();
       }
     } catch (poolError) {
