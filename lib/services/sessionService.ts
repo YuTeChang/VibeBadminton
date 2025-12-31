@@ -33,14 +33,19 @@ export interface PlayerRow {
 export class SessionService {
   /**
    * Get all sessions with their players
+   * Optimized: Uses JOIN to fetch all data in a single query instead of N+1 queries
    */
   static async getAllSessions(): Promise<Session[]> {
     try {
       const supabase = createSupabaseClient();
       
+      // Use JOIN to fetch sessions and players in a single query (eliminates N+1 problem)
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
-        .select('*')
+        .select(`
+          *,
+          players (*)
+        `)
         .order('created_at', { ascending: false });
 
       if (sessionsError) {
@@ -51,12 +56,15 @@ export class SessionService {
         return [];
       }
 
-      const sessionsWithPlayers = await Promise.all(
-        sessionsData.map(async (session) => {
-          const players = await this.getPlayersBySessionId(session.id);
-          return this.mapRowToSession(session as any, players);
-        })
-      );
+      // Map sessions with their players (Supabase returns players as nested array)
+      const sessionsWithPlayers = sessionsData.map((session: any) => {
+        const players = (session.players || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          groupPlayerId: p.group_player_id || undefined,
+        }));
+        return this.mapRowToSession(session, players);
+      });
 
       return sessionsWithPlayers;
     } catch (error) {
