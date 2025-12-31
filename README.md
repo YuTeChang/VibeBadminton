@@ -16,13 +16,26 @@ A tiny web app that helps groups of friends track their badminton games (doubles
 
 ## Screenshots
 
-Screenshots are available in `docs/screenshots/test-results/` showing all current features including:
-- Game mode selection (doubles/singles)
-- Multiple session management
-- Default player names
-- Improved UI layouts
+Screenshots are available in `docs/screenshots/test-results/` showing all current features:
 
-See [docs/screenshots/test-results/README.md](docs/screenshots/test-results/README.md) for details.
+**Home Page:**
+- Empty state, single session, and multiple sessions view
+
+**Create Session:**
+- Game mode toggle (doubles/singles)
+- Filled form with players and settings
+- Round robin scheduling enabled
+- Singles mode with 2 players
+
+**Session Management:**
+- Stats tab (empty and with games)
+- Record tab (empty and with teams selected)
+- History tab with all recorded games
+
+**Summary:**
+- Final settlement page with improved table layout and action buttons
+
+See [docs/screenshots/README.md](docs/screenshots/README.md) for complete details.
 
 **To regenerate screenshots:**
 ```bash
@@ -34,7 +47,10 @@ npm run test:screenshots
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **State**: React useState/useContext (in-memory for MVP)
+- **State**: React Context API with optimistic updates
+- **Backend**: Next.js API Routes
+- **Database**: Vercel Postgres (shared sessions across users)
+- **Sync Strategy**: Event-driven (no wasteful polling)
 
 ## Getting Started
 
@@ -55,6 +71,32 @@ npm run dev
 ```
 
 3. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Backend Setup (For Shared Sessions)
+
+To enable shared sessions across users, set up Vercel Postgres:
+
+**Quick Setup (Automated):**
+```bash
+npm run setup:vercel
+```
+
+This will guide you through:
+- Installing Vercel CLI
+- Linking your project
+- Creating Postgres database
+- Pulling environment variables
+- Initializing database schema
+
+**Manual Setup:**
+1. Install Vercel CLI: `npm install -g vercel`
+2. Login: `vercel login`
+3. Link project: `vercel link`
+4. Create Postgres database in Vercel dashboard
+5. Pull env vars: `vercel env pull .env.local`
+6. Initialize: `npm run dev` then `npm run init:db`
+
+See [docs/SETUP_BACKEND.md](docs/SETUP_BACKEND.md) for detailed instructions.
 
 ## Project Structure
 

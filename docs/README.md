@@ -28,7 +28,10 @@ Helps groups of friends track badminton games (doubles or singles) during a sess
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **State**: React Context (in-memory for MVP)
+- **State**: React Context API with optimistic updates
+- **Backend**: Next.js API Routes
+- **Database**: Vercel Postgres (shared sessions)
+- **Sync Strategy**: Event-driven (no wasteful polling)
 
 ---
 
@@ -195,6 +198,13 @@ All MVP features implemented, tested, and polished. Additional features have bee
 - Head-to-head statistics
 
 ---
+
+## Architecture & Engineering
+
+- **[Architecture](engineering/architecture.md)** - Frontend/backend separation, data flow, deployment
+- **[Sync Strategy](engineering/sync-strategy.md)** - Event-driven sync (no wasteful polling)
+- **[System Overview](engineering/system_overview.md)** - High-level system design
+- **[Frontend Details](engineering/frontend.md)** - React components and state management
 
 ## Reference Documentation
 

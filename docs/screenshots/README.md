@@ -6,26 +6,36 @@ Automated screenshot testing captures visual proof of all features working corre
 
 All screenshots are located in `test-results/`:
 
-1. `01-home-page.png` - Home page (may show single session; current version shows multiple sessions list)
-2. `02-create-session-empty.png` - Empty create session form (current version includes game mode toggle)
-3. `02-create-session-filled.png` - Filled create session form
-4. `02-create-session-round-robin.png` - Create session with round robin enabled
-5. `03-session-stats-empty.png` - Stats tab (no games)
-6. `03-session-stats-with-games.png` - Stats tab (with games)
-7. `04-session-record-empty.png` - Record tab (empty)
-8. `04-session-record-teams-selected.png` - Record tab (teams selected)
-9. `04-session-record-ready.png` - Record tab (ready to save)
-10. `05-session-history.png` - History tab
-11. `06-summary-page.png` - Summary page (current version has improved table layout)
+### Home Page
+1. `01-home-page.png` - Empty home page (no sessions)
+2. `01-home-page-with-session.png` - Home page with one active session
+3. `01-home-page-multiple-sessions.png` - Home page showing multiple sessions (doubles and singles)
 
-## Current Features Not Shown in Screenshots
+### Create Session
+4. `02-create-session-empty.png` - Empty create session form with game mode toggle (doubles/singles)
+5. `02-create-session-filled.png` - Filled create session form (doubles mode with 4 players)
+6. `02-create-session-round-robin.png` - Create session with round robin scheduling enabled
+7. `02-create-session-singles-mode.png` - Create session form in singles mode (2 players)
 
-The following features have been added but may not be visible in current screenshots:
-- **Singles Mode Toggle**: Game mode selection (doubles/singles) in create session form
-- **Multiple Sessions**: Home page now displays all created sessions with ability to switch
-- **Default Player Names**: Players can be created without names (defaults assigned)
-- **Improved Summary UI**: Better table layout, text wrapping, and button spacing
-- **Auto-select Last Player**: In 4-player doubles mode
+### Session Pages
+8. `03-session-stats-empty.png` - Stats tab showing no games recorded yet
+9. `03-session-stats-with-games.png` - Stats tab with live statistics after recording games
+10. `04-session-record-empty.png` - Record tab (empty, ready to record first game)
+11. `04-session-record-teams-selected.png` - Record tab with teams selected (ready to mark winner and save)
+12. `05-session-history.png` - History tab showing all recorded games
+
+### Summary
+13. `06-summary-page.png` - Final summary page with settlement calculations, improved table layout, and action buttons
+
+## Features Captured
+
+All current features are now captured in screenshots:
+- ✅ **Game Mode Toggle**: Doubles/singles selection visible in create session screenshots
+- ✅ **Multiple Sessions**: Home page screenshots show multiple sessions management
+- ✅ **Default Player Names**: Form shows players can be created with or without custom names
+- ✅ **Improved Summary UI**: Summary page shows better table layout, text wrapping, and button spacing
+- ✅ **Round Robin Scheduling**: Screenshot shows round robin option enabled
+- ✅ **Singles Mode**: Dedicated screenshot showing singles mode with 2 players
 
 ## Regenerating Screenshots
 
@@ -39,9 +49,5 @@ This will automatically:
 - Capture screenshots of each feature
 - Save to `test-results/`
 
-**Note**: The screenshot test script may need updates to capture new features like singles mode and multiple sessions. Consider updating `scripts/screenshot-test.js` to include:
-- Game mode toggle selection
-- Multiple session creation and display
-- Singles mode gameplay
-- Default player name behavior
+The screenshot script has been updated to capture all current features including singles mode, multiple sessions, and improved UI layouts.
 

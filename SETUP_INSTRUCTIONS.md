@@ -1,100 +1,67 @@
-# Component System Setup Instructions
+# Setup Instructions - Next Steps
 
-## Quick Setup
+## ✅ Completed
+- Vercel CLI installed (v50.1.3)
 
-The component system is ready to use, but you need to install two dependencies first:
+## 🔄 Manual Steps Required
+
+You'll need to complete these steps manually (they require browser authentication):
+
+### 1. Login to Vercel
+```bash
+vercel login
+```
+This will open your browser to authenticate.
+
+### 2. Link Your Project
+```bash
+vercel link
+```
+Choose:
+- Link to existing project (if you have one on Vercel)
+- Or create a new project
+
+### 3. Create Postgres Database
+1. Go to: https://vercel.com/dashboard
+2. Select your project
+3. Go to **Storage** → **Create Database** → **Postgres**
+4. Choose a name (e.g., "vibebadminton-db") and region
+5. Click **Create**
+
+### 4. Pull Environment Variables
+After creating the database, run:
+```bash
+vercel env pull .env.local
+```
+
+### 5. Initialize Database
+Start the dev server and initialize:
+```bash
+npm run dev
+# In another terminal:
+npm run init:db
+```
+
+Or visit: http://localhost:3000/api/init
+
+## 🚀 Quick Commands
+
+After completing the manual steps above:
 
 ```bash
-npm install clsx tailwind-merge
+# Pull environment variables
+vercel env pull .env.local
+
+# Start dev server
+npm run dev
+
+# Initialize database (in another terminal)
+npm run init:db
 ```
 
-### Why These Packages?
+## ✅ Verification
 
-- **clsx**: Conditionally joins classNames together
-- **tailwind-merge**: Intelligently merges Tailwind CSS classes, resolving conflicts
-
-### Installation Options
-
-#### Option 1: Standard npm (Recommended)
-```bash
-npm install clsx tailwind-merge
-```
-
-#### Option 2: If PowerShell Execution Policy Blocks npm
-```bash
-# Use Command Prompt instead
-cmd /c npm install clsx tailwind-merge
-
-# OR change PowerShell execution policy (requires admin)
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-#### Option 3: Manual Installation
-Add to `package.json` dependencies:
-```json
-{
-  "dependencies": {
-    "clsx": "^2.1.0",
-    "tailwind-merge": "^2.2.0"
-  }
-}
-```
-Then run `npm install`
-
-## What's Included
-
-### Base UI Components (`components/ui/`)
-- ✅ Button (primary, secondary, ghost, danger variants)
-- ✅ Card (default, elevated, outlined variants)
-- ✅ Input (with label and error states)
-- ✅ Select (with label and error states)
-- ✅ Page (page wrapper)
-- ✅ Container (content container)
-- ✅ Section (spacing wrapper)
-- ✅ Heading (h1-h6 typography)
-- ✅ Text (typography with variants)
-
-### Utility Classes (`app/globals.css`)
-- `.btn-base`, `.btn-primary`, `.btn-secondary`
-- `.card-base`
-- `.input-base`
-- `.page-container`
-- `.content-container`
-
-### Design Tokens (`tailwind.config.ts`)
-- Japandi color palette
-- Typography settings
-- Border radius
-- Shadows
-
-## Usage Example
-
-```tsx
-import { Button, Card, Input, Page, Heading } from '@/components/ui';
-
-export default function MyPage() {
-  return (
-    <Page>
-      <Heading level={1}>Welcome</Heading>
-      <Card>
-        <Input label="Name" />
-        <Button variant="primary">Submit</Button>
-      </Card>
-    </Page>
-  );
-}
-```
-
-## Benefits
-
-✅ **No more duplicate styles** - Use components instead  
-✅ **Easy to update** - Change design in one place  
-✅ **Flexible** - Override with className when needed  
-✅ **Consistent** - Same components = same look everywhere  
-
-## Next Steps
-
-1. Install dependencies: `npm install clsx tailwind-merge`
-2. Start using components in your pages
-3. See `docs/engineering/component-system.md` for full documentation
-
+After setup, verify it works:
+1. Create a session in the app
+2. Check Vercel Postgres dashboard - you should see data in the tables
+3. Open the same session in another browser - it should be visible!
