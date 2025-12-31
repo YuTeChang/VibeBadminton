@@ -25,6 +25,7 @@ export default function SessionPage() {
   const [notFound, setNotFound] = useState(false);
   const [localSession, setLocalSession] = useState<Session | null>(null);
   const [localGames, setLocalGames] = useState<Game[]>([]);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   // Load session from API if not in context
   useEffect(() => {
@@ -135,8 +136,10 @@ export default function SessionPage() {
   // Get first unplayed round robin game (next game)
   const nextUnplayedGame = scheduledGames[0] || null;
   
-  // Get upcoming games (excluding the next game, show up to 10 for better visibility)
-  const upcomingGames = scheduledGames.slice(1, 11);
+  // Get upcoming games (excluding the next game, show 3 initially, all if expanded)
+  const allUpcomingGames = scheduledGames.slice(1);
+  const upcomingGames = showAllUpcoming ? allUpcomingGames : allUpcomingGames.slice(0, 3);
+  const hasMoreUpcoming = allUpcomingGames.length > 3;
   
   // Get only played games for Recent Games section
   const playedGames = currentGames.filter(game => game.winningTeam !== null);
@@ -217,12 +220,12 @@ export default function SessionPage() {
                   <h3 className="text-base font-semibold text-japandi-text-primary">
                     Upcoming Games
                   </h3>
-                  {scheduledGames.length > 11 && (
+                  {hasMoreUpcoming && (
                     <button
-                      onClick={() => setActiveTab("record")}
+                      onClick={() => setShowAllUpcoming(!showAllUpcoming)}
                       className="text-xs sm:text-sm text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors touch-manipulation"
                     >
-                      View All ({scheduledGames.length})
+                      {showAllUpcoming ? "Show Less" : `Show More (${allUpcomingGames.length - 3} more)`}
                     </button>
                   )}
                 </div>
