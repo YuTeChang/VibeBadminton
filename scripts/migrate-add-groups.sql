@@ -27,17 +27,18 @@ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS betting_enabled BOOLEAN NOT NULL D
 -- First add the column without foreign key constraint
 ALTER TABLE players ADD COLUMN IF NOT EXISTS group_player_id VARCHAR(255);
 
--- Add foreign key constraints (will fail gracefully if they already exist)
+-- Create indexes (do this before foreign keys to ensure tables exist)
+CREATE INDEX IF NOT EXISTS idx_group_players_group_id ON group_players(group_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_group_id ON sessions(group_id);
+CREATE INDEX IF NOT EXISTS idx_players_group_player_id ON players(group_player_id);
+
+-- Add foreign key constraints (after all tables and columns are created)
+-- These will fail gracefully if constraints already exist
 ALTER TABLE sessions ADD CONSTRAINT sessions_group_id_fkey 
   FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
 
 ALTER TABLE players ADD CONSTRAINT players_group_player_id_fkey 
   FOREIGN KEY (group_player_id) REFERENCES group_players(id);
-
--- Create indexes
-CREATE INDEX IF NOT EXISTS idx_group_players_group_id ON group_players(group_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_group_id ON sessions(group_id);
-CREATE INDEX IF NOT EXISTS idx_players_group_player_id ON players(group_player_id);
 
 -- Enable Row Level Security for new tables
 ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
