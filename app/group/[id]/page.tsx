@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Group, GroupPlayer, Session } from "@/types";
 import { ApiClient } from "@/lib/api/client";
@@ -20,6 +20,7 @@ interface GroupPlayerStats {
 export default function GroupPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const groupId = params.id as string;
 
   const [group, setGroup] = useState<Group | null>(null);
@@ -57,6 +58,13 @@ export default function GroupPage() {
   useEffect(() => {
     loadGroupData();
   }, [loadGroupData]);
+
+  // Refresh data when pathname changes (e.g., when navigating back to this page)
+  useEffect(() => {
+    if (pathname === `/group/${groupId}`) {
+      loadGroupData();
+    }
+  }, [pathname, groupId, loadGroupData]);
 
   // Refresh data when page becomes visible (e.g., when navigating back from creating a session)
   useEffect(() => {
@@ -216,12 +224,21 @@ export default function GroupPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-japandi-text-primary">Sessions</h2>
-              <Link
-                href={`/create-session?groupId=${groupId}`}
-                className="px-4 py-2 bg-japandi-accent-primary hover:bg-japandi-accent-hover text-white text-sm font-semibold rounded-full transition-all"
-              >
-                + New Session
-              </Link>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => loadGroupData()}
+                  className="px-3 py-2 bg-japandi-background-card hover:bg-japandi-background-primary text-japandi-text-primary text-sm font-medium rounded-full border border-japandi-border-light transition-all"
+                  title="Refresh sessions list"
+                >
+                  ↻ Refresh
+                </button>
+                <Link
+                  href={`/create-session?groupId=${groupId}`}
+                  className="px-4 py-2 bg-japandi-accent-primary hover:bg-japandi-accent-hover text-white text-sm font-semibold rounded-full transition-all"
+                >
+                  + New Session
+                </Link>
+              </div>
             </div>
 
             {sessions.length === 0 ? (

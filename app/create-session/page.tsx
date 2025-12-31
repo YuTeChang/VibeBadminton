@@ -173,7 +173,7 @@ function CreateSessionContent() {
     isValidBet &&
     isValidRoundRobinCount;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
 
@@ -244,9 +244,21 @@ function CreateSessionContent() {
     }
 
     // Set session with initial games if round robin is enabled
-    setSession(session, roundRobinGamesToAdd.length > 0 ? roundRobinGamesToAdd : undefined);
+    // Wait for session to be saved before navigating
+    try {
+      await setSession(session, roundRobinGamesToAdd.length > 0 ? roundRobinGamesToAdd : undefined);
+    } catch (error) {
+      console.error('[CreateSession] Failed to save session:', error);
+      // Continue anyway - session might be saved in background
+    }
 
-    router.push(`/session/${session.id}`);
+    // Navigate to session page
+    if (selectedGroupId) {
+      // If created from a group, navigate to session but allow easy return
+      router.push(`/session/${session.id}?groupId=${selectedGroupId}`);
+    } else {
+      router.push(`/session/${session.id}`);
+    }
   };
 
   return (
