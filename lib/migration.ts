@@ -46,11 +46,15 @@ export async function runMigration(): Promise<MigrationResult> {
     const { Pool } = await import('pg');
 
     // Connect to database
+    // For cloud Postgres (Supabase, Vercel, etc.), we need SSL with self-signed cert support
+    // Check if it's a remote connection (not localhost)
+    const isLocalhost = connectionString.includes('localhost') || 
+                       connectionString.includes('127.0.0.1');
+    
+    // Use SSL for all remote connections, allow self-signed certs
     const pool = new Pool({
       connectionString,
-      ssl: connectionString.includes('supabase') || connectionString.includes('vercel') 
-        ? { rejectUnauthorized: false } 
-        : undefined,
+      ssl: !isLocalhost ? { rejectUnauthorized: false } : undefined,
     });
 
     try {
