@@ -203,6 +203,12 @@ export default function Home() {
           >
             Quick Session (No Group)
           </Link>
+          <Link
+            href="/migrate"
+            className="inline-block w-full text-sm text-japandi-text-muted hover:text-japandi-text-primary text-center py-2 transition-colors"
+          >
+            Database Migration Status
+          </Link>
         </div>
       </div>
     </main>
