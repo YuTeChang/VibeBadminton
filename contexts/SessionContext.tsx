@@ -94,39 +94,46 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
         
         // Check API availability lazily (non-blocking) - doesn't delay initial render
-        // This allows homepage to load instantly while still checking API in background
-        isApiAvailable()
-          .then((apiReady) => {
-            setApiAvailable(apiReady);
-            
-            // If API is available and we have a saved session, sync in background
-            // BUT: Skip auto-sync on dashboard and group pages to avoid unnecessary API calls
-            if (apiReady && savedSession && !isGroupPage && !isDashboard) {
-              try {
-                const parsedSession = JSON.parse(savedSession);
-                // Only fetch session and games if we don't already have them
-                ApiClient.getSession(parsedSession.id).then((dbSession) => {
-                  setSessionState(dbSession);
-                  // Only fetch games if we don't have them yet (avoid duplicate)
-                  return ApiClient.getGames(parsedSession.id);
-                }).then((dbGames) => {
-                  setGames(dbGames);
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem(STORAGE_KEY_GAMES, JSON.stringify(dbGames));
-                  }
-                }).catch((error) => {
-                  // Silently fail - we have localStorage version
-                  console.warn('[SessionContext] Failed to sync session from API');
-                });
-              } catch (error) {
-                // Ignore parse errors
+        // Skip health check on group pages and dashboard - we'll know if API works from actual calls
+        if (isGroupPage || isDashboard) {
+          // Assume API is available - will fail gracefully if not
+          // This saves ~400ms on group pages by skipping the health check
+          setApiAvailable(true);
+          console.log('[SessionContext] Skipping API health check on', pathname, '- assuming available');
+        } else {
+          // Check API availability for other pages
+          isApiAvailable()
+            .then((apiReady) => {
+              setApiAvailable(apiReady);
+              
+              // If API is available and we have a saved session, sync in background
+              if (apiReady && savedSession) {
+                try {
+                  const parsedSession = JSON.parse(savedSession);
+                  // Only fetch session and games if we don't already have them
+                  ApiClient.getSession(parsedSession.id).then((dbSession) => {
+                    setSessionState(dbSession);
+                    // Only fetch games if we don't have them yet (avoid duplicate)
+                    return ApiClient.getGames(parsedSession.id);
+                  }).then((dbGames) => {
+                    setGames(dbGames);
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem(STORAGE_KEY_GAMES, JSON.stringify(dbGames));
+                    }
+                  }).catch((error) => {
+                    // Silently fail - we have localStorage version
+                    console.warn('[SessionContext] Failed to sync session from API');
+                  });
+                } catch (error) {
+                  // Ignore parse errors
+                }
               }
-            }
-          })
-          .catch(() => {
-            // API unavailable - use localStorage only
-            setApiAvailable(false);
-          });
+            })
+            .catch(() => {
+              // API unavailable - use localStorage only
+              setApiAvailable(false);
+            });
+        }
       } catch (error) {
         console.error('[SessionContext] Error initializing:', error);
         loadFromLocalStorage();

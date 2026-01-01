@@ -27,6 +27,7 @@ export default function GroupPage() {
   const [players, setPlayers] = useState<GroupPlayer[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
@@ -35,20 +36,18 @@ export default function GroupPage() {
   const [playerStats, setPlayerStats] = useState<GroupPlayerStats[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Load group and sessions immediately (fast initial render)
   const loadGroupData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       console.log('[GroupPage] Loading group data for groupId:', groupId);
       
-      const [fetchedGroup, fetchedPlayers, fetchedSessions] = await Promise.all([
+      // Only load group and sessions initially - players load lazily when Players tab is clicked
+      const [fetchedGroup, fetchedSessions] = await Promise.all([
         ApiClient.getGroup(groupId).catch(err => {
           console.error('[GroupPage] Error fetching group:', err);
           throw err;
-        }),
-        ApiClient.getGroupPlayers(groupId).catch(err => {
-          console.error('[GroupPage] Error fetching players:', err);
-          return [];
         }),
         ApiClient.getGroupSessions(groupId).catch(err => {
           console.error('[GroupPage] Error fetching sessions:', err);
@@ -59,7 +58,6 @@ export default function GroupPage() {
       
       console.log('[GroupPage] Loaded data:', {
         group: fetchedGroup?.name,
-        playersCount: fetchedPlayers?.length,
         sessionsCount: fetchedSessions?.length,
         sessions: fetchedSessions?.map(s => ({ id: s.id, name: s.name, groupId: s.groupId })),
       });
@@ -74,7 +72,6 @@ export default function GroupPage() {
       })));
       
       setGroup(fetchedGroup);
-      setPlayers(fetchedPlayers || []);
       setSessions(fetchedSessions || []);
       
       console.log('[GroupPage] State updated. Sessions state:', fetchedSessions?.length || 0);
@@ -87,6 +84,27 @@ export default function GroupPage() {
       setIsLoading(false);
     }
   }, [groupId]);
+
+  // Lazy load players only when Players tab is clicked
+  const loadPlayers = useCallback(async () => {
+    // Don't reload if we already have players or are currently loading
+    if (players.length > 0 || isLoadingPlayers) {
+      return;
+    }
+    
+    setIsLoadingPlayers(true);
+    try {
+      console.log('[GroupPage] Lazy loading players for groupId:', groupId);
+      const fetchedPlayers = await ApiClient.getGroupPlayers(groupId);
+      setPlayers(fetchedPlayers || []);
+      console.log('[GroupPage] Loaded', fetchedPlayers?.length || 0, 'players');
+    } catch (err) {
+      console.error('[GroupPage] Error fetching players:', err);
+      setPlayers([]);
+    } finally {
+      setIsLoadingPlayers(false);
+    }
+  }, [groupId, players.length, isLoadingPlayers]);
 
   // Track last load time to prevent duplicate calls
   const lastLoadRef = useRef<number>(0);
@@ -120,6 +138,13 @@ export default function GroupPage() {
       console.log('[GroupPage] Skipping duplicate load (too soon after last load)');
     }
   }, [groupId, loadGroupData]);
+
+  // Lazy load players when Players tab is clicked
+  useEffect(() => {
+    if (activeTab === 'players') {
+      loadPlayers();
+    }
+  }, [activeTab, loadPlayers]);
 
   // Track if we've navigated away to detect when returning to this page
   const hasNavigatedAwayRef = useRef(false);
@@ -402,6 +427,11 @@ export default function GroupPage() {
         {/* Players Tab */}
         {activeTab === "players" && (
           <div className="space-y-4">
+            {isLoadingPlayers && (
+              <div className="text-center py-8 text-japandi-text-muted">
+                Loading players...
+              </div>
+            )}
             <h2 className="text-lg font-semibold text-japandi-text-primary">Player Pool</h2>
             <p className="text-sm text-japandi-text-muted">
               Add players to your group. They will appear as suggestions when creating sessions.
