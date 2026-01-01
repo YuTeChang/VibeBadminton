@@ -59,12 +59,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       console.log('[SessionContext] Starting initialization...');
 
       try {
+        // Check current pathname - don't load session on group pages or dashboard
+        const pathname = window.location.pathname;
+        const isGroupPage = pathname.startsWith('/group/');
+        const isDashboard = pathname === '/dashboard' || pathname === '/';
+        
         // Load from localStorage immediately for fast initial render (no API call blocking)
         loadFromLocalStorage();
         
-        // Load saved session from localStorage for immediate UI
+        // Get saved session (if any) - we'll use it conditionally
         const savedSession = localStorage.getItem(STORAGE_KEY_SESSION);
-        if (savedSession) {
+        
+        // Only load saved session from localStorage if we're NOT on a group page or dashboard
+        // Group pages and dashboard don't need session context
+        if (!isGroupPage && !isDashboard && savedSession) {
           try {
             const parsedSession = JSON.parse(savedSession);
             parsedSession.date = new Date(parsedSession.date);
@@ -81,6 +89,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           } catch (error) {
             console.warn('[SessionContext] Failed to parse saved session:', error);
           }
+        } else if (isGroupPage || isDashboard) {
+          console.log('[SessionContext] Skipping session load on', pathname, '- not needed on this page');
         }
         
         // Check API availability lazily (non-blocking) - doesn't delay initial render
@@ -90,14 +100,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             setApiAvailable(apiReady);
             
             // If API is available and we have a saved session, sync in background
-            // BUT: Skip auto-sync on dashboard page to avoid unnecessary API calls
-            if (apiReady && savedSession) {
-              const pathname = window.location.pathname;
-              // Don't auto-sync session on dashboard - dashboard loads its own data
-              if (pathname === '/dashboard') {
-                return; // Skip session sync on dashboard
-              }
-              
+            // BUT: Skip auto-sync on dashboard and group pages to avoid unnecessary API calls
+            if (apiReady && savedSession && !isGroupPage && !isDashboard) {
               try {
                 const parsedSession = JSON.parse(savedSession);
                 // Only fetch session and games if we don't already have them
@@ -212,11 +216,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoaded || typeof window === "undefined" || !session) return;
 
-    // Don't sync session on dashboard or home page - these pages don't need session sync
+    // Don't sync session on dashboard, home page, or group pages - these pages don't need session sync
     const pathname = window.location.pathname;
     console.log('[SessionContext] Session sync effect triggered, pathname:', pathname, 'session.id:', session.id);
     
-    if (pathname === '/dashboard' || pathname === '/') {
+    const isGroupPage = pathname.startsWith('/group/');
+    const isDashboard = pathname === '/dashboard' || pathname === '/';
+    
+    if (isDashboard || isGroupPage) {
       console.log('[SessionContext] Skipping session sync on', pathname, '- only saving to localStorage');
       // Still save to localStorage for offline support, but don't sync to API
       localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
@@ -551,6 +558,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       // Save as active session
       if (typeof window !== "undefined") {
         localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(sessionToLoad));
+      }
+      
+      // Don't load games if we're on a group page or dashboard - not needed
+      const pathname = typeof window !== "undefined" ? window.location.pathname : '';
+      const isGroupPage = pathname.startsWith('/group/');
+      const isDashboard = pathname === '/dashboard' || pathname === '/';
+      
+      if (isGroupPage || isDashboard) {
+        console.log('[SessionContext] Skipping games load on', pathname, '- not needed on this page');
+        return;
       }
       
       // Load games from API if available, otherwise from localStorage
