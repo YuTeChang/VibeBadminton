@@ -74,6 +74,29 @@ export default function Dashboard() {
         console.log('[Dashboard] Loaded summaries:', summariesWithDates.length, summariesWithDates);
         console.log('[Dashboard] Standalone sessions:', summariesWithDates.filter(s => !s.groupId).length);
         
+        // Sync localStorage with API data - remove any sessions that don't exist in API
+        // This prevents deleted sessions from reappearing on refresh
+        if (typeof window !== "undefined") {
+          try {
+            const savedAllSessions = localStorage.getItem("poweredbypace_all_sessions");
+            if (savedAllSessions) {
+              const parsed = JSON.parse(savedAllSessions);
+              const apiSessionIds = new Set(summaries.map(s => s.id));
+              const updated = parsed.filter((s: any) => apiSessionIds.has(s.id));
+              
+              if (updated.length === 0) {
+                localStorage.removeItem("poweredbypace_all_sessions");
+              } else if (updated.length !== parsed.length) {
+                // Some sessions were removed, update localStorage
+                localStorage.setItem("poweredbypace_all_sessions", JSON.stringify(updated));
+                console.log('[Dashboard] Removed', parsed.length - updated.length, 'deleted sessions from localStorage');
+              }
+            }
+          } catch (error) {
+            console.warn('[Dashboard] Failed to sync localStorage with API data:', error);
+          }
+        }
+        
         // Calculate session counts from summaries
         if (fetchedGroups && fetchedGroups.length > 0 && summaries.length > 0) {
           const counts: Record<string, number> = {};
@@ -156,6 +179,39 @@ export default function Dashboard() {
           ...prev,
           [deletedSession.groupId!]: Math.max(0, (prev[deletedSession.groupId!] || 0) - 1)
         }));
+      }
+      
+      // Remove from localStorage to prevent it from reappearing on refresh
+      if (typeof window !== "undefined") {
+        // Remove from allSessions in localStorage
+        const savedAllSessions = localStorage.getItem("poweredbypace_all_sessions");
+        if (savedAllSessions) {
+          try {
+            const parsed = JSON.parse(savedAllSessions);
+            const updated = parsed.filter((s: any) => s.id !== sessionId);
+            if (updated.length === 0) {
+              localStorage.removeItem("poweredbypace_all_sessions");
+            } else {
+              localStorage.setItem("poweredbypace_all_sessions", JSON.stringify(updated));
+            }
+          } catch (error) {
+            console.warn('[Dashboard] Failed to update localStorage after delete:', error);
+          }
+        }
+        
+        // Also remove session and games if this was the active session
+        const savedSession = localStorage.getItem("poweredbypace_session");
+        if (savedSession) {
+          try {
+            const parsed = JSON.parse(savedSession);
+            if (parsed.id === sessionId) {
+              localStorage.removeItem("poweredbypace_session");
+              localStorage.removeItem("poweredbypace_games");
+            }
+          } catch (error) {
+            // Ignore parse errors
+          }
+        }
       }
     } catch (error) {
       console.error('[Dashboard] Failed to delete session:', error);
