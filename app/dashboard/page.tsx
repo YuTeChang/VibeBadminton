@@ -59,7 +59,14 @@ export default function Dashboard() {
         ]);
         
         setGroups(fetchedGroups);
-        setSessionSummaries(summaries.map(s => ({ ...s, date: new Date(s.date) })));
+        const summariesWithDates = summaries.map(s => ({ ...s, date: new Date(s.date) }));
+        setSessionSummaries(summariesWithDates);
+        
+        // Log for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Dashboard] Loaded summaries:', summariesWithDates.length, summariesWithDates);
+          console.log('[Dashboard] Standalone sessions:', summariesWithDates.filter(s => !s.groupId).length);
+        }
         
         // Calculate session counts from summaries
         if (fetchedGroups && fetchedGroups.length > 0 && summaries.length > 0) {
