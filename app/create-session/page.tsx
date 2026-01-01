@@ -16,8 +16,30 @@ function CreateSessionContent() {
   const { setSession, groups, refreshGroups } = useSession();
   const [localGroups, setLocalGroups] = useState<Group[]>([]);
   const [hasTriedLoadingGroups, setHasTriedLoadingGroups] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const isGroupLocked = !!initialGroupId; // Lock group selection if groupId is in URL
   
-  // Load groups if not already loaded (needed for group dropdown)
+  // Load the specific group if groupId is in URL
+  useEffect(() => {
+    if (initialGroupId && !selectedGroup) {
+      // Fetch the group details to display its name
+      ApiClient.getGroup(initialGroupId)
+        .then((group) => {
+          setSelectedGroup(group);
+        })
+        .catch((error) => {
+          console.warn('[CreateSession] Failed to load group details:', error);
+          // Try to find in available groups
+          const availableGroups = groups.length > 0 ? groups : localGroups;
+          const foundGroup = availableGroups.find(g => g.id === initialGroupId);
+          if (foundGroup) {
+            setSelectedGroup(foundGroup);
+          }
+        });
+    }
+  }, [initialGroupId, selectedGroup, groups, localGroups]);
+  
+  // Load groups if not already loaded (needed for group dropdown when not locked)
   // This ensures groups are available when creating a session from a group page
   useEffect(() => {
     // If groups from context are empty and we haven't tried loading yet, fetch them
@@ -31,6 +53,13 @@ function CreateSessionContent() {
           const parsed = JSON.parse(saved);
           if (parsed && parsed.length > 0) {
             setLocalGroups(parsed);
+            // If we have initialGroupId, try to find it in parsed groups
+            if (initialGroupId && !selectedGroup) {
+              const foundGroup = parsed.find((g: Group) => g.id === initialGroupId);
+              if (foundGroup) {
+                setSelectedGroup(foundGroup);
+              }
+            }
             return; // Use localStorage groups
           }
         }
@@ -45,6 +74,13 @@ function CreateSessionContent() {
             setLocalGroups(fetchedGroups);
             // Update localStorage for future use
             localStorage.setItem("poweredbypace_groups", JSON.stringify(fetchedGroups));
+            // If we have initialGroupId, try to find it in fetched groups
+            if (initialGroupId && !selectedGroup) {
+              const foundGroup = fetchedGroups.find(g => g.id === initialGroupId);
+              if (foundGroup) {
+                setSelectedGroup(foundGroup);
+              }
+            }
             // Try to refresh context groups if refreshGroups is available
             if (refreshGroups) {
               // Wait a bit for apiAvailable to be determined, then refresh
@@ -60,7 +96,7 @@ function CreateSessionContent() {
           console.warn('[CreateSession] Failed to load groups from API:', error);
         });
     }
-  }, [groups.length, localGroups.length, hasTriedLoadingGroups, refreshGroups]);
+  }, [groups.length, localGroups.length, hasTriedLoadingGroups, refreshGroups, initialGroupId, selectedGroup]);
   
   // Use groups from context if available, otherwise use localGroups
   const availableGroups = groups.length > 0 ? groups : localGroups;
@@ -338,32 +374,52 @@ function CreateSessionContent() {
             ← {selectedGroupId ? "Back to Group" : "Back to Home"}
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-japandi-text-primary mt-4 sm:mt-6">
-            Create New Session
+            {isGroupLocked && selectedGroup 
+              ? `Create Session in ${selectedGroup.name}`
+              : "Create New Session"}
           </h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Group Selector */}
-          <div>
-            <label className="block text-base font-medium text-japandi-text-primary mb-3">
-              Group (Optional)
-            </label>
-            <select
-              value={selectedGroupId}
-              onChange={(e) => setSelectedGroupId(e.target.value)}
-              className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
-            >
-              <option value="">No group (standalone session)</option>
-              {availableGroups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
-            <p className="mt-2 text-sm text-japandi-text-muted">
-              Sessions in a group can be tracked together
-            </p>
-          </div>
+          {/* Group Display/Selector */}
+          {isGroupLocked && selectedGroup ? (
+            // Show locked group prominently when creating from group page
+            <div className="bg-japandi-background-card border-2 border-japandi-accent-primary rounded-card p-4 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-6 h-6 text-japandi-accent-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-japandi-text-muted mb-1">Creating session in group:</p>
+                  <p className="text-lg font-semibold text-japandi-text-primary">{selectedGroup.name}</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Show group selector when not locked (standalone session creation)
+            <div>
+              <label className="block text-base font-medium text-japandi-text-primary mb-3">
+                Group (Optional)
+              </label>
+              <select
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
+              >
+                <option value="">No group (standalone session)</option>
+                {availableGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-sm text-japandi-text-muted">
+                Sessions in a group can be tracked together
+              </p>
+            </div>
+          )}
 
           {/* Session Name */}
           <div>
