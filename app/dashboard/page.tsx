@@ -30,14 +30,22 @@ export default function Dashboard() {
   const isLoadingSummariesRef = useRef(false);
 
   useEffect(() => {
+    // Always log to verify code is loaded
+    console.log('[Dashboard] useEffect triggered, pathname:', typeof window !== "undefined" ? window.location.pathname : 'SSR');
+    
     // Prevent duplicate calls
-    if (hasLoadedDataRef.current) return;
+    if (hasLoadedDataRef.current) {
+      console.log('[Dashboard] Already loaded, skipping');
+      return;
+    }
     
     // Double-check we're actually on the dashboard page (prevent prefetch calls)
     if (typeof window !== "undefined" && window.location.pathname !== '/dashboard') {
+      console.log('[Dashboard] Not on dashboard page, skipping');
       return; // Not on dashboard, skip
     }
     
+    console.log('[Dashboard] Starting to load data...');
     const loadData = async () => {
       try {
         // Load groups and summaries in parallel for better performance
@@ -62,11 +70,9 @@ export default function Dashboard() {
         const summariesWithDates = summaries.map(s => ({ ...s, date: new Date(s.date) }));
         setSessionSummaries(summariesWithDates);
         
-        // Log for debugging
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[Dashboard] Loaded summaries:', summariesWithDates.length, summariesWithDates);
-          console.log('[Dashboard] Standalone sessions:', summariesWithDates.filter(s => !s.groupId).length);
-        }
+        // Always log (not just dev) to debug production issues
+        console.log('[Dashboard] Loaded summaries:', summariesWithDates.length, summariesWithDates);
+        console.log('[Dashboard] Standalone sessions:', summariesWithDates.filter(s => !s.groupId).length);
         
         // Calculate session counts from summaries
         if (fetchedGroups && fetchedGroups.length > 0 && summaries.length > 0) {

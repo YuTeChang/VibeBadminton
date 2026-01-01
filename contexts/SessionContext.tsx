@@ -46,12 +46,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // Initialize and load saved session on mount (don't load all sessions/groups yet)
   // API availability check is done lazily (non-blocking) for faster initial render
   useEffect(() => {
+    console.log('[SessionContext] Initialization effect triggered');
     const initData = async () => {
       if (typeof window === "undefined") return;
       
       // Prevent duplicate calls
-      if (isLoadingDataRef.current) return;
+      if (isLoadingDataRef.current) {
+        console.log('[SessionContext] Already initializing, skipping');
+        return;
+      }
       isLoadingDataRef.current = true;
+      console.log('[SessionContext] Starting initialization...');
 
       try {
         // Load from localStorage immediately for fast initial render (no API call blocking)
