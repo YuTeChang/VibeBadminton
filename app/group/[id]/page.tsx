@@ -98,10 +98,11 @@ export default function GroupPage() {
   // Refresh data when pathname changes (only if different from initial load)
   const prevPathnameRef = useRef<string | null>(null);
   useEffect(() => {
-    if (pathname === `/group/${groupId}` && prevPathnameRef.current !== pathname) {
+    if (pathname === `/group/${groupId}`) {
+      // Always refresh when pathname matches (handles navigation from create-session)
       const now = Date.now();
-      if (now - lastLoadRef.current > REFRESH_DEBOUNCE_MS) {
-        console.log('[GroupPage] Pathname changed, refreshing data...');
+      if (prevPathnameRef.current !== pathname || now - lastLoadRef.current > REFRESH_DEBOUNCE_MS) {
+        console.log('[GroupPage] Pathname changed or time elapsed, refreshing data...');
         lastLoadRef.current = now;
         const timer = setTimeout(() => {
           loadGroupData();

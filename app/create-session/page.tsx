@@ -50,7 +50,7 @@ function CreateSessionContent() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>(initialGroupId || "");
   const [groupPlayers, setGroupPlayers] = useState<GroupPlayer[]>([]);
   const [selectedGroupPlayerIds, setSelectedGroupPlayerIds] = useState<Set<string>>(new Set());
-  const [bettingEnabled, setBettingEnabled] = useState(true);
+  const [bettingEnabled, setBettingEnabled] = useState(false);
   
   // Load group players when group is selected
   useEffect(() => {
