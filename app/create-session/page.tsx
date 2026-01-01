@@ -13,7 +13,57 @@ function CreateSessionContent() {
   const searchParams = useSearchParams();
   const initialGroupId = searchParams.get("groupId");
   
-  const { setSession, groups } = useSession();
+  const { setSession, groups, refreshGroups } = useSession();
+  const [localGroups, setLocalGroups] = useState<Group[]>([]);
+  const [hasTriedLoadingGroups, setHasTriedLoadingGroups] = useState(false);
+  
+  // Load groups if not already loaded (needed for group dropdown)
+  // This ensures groups are available when creating a session from a group page
+  useEffect(() => {
+    // If groups from context are empty and we haven't tried loading yet, fetch them
+    if (groups.length === 0 && localGroups.length === 0 && !hasTriedLoadingGroups && typeof window !== "undefined") {
+      setHasTriedLoadingGroups(true);
+      
+      // First, check localStorage
+      try {
+        const saved = localStorage.getItem("poweredbypace_groups");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.length > 0) {
+            setLocalGroups(parsed);
+            return; // Use localStorage groups
+          }
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+      
+      // If no localStorage, try to fetch from API
+      ApiClient.getAllGroups()
+        .then((fetchedGroups) => {
+          if (fetchedGroups.length > 0) {
+            setLocalGroups(fetchedGroups);
+            // Update localStorage for future use
+            localStorage.setItem("poweredbypace_groups", JSON.stringify(fetchedGroups));
+            // Try to refresh context groups if refreshGroups is available
+            if (refreshGroups) {
+              // Wait a bit for apiAvailable to be determined, then refresh
+              setTimeout(() => {
+                refreshGroups().catch(() => {
+                  // Ignore errors - we have localGroups
+                });
+              }, 500);
+            }
+          }
+        })
+        .catch((error) => {
+          console.warn('[CreateSession] Failed to load groups from API:', error);
+        });
+    }
+  }, [groups.length, localGroups.length, hasTriedLoadingGroups, refreshGroups]);
+  
+  // Use groups from context if available, otherwise use localGroups
+  const availableGroups = groups.length > 0 ? groups : localGroups;
   
   // Helper to format date and time for default session name
   const getDefaultSessionName = (date: Date) => {
@@ -304,7 +354,7 @@ function CreateSessionContent() {
               className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
             >
               <option value="">No group (standalone session)</option>
-              {groups.map((group) => (
+              {availableGroups.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.name}
                 </option>
