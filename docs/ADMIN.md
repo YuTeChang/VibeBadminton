@@ -34,9 +34,56 @@ https://poweredbypace.vercel.app/session/{SESSION_ID}
 
 ### Tools Needed
 
-- **curl** (command line) - For API calls
-- **Supabase Dashboard** - For direct database access
-- Access to environment variables for your deployment
+Choose one of these methods to run admin commands:
+
+1. **Browser Console** (easiest) - Open DevTools (F12) on any page of the app
+2. **curl** (command line) - For scripting or terminal users
+3. **Postman** (GUI) - For those who prefer visual tools
+4. **Supabase Dashboard** - For direct database access
+
+---
+
+## How to Run Admin Commands
+
+### Method 1: Browser Console (Easiest)
+
+1. Go to your app in the browser (e.g., https://poweredbypace.vercel.app)
+2. Open DevTools: Press `F12` or `Cmd+Option+I` (Mac) / `Ctrl+Shift+I` (Windows)
+3. Go to the **Console** tab
+4. Paste the JavaScript command and press Enter
+
+**Examples:**
+
+```javascript
+// Recalculate ELO and W/L stats
+fetch('/api/groups/YOUR_GROUP_ID/stats', { method: 'POST' })
+  .then(r => r.json()).then(console.log)
+
+// Recalculate pairing stats
+fetch('/api/groups/YOUR_GROUP_ID/pairings', { method: 'POST' })
+  .then(r => r.json()).then(console.log)
+
+// Delete a group
+fetch('/api/groups/YOUR_GROUP_ID', { method: 'DELETE' })
+  .then(r => r.json()).then(console.log)
+
+// Run migrations
+fetch('/api/migrate', { method: 'POST' })
+  .then(r => r.json()).then(console.log)
+```
+
+### Method 2: curl (Command Line)
+
+```bash
+# Recalculate stats
+curl -X POST https://poweredbypace.vercel.app/api/groups/{GROUP_ID}/stats
+
+# Recalculate pairings
+curl -X POST https://poweredbypace.vercel.app/api/groups/{GROUP_ID}/pairings
+
+# Delete a group
+curl -X DELETE https://poweredbypace.vercel.app/api/groups/{GROUP_ID}
+```
 
 ---
 

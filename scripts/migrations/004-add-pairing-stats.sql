@@ -71,6 +71,17 @@ CREATE INDEX IF NOT EXISTS idx_pairing_matchups_team2 ON pairing_matchups(team2_
 ALTER TABLE partner_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pairing_matchups ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (for idempotency)
+DROP POLICY IF EXISTS "Allow public read access" ON partner_stats;
+DROP POLICY IF EXISTS "Allow public insert access" ON partner_stats;
+DROP POLICY IF EXISTS "Allow public update access" ON partner_stats;
+DROP POLICY IF EXISTS "Allow public delete access" ON partner_stats;
+
+DROP POLICY IF EXISTS "Allow public read access" ON pairing_matchups;
+DROP POLICY IF EXISTS "Allow public insert access" ON pairing_matchups;
+DROP POLICY IF EXISTS "Allow public update access" ON pairing_matchups;
+DROP POLICY IF EXISTS "Allow public delete access" ON pairing_matchups;
+
 -- Allow public read/write access (same as other tables)
 CREATE POLICY "Allow public read access" ON partner_stats FOR SELECT USING (true);
 CREATE POLICY "Allow public insert access" ON partner_stats FOR INSERT WITH CHECK (true);
@@ -82,17 +93,4 @@ CREATE POLICY "Allow public insert access" ON pairing_matchups FOR INSERT WITH C
 CREATE POLICY "Allow public update access" ON pairing_matchups FOR UPDATE USING (true);
 CREATE POLICY "Allow public delete access" ON pairing_matchups FOR DELETE USING (true);
 
--- ============================================================================
--- Helper function to ensure consistent player ordering in pairs
--- ============================================================================
-CREATE OR REPLACE FUNCTION get_ordered_pair(id1 VARCHAR, id2 VARCHAR)
-RETURNS TABLE(first_id VARCHAR, second_id VARCHAR) AS $$
-BEGIN
-  IF id1 < id2 THEN
-    RETURN QUERY SELECT id1, id2;
-  ELSE
-    RETURN QUERY SELECT id2, id1;
-  END IF;
-END;
-$$ LANGUAGE plpgsql IMMUTABLE;
-
+-- Note: Player ordering for pairs is handled in application code (PairingStatsService.getOrderedPair)
