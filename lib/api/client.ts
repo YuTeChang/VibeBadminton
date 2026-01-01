@@ -198,11 +198,18 @@ export class ApiClient {
 
 /**
  * Check if API is available (database connected)
+ * Uses lightweight health check endpoint instead of fetching all sessions
  */
 export async function isApiAvailable(): Promise<boolean> {
   try {
-    await ApiClient.getAllSessions();
-    return true;
+    // Use health check endpoint instead of getAllSessions to avoid expensive call
+    const response = await fetch(`${API_BASE}/health/db`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.ok;
   } catch (error) {
     return false;
   }
