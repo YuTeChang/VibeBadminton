@@ -43,7 +43,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const hasLoadedSessionsRef = useRef(false);
   const hasLoadedGroupsRef = useRef(false);
 
-  // Initialize API availability and load saved session on mount (don't load all sessions/groups yet)
+  // Initialize and load saved session on mount (don't load all sessions/groups yet)
+  // API availability check is done lazily (non-blocking) for faster initial render
   useEffect(() => {
     const initData = async () => {
       if (typeof window === "undefined") return;
@@ -53,12 +54,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       isLoadingDataRef.current = true;
 
       try {
-        // Check if API is available
-        const apiReady = await isApiAvailable();
-        setApiAvailable(apiReady);
-
-        // Don't load all sessions/groups here - they'll be loaded lazily when needed (e.g., on home page)
-        // Just load the saved session from localStorage for immediate UI
+        // Load from localStorage immediately for fast initial render (no API call blocking)
+        loadFromLocalStorage();
+        
+        // Load saved session from localStorage for immediate UI
         const savedSession = localStorage.getItem(STORAGE_KEY_SESSION);
         if (savedSession) {
           try {
@@ -74,31 +73,44 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             setSessionState(parsedSession);
             // Load games from localStorage first (fast, no API call)
             loadGamesFromLocalStorage(parsedSession.id);
-            
-            // Then try to sync from API if available (background, don't block)
-            if (apiReady) {
-              // Only fetch session and games if we don't already have them
-              ApiClient.getSession(parsedSession.id).then((dbSession) => {
-                setSessionState(dbSession);
-                // Only fetch games if we don't have them yet (avoid duplicate)
-                return ApiClient.getGames(parsedSession.id);
-              }).then((dbGames) => {
-                setGames(dbGames);
-                if (typeof window !== "undefined") {
-                  localStorage.setItem(STORAGE_KEY_GAMES, JSON.stringify(dbGames));
-                }
-              }).catch((error) => {
-                // Silently fail - we have localStorage version
-                console.warn('[SessionContext] Failed to sync session from API');
-              });
-            }
           } catch (error) {
             console.warn('[SessionContext] Failed to parse saved session:', error);
           }
         }
         
-        // Load from localStorage as fallback
-        loadFromLocalStorage();
+        // Check API availability lazily (non-blocking) - doesn't delay initial render
+        // This allows homepage to load instantly while still checking API in background
+        isApiAvailable()
+          .then((apiReady) => {
+            setApiAvailable(apiReady);
+            
+            // If API is available and we have a saved session, sync in background
+            if (apiReady && savedSession) {
+              try {
+                const parsedSession = JSON.parse(savedSession);
+                // Only fetch session and games if we don't already have them
+                ApiClient.getSession(parsedSession.id).then((dbSession) => {
+                  setSessionState(dbSession);
+                  // Only fetch games if we don't have them yet (avoid duplicate)
+                  return ApiClient.getGames(parsedSession.id);
+                }).then((dbGames) => {
+                  setGames(dbGames);
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem(STORAGE_KEY_GAMES, JSON.stringify(dbGames));
+                  }
+                }).catch((error) => {
+                  // Silently fail - we have localStorage version
+                  console.warn('[SessionContext] Failed to sync session from API');
+                });
+              } catch (error) {
+                // Ignore parse errors
+              }
+            }
+          })
+          .catch(() => {
+            // API unavailable - use localStorage only
+            setApiAvailable(false);
+          });
       } catch (error) {
         console.error('[SessionContext] Error initializing:', error);
         loadFromLocalStorage();
