@@ -126,25 +126,78 @@ Three tabs for managing the session:
 
 ---
 
-## Architecture
+## Architecture: Frontend vs Backend
+
+This is a **full-stack Next.js application** with clear separation between frontend (client-side) and backend (server-side).
+
+### Frontend (Client-Side)
+**Runs in the browser** - React components that users interact with.
+
+**Location:**
+- `app/**/*.tsx` - All pages (except `app/api/`)
+- `components/**/*.tsx` - Reusable UI components
+- `contexts/SessionContext.tsx` - State management
+- `lib/api/client.ts` - API client (makes requests to backend)
+- `lib/calculations.ts` - Client-side calculations (stats, settlements)
+- `lib/roundRobin.ts` - Round robin game generation
+
+**What it does:**
+- Renders UI and handles user interactions
+- Manages client-side state (React Context)
+- Makes HTTP requests to backend API
+- Performs client-side calculations (stats, settlements)
+- Provides optimistic UI updates
+
+**Key Components:**
+- **Pages**: Home, Dashboard, Create Group, Create Session, Group Detail, Live Session, Summary
+- **State**: SessionContext (stores current session, games, all sessions, groups)
+- **Calculations**: Client-side stats and settlement calculations
+- **Routing**: Next.js App Router
+
+### Backend (Server-Side)
+**Runs on the server** - API routes and business logic that handle data operations.
+
+**Location:**
+- `app/api/**/*.ts` - API route handlers
+- `lib/services/**/*.ts` - Business logic layer
+- `lib/supabase.ts` - Database client
+- `lib/migration.ts` - Database migration system
+
+**What it does:**
+- Handles HTTP requests (GET, POST, DELETE, etc.)
+- Validates and processes data
+- Executes database operations
+- Enforces business rules
+- Returns JSON responses
+
+**Key Components:**
+- **API Routes**: `/api/sessions/*`, `/api/groups/*`, `/api/sessions/summary`
+- **Services**: SessionService, GameService, GroupService, StatsService
+- **Database**: Supabase (PostgreSQL) via REST API
 
 ### System Overview
 ```
-Browser → Next.js App Router → React Components → Context API → Supabase Database
+Browser (Frontend)
+    ↓ HTTP Requests
+Next.js API Routes (Backend)
+    ↓
+Service Layer (Backend)
+    ↓
+Supabase Database (PostgreSQL)
 ```
 
-### Key Components
-- **Pages**: 
-  - Home (groups and sessions list)
-  - Create Group
-  - Create Session
-  - Group Detail (sessions, players, stats)
-  - Live Session (tabs)
-  - Summary
-- **State**: SessionContext (stores current session, games, all sessions, groups)
-- **Calculations**: `lib/calculations.ts` (wins, losses, gambling net, settlement, non-betting stats)
-- **Round Robin**: `lib/roundRobin.ts` (generates game schedules for doubles and singles)
-- **Services**: Service layer for database operations (groups, sessions, games, stats)
+### Communication Flow
+
+**Example: Creating a Session**
+
+1. **Frontend**: User fills form → React component (`app/create-session/page.tsx`)
+2. **Frontend**: Form submission → `ApiClient.createSession()` (`lib/api/client.ts`)
+3. **HTTP**: POST request → `/api/sessions`
+4. **Backend**: API route handler (`app/api/sessions/route.ts`)
+5. **Backend**: Business logic → `SessionService.createSession()` (`lib/services/sessionService.ts`)
+6. **Backend**: Database save → Supabase (`lib/supabase.ts`)
+7. **Backend**: Returns JSON response
+8. **Frontend**: Updates UI with response → SessionContext updates
 
 ### Data Model
 ```typescript
@@ -239,19 +292,38 @@ scripts/          # Database migration scripts
 
 ---
 
-## Database Setup
+## Setup & Configuration
 
-### Initial Setup
-1. Create Supabase project
-2. Run `scripts/init-db-schema.sql` in Supabase SQL Editor
-3. Set environment variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
+### Frontend Setup
+No special setup needed - just run `npm run dev` and the frontend is served automatically.
 
-### Migration (if upgrading existing database)
-Run `scripts/migrate-add-groups.sql` to add groups feature to existing database.
+### Backend Setup
+The backend requires database configuration:
+
+1. **Create Supabase project** at [supabase.com](https://supabase.com)
+2. **Run database schema**: Execute `scripts/init-db-schema.sql` in Supabase SQL Editor
+3. **Set environment variables**:
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   POSTGRES_URL=your_postgres_connection_string  # For migrations
+   ```
+4. **Migrations**: Run automatically on Vercel deployments, or manually with `npm run migrate:run`
 
 See [SETUP_BACKEND.md](SETUP_BACKEND.md) for detailed instructions.
+
+### How It Works Together
+
+**Development:**
+- Single command: `npm run dev`
+- Frontend: React app on `http://localhost:3000`
+- Backend: API routes on `http://localhost:3000/api/*`
+- Both run in same Next.js process
+
+**Production (Vercel):**
+- Frontend: Static assets served via CDN
+- Backend: API routes run as serverless functions
+- Database: Supabase (shared PostgreSQL instance)
 
 ---
 

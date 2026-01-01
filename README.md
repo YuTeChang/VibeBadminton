@@ -111,33 +111,144 @@ To enable shared sessions across users, set up Supabase:
 
 See [docs/SETUP_BACKEND.md](docs/SETUP_BACKEND.md) for detailed instructions.
 
+## Architecture: Frontend vs Backend
+
+This is a **full-stack Next.js application** with clear separation between frontend (client-side) and backend (server-side).
+
+### Frontend (Client-Side)
+**Runs in the browser** - React components that users interact with.
+
+**Location:**
+- `app/**/*.tsx` - All pages (except `app/api/`)
+- `components/**/*.tsx` - Reusable UI components
+- `contexts/SessionContext.tsx` - State management
+- `lib/api/client.ts` - API client (makes requests to backend)
+
+**What it does:**
+- Renders UI and handles user interactions
+- Manages client-side state (React Context)
+- Makes HTTP requests to backend API
+- Performs client-side calculations (stats, settlements)
+- Provides optimistic UI updates
+
+**Key Files:**
+```
+app/
+├── page.tsx                    # Home page (landing)
+├── dashboard/page.tsx          # Dashboard (sessions & groups)
+├── create-group/page.tsx       # Create group form
+├── create-session/page.tsx     # Create session form
+├── group/[id]/page.tsx         # Group detail page
+└── session/[id]/page.tsx       # Live session page
+
+components/                      # UI components
+contexts/
+└── SessionContext.tsx          # Global state management
+lib/
+└── api/
+    └── client.ts               # API client (calls backend)
+```
+
+### Backend (Server-Side)
+**Runs on the server** - API routes and business logic that handle data operations.
+
+**Location:**
+- `app/api/**/*.ts` - API route handlers
+- `lib/services/**/*.ts` - Business logic layer
+- `lib/supabase.ts` - Database client
+
+**What it does:**
+- Handles HTTP requests (GET, POST, DELETE, etc.)
+- Validates and processes data
+- Executes database operations
+- Enforces business rules
+- Returns JSON responses
+
+**Key Files:**
+```
+app/api/                        # Backend API Routes
+├── sessions/
+│   ├── route.ts               # GET all, POST create
+│   ├── summary/route.ts       # GET summaries (lightweight)
+│   └── [id]/
+│       ├── route.ts           # GET one, DELETE
+│       └── games/route.ts     # GET/POST games
+└── groups/
+    └── [id]/
+        └── sessions/route.ts  # GET group sessions
+
+lib/services/                   # Backend Business Logic
+├── sessionService.ts          # Session CRUD operations
+├── gameService.ts             # Game CRUD operations
+├── groupService.ts            # Group CRUD operations
+└── statsService.ts            # Stats aggregation
+
+lib/supabase.ts                 # Database Connection
+```
+
+### How They Communicate
+
+```
+Frontend (Browser)
+    ↓ HTTP Request
+ApiClient.createSession()
+    ↓ POST /api/sessions
+Backend API Route (app/api/sessions/route.ts)
+    ↓
+SessionService.createSession()
+    ↓
+Supabase Database (PostgreSQL)
+```
+
+**Example Flow:**
+1. User clicks "Create Session" → Frontend React component
+2. Form submission → `ApiClient.createSession()` (frontend)
+3. HTTP POST → `/api/sessions` (backend API route)
+4. Business logic → `SessionService.createSession()` (backend)
+5. Database save → Supabase (backend)
+6. JSON response → Frontend updates UI
+
+### Setup & Deployment
+
+**Development:**
+- Single Next.js dev server runs both frontend and backend
+- Frontend: React components served to browser
+- Backend: API routes run as Node.js server functions
+- Database: Supabase (cloud PostgreSQL)
+
+**Production (Vercel):**
+- Frontend: Static assets (HTML, CSS, JS) served via CDN
+- Backend: Serverless functions (API routes) run on-demand
+- Database: Supabase (shared PostgreSQL instance)
+
 ## Project Structure
 
 ```
 PoweredByPace/
 ├── app/                    # Next.js app directory
-│   ├── page.tsx           # Home page (simple landing)
-│   ├── dashboard/         # Dashboard page (sessions & groups)
-│   ├── create-group/      # Create group page
-│   ├── create-session/    # Create session page
-│   ├── group/[id]/        # Group detail page
-│   ├── session/[id]/      # Live session page
-│   └── api/               # API routes
+│   ├── page.tsx           # Home page (simple landing) [FRONTEND]
+│   ├── dashboard/         # Dashboard page [FRONTEND]
+│   ├── create-group/      # Create group page [FRONTEND]
+│   ├── create-session/    # Create session page [FRONTEND]
+│   ├── group/[id]/        # Group detail page [FRONTEND]
+│   ├── session/[id]/      # Live session page [FRONTEND]
+│   └── api/               # API routes [BACKEND]
 │       ├── sessions/      # Session endpoints
 │       │   └── summary/  # Lightweight summary endpoint
 │       └── groups/        # Group endpoints
-├── components/            # React components
-├── contexts/              # React Context (SessionContext)
+├── components/            # React components [FRONTEND]
+├── contexts/              # React Context [FRONTEND]
 ├── lib/                   # Utilities and services
-│   ├── services/         # Database service layer
-│   ├── calculations.ts   # Money and stats calculations
-│   ├── migration.ts     # Migration system with versioning
-│   └── roundRobin.ts     # Round robin scheduling
-├── types/                # TypeScript type definitions
+│   ├── api/client.ts     # API client [FRONTEND]
+│   ├── services/         # Database service layer [BACKEND]
+│   ├── calculations.ts   # Money and stats calculations [FRONTEND]
+│   ├── migration.ts     # Migration system [BACKEND]
+│   └── roundRobin.ts     # Round robin scheduling [FRONTEND]
+├── types/                # TypeScript type definitions [SHARED]
 ├── docs/                 # Documentation
 └── scripts/              # Scripts and migrations
-    ├── migrations/      # Versioned migration files (001-*.sql, 002-*.sql, etc.)
-    └── init-db-schema.sql  # Initial database schema
+    ├── migrations/      # Versioned migration files [BACKEND]
+    └── init-db-schema.sql  # Initial database schema [BACKEND]
 ```
 
 ## Documentation

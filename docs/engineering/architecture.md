@@ -4,6 +4,11 @@
 
 PoweredByPace follows a **modern full-stack Next.js architecture** with clear separation between frontend (client-side React) and backend (server-side API routes + database).
 
+> **Quick Answer**: 
+> - **Frontend** = `app/**/*.tsx` (pages), `components/`, `contexts/` - runs in browser
+> - **Backend** = `app/api/**/*.ts` (API routes), `lib/services/` - runs on server
+> - **Setup** = Single Next.js app, both frontend and backend in same codebase
+
 ## Architecture Diagram
 
 ```
