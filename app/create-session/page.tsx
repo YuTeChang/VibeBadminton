@@ -373,32 +373,27 @@ function CreateSessionContent() {
           >
             ← {selectedGroupId ? "Back to Group" : "Back to Home"}
           </Link>
+          
+          {/* Group badge - only show when locked */}
+          {isGroupLocked && selectedGroup && (
+            <div className="mt-4 mb-2">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-japandi-background-card border border-japandi-border-light rounded-full text-sm text-japandi-text-secondary">
+                <svg className="w-4 h-4 text-japandi-accent-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Group: <span className="font-semibold text-japandi-text-primary">{selectedGroup.name}</span></span>
+              </span>
+            </div>
+          )}
+          
           <h1 className="text-2xl sm:text-3xl font-bold text-japandi-text-primary mt-4 sm:mt-6">
-            {isGroupLocked && selectedGroup 
-              ? `Create Session in ${selectedGroup.name}`
-              : "Create New Session"}
+            Create New Session
           </h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Group Display/Selector */}
-          {isGroupLocked && selectedGroup ? (
-            // Show locked group prominently when creating from group page
-            <div className="bg-japandi-background-card border-2 border-japandi-accent-primary rounded-card p-4 sm:p-5">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-6 h-6 text-japandi-accent-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-japandi-text-muted mb-1">Creating session in group:</p>
-                  <p className="text-lg font-semibold text-japandi-text-primary">{selectedGroup.name}</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            // Show group selector when not locked (standalone session creation)
+          {/* Group Selector - only show when NOT locked */}
+          {!isGroupLocked && (
             <div>
               <label className="block text-base font-medium text-japandi-text-primary mb-3">
                 Group (Optional)

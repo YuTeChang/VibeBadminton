@@ -179,133 +179,234 @@ export default function QuickGameForm({
 
   const isUpdatingScheduledGame = !!gameToUpdate;
 
+  // Get player names for winner selection in singles mode
+  const getPlayerName = (playerId: string | null): string => {
+    if (!playerId) return "";
+    const player = players.find(p => p.id === playerId);
+    return player?.name || "";
+  };
+
   return (
     <div className="space-y-8">
-      {/* Team A */}
-      <div>
-        <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
-          {isSingles ? "Player A" : "Team A"}
-        </h3>
-        <div className={isSingles ? "" : "grid grid-cols-2 gap-4"}>
-          {(isSingles ? [0] : [0, 1]).map((position) => (
-            <div key={position}>
-              {!isSingles && (
-              <div className="text-sm text-japandi-text-muted mb-2">
-                Player {position + 1}
-              </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {players.map((player) => {
-                  const isSelected = isSingles 
-                    ? (teamA as [string | null])[0] === player.id
-                    : (teamA as [string | null, string | null])[position] === player.id;
-                  const isDisabled =
-                    isPlayerSelected(player.id) && !isSelected;
+      {isSingles ? (
+        // Simplified UI for singles mode
+        <>
+          {/* Select Players */}
+          <div>
+            <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
+              Select Players
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm text-japandi-text-muted mb-2">
+                  Player 1
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {players.map((player) => {
+                    const isSelected = (teamA as [string | null])[0] === player.id;
+                    const isDisabled = isPlayerSelected(player.id) && !isSelected;
 
-                  return (
-                    <button
-                      key={player.id}
-                      type="button"
-                      onClick={() =>
-                        handlePlayerSelect("A", position as 0 | 1, player.id)
-                      }
-                      disabled={isDisabled || isUpdatingScheduledGame}
-                      className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${
-                        isSelected
-                          ? "bg-japandi-accent-primary text-white shadow-button"
-                          : isDisabled || isUpdatingScheduledGame
-                          ? "bg-japandi-background-primary text-japandi-text-muted cursor-not-allowed opacity-50"
-                          : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
-                      }`}
-                    >
-                      {player.name}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={player.id}
+                        type="button"
+                        onClick={() => handlePlayerSelect("A", 0, player.id)}
+                        disabled={isDisabled || isUpdatingScheduledGame}
+                        className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${
+                          isSelected
+                            ? "bg-japandi-accent-primary text-white shadow-button"
+                            : isDisabled || isUpdatingScheduledGame
+                            ? "bg-japandi-background-primary text-japandi-text-muted cursor-not-allowed opacity-50"
+                            : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                        }`}
+                      >
+                        {player.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
+              <div>
+                <div className="text-sm text-japandi-text-muted mb-2">
+                  Player 2
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {players.map((player) => {
+                    const isSelected = (teamB as [string | null])[0] === player.id;
+                    const isDisabled = isPlayerSelected(player.id) && !isSelected;
 
-      {/* Team B */}
-      <div>
-        <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
-          {isSingles ? "Player B" : "Team B"}
-        </h3>
-        <div className={isSingles ? "" : "grid grid-cols-2 gap-4"}>
-          {(isSingles ? [0] : [0, 1]).map((position) => (
-            <div key={position}>
-              {!isSingles && (
-              <div className="text-sm text-japandi-text-muted mb-2">
-                Player {position + 1}
-              </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {players.map((player) => {
-                  const isSelected = isSingles
-                    ? (teamB as [string | null])[0] === player.id
-                    : (teamB as [string | null, string | null])[position] === player.id;
-                  const isDisabled =
-                    isPlayerSelected(player.id) && !isSelected;
-
-                  return (
-                    <button
-                      key={player.id}
-                      type="button"
-                      onClick={() =>
-                        handlePlayerSelect("B", position as 0 | 1, player.id)
-                      }
-                      disabled={isDisabled || isUpdatingScheduledGame}
-                      className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${
-                        isSelected
-                          ? "bg-japandi-accent-primary text-white shadow-button"
-                          : isDisabled || isUpdatingScheduledGame
-                          ? "bg-japandi-background-primary text-japandi-text-muted cursor-not-allowed opacity-50"
-                          : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
-                      }`}
-                    >
-                      {player.name}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={player.id}
+                        type="button"
+                        onClick={() => handlePlayerSelect("B", 0, player.id)}
+                        disabled={isDisabled || isUpdatingScheduledGame}
+                        className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${
+                          isSelected
+                            ? "bg-japandi-accent-primary text-white shadow-button"
+                            : isDisabled || isUpdatingScheduledGame
+                            ? "bg-japandi-background-primary text-japandi-text-muted cursor-not-allowed opacity-50"
+                            : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                        }`}
+                      >
+                        {player.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Winner Selection - Show when teams are complete */}
-      {teamsComplete && (
-        <div>
-          <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
-            Winner
-          </h3>
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => setWinningTeam("A")}
-              className={`flex-1 px-4 sm:px-5 py-3 sm:py-4 rounded-full font-semibold transition-all active:scale-95 touch-manipulation ${
-                winningTeam === "A"
-                  ? "bg-japandi-accent-primary text-white shadow-button"
-                  : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
-              }`}
-            >
-              Team A
-            </button>
-            <button
-              type="button"
-              onClick={() => setWinningTeam("B")}
-              className={`flex-1 px-4 sm:px-5 py-3 sm:py-4 rounded-full font-semibold transition-all active:scale-95 touch-manipulation ${
-                winningTeam === "B"
-                  ? "bg-japandi-accent-primary text-white shadow-button"
-                  : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
-              }`}
-            >
-              Team B
-            </button>
           </div>
-        </div>
+
+          {/* Winner Selection - Show player names instead of Team A/B */}
+          {teamsComplete && (
+            <div>
+              <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
+                Winner
+              </h3>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setWinningTeam("A")}
+                  className={`flex-1 px-4 sm:px-5 py-3 sm:py-4 rounded-full font-semibold transition-all active:scale-95 touch-manipulation ${
+                    winningTeam === "A"
+                      ? "bg-japandi-accent-primary text-white shadow-button"
+                      : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                  }`}
+                >
+                  {getPlayerName((teamA as [string | null])[0])}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWinningTeam("B")}
+                  className={`flex-1 px-4 sm:px-5 py-3 sm:py-4 rounded-full font-semibold transition-all active:scale-95 touch-manipulation ${
+                    winningTeam === "B"
+                      ? "bg-japandi-accent-primary text-white shadow-button"
+                      : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                  }`}
+                >
+                  {getPlayerName((teamB as [string | null])[0])}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        // Doubles mode - keep existing UI
+        <>
+          {/* Team A */}
+          <div>
+            <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
+              Team A
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[0, 1].map((position) => (
+                <div key={position}>
+                  <div className="text-sm text-japandi-text-muted mb-2">
+                    Player {position + 1}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {players.map((player) => {
+                      const isSelected = (teamA as [string | null, string | null])[position] === player.id;
+                      const isDisabled = isPlayerSelected(player.id) && !isSelected;
+
+                      return (
+                        <button
+                          key={player.id}
+                          type="button"
+                          onClick={() => handlePlayerSelect("A", position as 0 | 1, player.id)}
+                          disabled={isDisabled || isUpdatingScheduledGame}
+                          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${
+                            isSelected
+                              ? "bg-japandi-accent-primary text-white shadow-button"
+                              : isDisabled || isUpdatingScheduledGame
+                              ? "bg-japandi-background-primary text-japandi-text-muted cursor-not-allowed opacity-50"
+                              : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                          }`}
+                        >
+                          {player.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Team B */}
+          <div>
+            <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
+              Team B
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[0, 1].map((position) => (
+                <div key={position}>
+                  <div className="text-sm text-japandi-text-muted mb-2">
+                    Player {position + 1}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {players.map((player) => {
+                      const isSelected = (teamB as [string | null, string | null])[position] === player.id;
+                      const isDisabled = isPlayerSelected(player.id) && !isSelected;
+
+                      return (
+                        <button
+                          key={player.id}
+                          type="button"
+                          onClick={() => handlePlayerSelect("B", position as 0 | 1, player.id)}
+                          disabled={isDisabled || isUpdatingScheduledGame}
+                          className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all active:scale-95 touch-manipulation ${
+                            isSelected
+                              ? "bg-japandi-accent-primary text-white shadow-button"
+                              : isDisabled || isUpdatingScheduledGame
+                              ? "bg-japandi-background-primary text-japandi-text-muted cursor-not-allowed opacity-50"
+                              : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                          }`}
+                        >
+                          {player.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Winner Selection - Show when teams are complete */}
+          {teamsComplete && (
+            <div>
+              <h3 className="text-base font-semibold text-japandi-text-primary mb-4">
+                Winner
+              </h3>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setWinningTeam("A")}
+                  className={`flex-1 px-4 sm:px-5 py-3 sm:py-4 rounded-full font-semibold transition-all active:scale-95 touch-manipulation ${
+                    winningTeam === "A"
+                      ? "bg-japandi-accent-primary text-white shadow-button"
+                      : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                  }`}
+                >
+                  Team A
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWinningTeam("B")}
+                  className={`flex-1 px-4 sm:px-5 py-3 sm:py-4 rounded-full font-semibold transition-all active:scale-95 touch-manipulation ${
+                    winningTeam === "B"
+                      ? "bg-japandi-accent-primary text-white shadow-button"
+                      : "bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light hover:bg-japandi-background-primary"
+                  }`}
+                >
+                  Team B
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Scores - Show when teams are complete */}
@@ -317,7 +418,9 @@ export default function QuickGameForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-japandi-text-muted mb-2">
-                Team A Score
+                {isSingles 
+                  ? `${getPlayerName((teamA as [string | null])[0])} Score`
+                  : "Team A Score"}
               </label>
               <input
                 type="number"
@@ -326,12 +429,14 @@ export default function QuickGameForm({
                 onChange={(e) => setTeamAScore(e.target.value)}
                 placeholder="e.g., 21"
                 className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
-                aria-label="Team A score"
+                aria-label={isSingles ? `${getPlayerName((teamA as [string | null])[0])} score` : "Team A score"}
               />
             </div>
             <div>
               <label className="block text-sm text-japandi-text-muted mb-2">
-                Team B Score
+                {isSingles 
+                  ? `${getPlayerName((teamB as [string | null])[0])} Score`
+                  : "Team B Score"}
               </label>
               <input
                 type="number"
@@ -340,7 +445,7 @@ export default function QuickGameForm({
                 onChange={(e) => setTeamBScore(e.target.value)}
                 placeholder="e.g., 19"
                 className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
-                aria-label="Team B score"
+                aria-label={isSingles ? `${getPlayerName((teamB as [string | null])[0])} score` : "Team B score"}
               />
             </div>
           </div>
