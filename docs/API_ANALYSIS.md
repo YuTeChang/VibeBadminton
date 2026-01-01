@@ -133,6 +133,9 @@ Session {
    - Context uses refs to prevent duplicate simultaneous calls
    - Lazy loading: Dashboard only loads summaries when needed
    - Pathname-based loading: Only loads data on relevant pages
+   - Tab switching doesn't trigger API calls (UI state only)
+   - Smart refresh only when returning to page, not when navigating away
+   - Removed aggressive visibility/focus auto-refresh
 
 ### Performance Improvements
 

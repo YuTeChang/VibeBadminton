@@ -77,6 +77,8 @@
   - `loadSession`: Switch to different session
   - `clearSession`: End current session
 - **Persistence**: Uses localStorage to persist sessions and games across page refreshes
+- **Smart Refresh**: Data refreshes only when needed (on mount, returning from create-session, explicit refresh)
+- **No Aggressive Auto-Refresh**: Removed visibility/focus handlers that caused unnecessary refreshes
 
 ### No External State Management
 - MVP uses React built-in state

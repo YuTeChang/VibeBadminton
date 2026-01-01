@@ -91,6 +91,50 @@ This document tracks all features, improvements, and fixes added to PoweredByPac
   - Deploy commits: `git commit -m "Fix bug [deploy]"` → triggers deployment
 - **User Impact**: Full control over deployments, can test locally before deploying
 
+#### 9. UI/UX Improvements (Group Selection & Singles Recording)
+- **Status**: ✅ Complete
+- **Description**: Improved UI/UX for group sessions and singles game recording
+- **Implementation**:
+  - **Group Selection**: Subtle badge above title when creating from group page
+    - Group automatically selected and locked when `groupId` is in URL
+    - No large card taking up space
+    - Cleaner, less intrusive design
+  - **Singles Game Recording**: Simplified UI for singles mode
+    - Winner selection shows actual player names (e.g., "John" vs "Jane")
+    - Score labels show player names instead of "Team A" / "Team B"
+    - More intuitive for 1v1 gameplay
+- **User Impact**: Better UX, cleaner interface, more intuitive for singles games
+
+#### 10. Performance Optimizations (Tab Switching & Refresh)
+- **Status**: ✅ Complete
+- **Description**: Optimized tab switching and data refresh behavior
+- **Implementation**:
+  - **Tab Switching**: Removed unnecessary refresh on tab click
+    - Tab clicks only change UI state, no API calls
+    - Data already loaded and cached in component state
+    - Instant tab switching with no loading states
+  - **Smart Refresh**: Fixed pathname effect to only refresh when returning to page
+    - Only refreshes when navigating TO page, not when navigating away
+    - Prevents refresh interference with Link navigation
+    - Fixes "first click does nothing" issue
+  - **Removed Aggressive Auto-Refresh**: Removed visibility/focus event handlers
+    - No more refreshes when switching browser tabs/windows
+    - Data refreshes only when needed (on mount, returning from create-session, explicit refresh)
+- **Performance Impact**: 
+  - Instant tab switching (no network calls)
+  - No unnecessary refreshes on tab/window switches
+  - Better UX with immediate UI updates
+- **User Impact**: Much faster, smoother experience, no unnecessary loading states
+
+#### 11. localStorage Sync Fix
+- **Status**: ✅ Complete
+- **Description**: Fixed issue where deleted sessions reappeared after refresh
+- **Implementation**:
+  - Deleted sessions now removed from localStorage immediately
+  - localStorage synced with API data on load (removes stale sessions)
+  - API is source of truth, localStorage is fallback
+- **User Impact**: Deleted sessions no longer reappear, data stays in sync
+
 ### Previous Major Features (2024-12)
 
 #### 1. Groups Feature

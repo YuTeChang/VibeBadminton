@@ -40,9 +40,11 @@
    - Teams are locked (can't change)
    - Only need to select winner and optional scores
 7. If manually creating game:
-   - Selects Team A (2 players from list)
-   - Selects Team B (2 players from list, different from Team A)
-8. Selects winning team (Team A or Team B)
+   - **Doubles Mode**: Selects Team A (2 players) and Team B (2 players)
+   - **Singles Mode**: Selects Player 1 and Player 2 (simplified UI)
+8. Selects winning team/player:
+   - **Doubles Mode**: Shows "Team A" vs "Team B" buttons
+   - **Singles Mode**: Shows actual player names (e.g., "John" vs "Jane")
 9. Optionally adds scores
 10. Taps "Save Game"
 11. If updating scheduled game: Game is updated (winningTeam set, scores added)

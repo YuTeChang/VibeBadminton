@@ -314,6 +314,15 @@ See `scripts/init-db-schema.sql` for complete schema.
 - ✅ **API Optimization**: Lightweight summary endpoint for faster dashboard loading
 - ✅ **Betting Default**: Betting now defaults to OFF for new sessions
 - ✅ **Home Page Refactor**: Simple landing page with dashboard for sessions/groups
+- ✅ **UI/UX Improvements**: 
+  - Subtle group badge when creating session from group (no large card)
+  - Simplified singles game recording (player names instead of Team A/B)
+  - Auto-select and lock group when creating from group page
+- ✅ **Performance Optimizations**:
+  - Tab switching is instant (no refresh on tab switch)
+  - Removed aggressive visibility/focus auto-refresh
+  - Smart refresh only when returning to page
+  - localStorage sync with API data (deleted sessions removed)
 
 See [CHANGELOG.md](CHANGELOG.md) and [docs/FEATURES_LOG.md](docs/FEATURES_LOG.md) for complete change history.
 

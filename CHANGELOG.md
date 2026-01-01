@@ -60,6 +60,34 @@
   - Gives full control over when deployments happen
   - Allows testing locally before deploying
 
+### UI/UX Improvements
+- **Group Selection UI**: Improved group selection when creating session from group page
+  - Subtle badge above title instead of large card
+  - Group automatically selected and locked when coming from group page
+  - No group selector dropdown when group is locked
+  - Cleaner, less intrusive UI
+- **Simplified Singles Game Recording**: Streamlined UI for singles mode
+  - Winner selection shows actual player names instead of "Team A" / "Team B"
+  - Score labels show player names instead of team labels
+  - More intuitive for 1v1 gameplay
+- **Tab Switching Optimization**: Instant tab switching with no unnecessary refreshes
+  - Tab clicks only change UI state, no API calls
+  - Data already loaded and cached in component state
+  - Much better UX with instant transitions
+
+### Fixed
+- **localStorage Sync**: Fixed issue where deleted sessions reappeared after refresh
+  - Deleted sessions now removed from localStorage immediately
+  - localStorage synced with API data on load (removes stale sessions)
+  - API is source of truth, localStorage is fallback
+- **Navigation Refresh**: Fixed "first click does nothing" issue with New Session button
+  - Pathname effect now only refreshes when returning TO page, not when navigating away
+  - Prevents refresh interference with Link navigation
+- **Aggressive Auto-Refresh**: Removed unnecessary refreshes on tab/window switches
+  - Removed visibility/focus event handlers that triggered on every switch
+  - Data now refreshes only when needed (on mount, returning from create-session, explicit refresh)
+  - Much better performance and UX
+
 ## [Unreleased] - 2024-12-XX
 
 ### Added

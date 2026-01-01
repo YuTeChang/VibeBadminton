@@ -78,10 +78,12 @@ See **[PRODUCT.md](PRODUCT.md)** for complete product overview, problem statemen
 
 ### 2. Create Session
 
-- Session name (optional, defaults to date) and date
+- Session name (optional, defaults to date and time) and date
 - **Group Selection** (optional): Link session to a group
+  - When creating from group page: Group automatically selected and locked (shown as badge)
+  - When creating standalone: Dropdown to select group (optional)
 - **Game Mode**: Toggle between doubles (4-6 players) and singles (2-6 players)
-- **Player Suggestions**: Quick-add players from group pool
+- **Player Suggestions**: Quick-add players from group pool (when group is selected)
 - Add players (minimum required based on mode)
   - Default names (Player 1, Player 2, etc.) assigned automatically
   - Can start session without entering all names
@@ -105,10 +107,12 @@ Three tabs for managing the session:
 - Recent games
 
 **Record Tab**:
-- Select Team A (2 players for doubles, 1 player for singles)
-- Select Team B (2 players for doubles, 1 player for singles)
+- **Doubles Mode**: Select Team A (2 players) and Team B (2 players)
+- **Singles Mode**: Select Player 1 and Player 2 (simplified UI)
+  - Winner selection shows actual player names instead of "Team A" / "Team B"
+  - Score labels show player names for clarity
 - Auto-selects last player in 4-player doubles mode when 3 are selected
-- Mark winning team
+- Mark winning team/player
 - Optional scores
 - Save game
 
