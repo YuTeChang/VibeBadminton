@@ -100,6 +100,16 @@ npm run dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+### Deployment
+
+**Vercel Configuration:**
+- Automatic deployments are configured to skip when only documentation or non-code files change
+- To manually skip a deployment, add `[skip ci]` or `[vercel skip]` to your commit message:
+  ```bash
+  git commit -m "Update docs [skip ci]"
+  ```
+- Deployments will only trigger when code files (`app/`, `lib/`, `components/`, etc.) or config files change
+
 ### Backend Setup
 
 To enable shared sessions across users, set up Supabase:
