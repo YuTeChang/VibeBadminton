@@ -403,6 +403,7 @@ export default function GroupPage() {
                   <Link
                     key={session.id}
                     href={`/session/${session.id}`}
+                    prefetch={false}
                     className="block bg-japandi-background-card border border-japandi-border-light rounded-card p-4 shadow-soft hover:border-japandi-accent-primary transition-colors"
                   >
                     <div className="flex items-center justify-between mb-2">

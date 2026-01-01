@@ -257,144 +257,43 @@ export class GroupService {
     try {
       const supabase = createSupabaseClient();
       
-      console.log('[GroupService.getGroupSessions] Fetching sessions for groupId:', groupId);
-      
-      // DEBUG: First, let's see ALL sessions and their group_ids to diagnose
-      const { data: allSessionsDebug } = await supabase
-        .from('sessions')
-        .select('id, name, group_id, created_at')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      
-      // Log this in a way that will definitely show up in Vercel logs
-      const debugInfo = {
-        total: allSessionsDebug?.length || 0,
-        sessions: allSessionsDebug?.map(s => ({
-          id: s.id,
-          name: s.name,
-          group_id: s.group_id,
-          group_id_type: typeof s.group_id,
-          matches: s.group_id === groupId,
-          group_id_string: String(s.group_id),
-          groupId_string: String(groupId)
-        }))
-      };
-      
-      // Use console.error to ensure it shows up in logs (higher priority)
-      console.error('[GroupService.getGroupSessions] DEBUG - All recent sessions:', JSON.stringify(debugInfo, null, 2));
-      
-      // Query sessions with group_id filter - use order to ensure consistent results
-      // Log the exact query parameters
-      console.error('[GroupService.getGroupSessions] Query params:', {
-        groupId,
-        groupIdType: typeof groupId,
-        groupIdString: String(groupId),
-        groupIdLength: groupId.length
-      });
-      
-      // Try exact match first
+      // Primary query - try direct filter first (fastest)
       let { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
         .select('*')
         .eq('group_id', groupId)
         .order('created_at', { ascending: false });
       
-      console.error('[GroupService.getGroupSessions] Query result:', {
-        count: sessionsData?.length || 0,
-        error: sessionsError?.message,
-        errorCode: sessionsError?.code,
-        firstSession: sessionsData?.[0] ? {
-          id: sessionsData[0].id,
-          group_id: sessionsData[0].group_id,
-          group_id_type: typeof sessionsData[0].group_id
-        } : null
-      });
-      
-      // If no results, try different approaches
-      if ((!sessionsData || sessionsData.length === 0) && !sessionsError) {
-        console.error('[GroupService.getGroupSessions] No results, trying alternative queries...');
-        
-        // Try with explicit string conversion
-        const { data: stringMatchData, error: stringError } = await supabase
+      // If query failed or returned empty, try alternative approach
+      // This handles cases where RLS or query syntax might be an issue
+      if (sessionsError || !sessionsData || sessionsData.length === 0) {
+        // Fallback: Fetch recent sessions and filter in memory
+        // This is more reliable but slightly slower - only used as fallback
+        const { data: allRecentSessions } = await supabase
           .from('sessions')
-          .select('*')
-          .eq('group_id', String(groupId))
-          .order('created_at', { ascending: false });
+          .select('id, name, group_id, created_at')
+          .order('created_at', { ascending: false })
+          .limit(50); // Reasonable limit for in-memory filtering
         
-        console.error('[GroupService.getGroupSessions] String match query result:', {
-          count: stringMatchData?.length || 0,
-          error: stringError?.message
-        });
-        
-        if (stringMatchData && stringMatchData.length > 0) {
-          console.error('[GroupService.getGroupSessions] Found', stringMatchData.length, 'sessions with string match');
-          sessionsData = stringMatchData;
-        } else {
-          // Try filtering in memory as a last resort
-          console.error('[GroupService.getGroupSessions] Trying in-memory filter...');
-          if (allSessionsDebug && allSessionsDebug.length > 0) {
-            const filtered = allSessionsDebug.filter(s => {
-              const matches = s.group_id === groupId || String(s.group_id) === String(groupId);
-              if (!matches && s.group_id) {
-                console.error('[GroupService.getGroupSessions] Mismatch:', {
-                  session_id: s.id,
-                  session_group_id: s.group_id,
-                  session_group_id_type: typeof s.group_id,
-                  query_groupId: groupId,
-                  query_groupId_type: typeof groupId,
-                  strict_eq: s.group_id === groupId,
-                  string_eq: String(s.group_id) === String(groupId)
-                });
-              }
-              return matches;
-            });
+        if (allRecentSessions && allRecentSessions.length > 0) {
+          // Filter in memory
+          const filtered = allRecentSessions.filter(s => 
+            s.group_id === groupId || String(s.group_id) === String(groupId)
+          );
+          
+          if (filtered.length > 0) {
+            // Fetch full data for matching sessions
+            const filteredIds = filtered.map(s => s.id);
+            const { data: fullSessionsData } = await supabase
+              .from('sessions')
+              .select('*')
+              .in('id', filteredIds)
+              .order('created_at', { ascending: false });
             
-            if (filtered.length > 0) {
-              console.error('[GroupService.getGroupSessions] Found', filtered.length, 'sessions with in-memory filter');
-              // Fetch full data for these sessions
-              const filteredIds = filtered.map(s => s.id);
-              const { data: fullSessionsData } = await supabase
-                .from('sessions')
-                .select('*')
-                .in('id', filteredIds)
-                .order('created_at', { ascending: false });
-              
-              if (fullSessionsData) {
-                sessionsData = fullSessionsData;
-              }
+            if (fullSessionsData) {
+              sessionsData = fullSessionsData;
             }
           }
-        }
-      }
-      
-      console.log('[GroupService.getGroupSessions] Main query result:', {
-        count: sessionsData?.length || 0,
-        error: sessionsError?.message,
-        sessions: sessionsData?.map(s => ({ id: s.id, name: s.name, group_id: s.group_id }))
-      });
-      
-      // If main query failed or returned empty, try fallback query (for replication lag)
-      if (sessionsError || !sessionsData || sessionsData.length === 0) {
-        console.warn('[GroupService] Main query returned empty or error, trying fallback query after delay');
-        
-        // Run a fallback query (with delay for replication)
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const { data: fallbackSessions, error: fallbackError } = await supabase
-          .from('sessions')
-          .select('*')
-          .eq('group_id', groupId)
-          .order('created_at', { ascending: false });
-        
-        console.log('[GroupService.getGroupSessions] Fallback query result:', {
-          count: fallbackSessions?.length || 0,
-          error: fallbackError?.message,
-          sessions: fallbackSessions?.map(s => ({ id: s.id, name: s.name, group_id: s.group_id }))
-        });
-        
-        if (fallbackSessions && !fallbackError) {
-          sessionsData = fallbackSessions;
-          console.log('[GroupService] Fallback query found', fallbackSessions.length, 'sessions');
         }
       }
       
@@ -408,7 +307,7 @@ export class GroupService {
         });
       }
 
-      if (sessionsError) {
+      if (sessionsError && (!sessionsData || sessionsData.length === 0)) {
         console.error('[GroupService] Error fetching group sessions:', {
           groupId,
           message: sessionsError.message,
@@ -420,6 +319,28 @@ export class GroupService {
       if (!sessionsData || sessionsData.length === 0) {
         return [];
       }
+      
+      // If we still don't have sessions after fallback, return empty
+      if (!sessionsData || sessionsData.length === 0) {
+        // Only throw error if we had an actual error AND no fallback worked
+        if (sessionsError) {
+          console.error('[GroupService] Error fetching group sessions:', {
+            groupId,
+            message: sessionsError.message,
+            code: sessionsError.code,
+          });
+          throw sessionsError;
+        }
+        return [];
+      }
+      
+      // Sort by date descending, then by created_at descending as tiebreaker
+      sessionsData.sort((a, b) => {
+        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        const createdDiff = new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        return createdDiff;
+      });
 
       // Remove duplicates based on session ID before processing
       const uniqueSessions = Array.from(
