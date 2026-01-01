@@ -111,6 +111,24 @@ export class ApiClient {
     return this.fetch<Session[]>('/sessions');
   }
 
+  static async getSessionSummaries(): Promise<Array<{
+    id: string;
+    name: string | null;
+    date: Date;
+    playerCount: number;
+    gameMode: string;
+    groupId: string | null;
+  }>> {
+    return this.fetch<Array<{
+      id: string;
+      name: string | null;
+      date: Date;
+      playerCount: number;
+      gameMode: string;
+      groupId: string | null;
+    }>>('/sessions/summary');
+  }
+
   static async getSession(sessionId: string): Promise<Session> {
     return this.fetch<Session>(`/sessions/${sessionId}`);
   }

@@ -17,7 +17,7 @@ type Tab = "stats" | "record" | "history";
 export default function SessionPage() {
   const params = useParams();
   const router = useRouter();
-  const { session, games, loadSession } = useSession();
+  const { session, games, loadSession, setSession } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>("stats");
   const [prefillGame, setPrefillGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,6 +25,10 @@ export default function SessionPage() {
   const [localSession, setLocalSession] = useState<Session | null>(null);
   const [localGames, setLocalGames] = useState<Game[]>([]);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editSessionName, setEditSessionName] = useState("");
+  const [editSessionDate, setEditSessionDate] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   
   // Track loading state to prevent duplicate calls
   const isLoadingRef = useRef(false);
@@ -74,7 +78,7 @@ export default function SessionPage() {
     // Small delay to allow context to hydrate first
     const timer = setTimeout(loadData, 100);
     return () => clearTimeout(timer);
-  }, [params.id, loadSession]);
+  }, [params.id, loadSession, session, games]);
 
   // Sync local state with context when context updates (after loadSession completes)
   useEffect(() => {
@@ -126,6 +130,34 @@ export default function SessionPage() {
     setPrefillGame(null); // Clear prefill
   };
 
+  const handleEditClick = () => {
+    if (currentSession) {
+      setEditSessionName(currentSession.name || "");
+      const date = new Date(currentSession.date);
+      setEditSessionDate(date.toISOString().split('T')[0]);
+      setShowEditModal(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!currentSession || !editSessionName.trim()) return;
+    setIsSaving(true);
+    try {
+      const updatedSession: Session = {
+        ...currentSession,
+        name: editSessionName.trim(),
+        date: new Date(`${editSessionDate}T${new Date(currentSession.date).toTimeString().slice(0, 5)}`),
+      };
+      await setSession(updatedSession);
+      setLocalSession(updatedSession);
+      setShowEditModal(false);
+    } catch (error) {
+      console.error('[SessionPage] Failed to update session:', error);
+      alert('Failed to update session. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Get all unplayed scheduled games
   const scheduledGames = currentGames.filter(game => game.winningTeam === null);
@@ -144,14 +176,71 @@ export default function SessionPage() {
   return (
     <div className="min-h-screen bg-japandi-background-primary pb-20">
       <SessionHeader session={currentSession} />
+      
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-japandi-background-card rounded-card p-6 max-w-md w-full shadow-soft">
+            <h2 className="text-xl font-bold text-japandi-text-primary mb-4">Edit Session</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-japandi-text-primary mb-2">
+                  Session Name
+                </label>
+                <input
+                  type="text"
+                  value={editSessionName}
+                  onChange={(e) => setEditSessionName(e.target.value)}
+                  className="w-full px-4 py-2 bg-japandi-background-primary border border-japandi-border-light rounded-full text-japandi-text-primary focus:outline-none focus:border-japandi-accent-primary"
+                  placeholder="Session name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-japandi-text-primary mb-2">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={editSessionDate}
+                  onChange={(e) => setEditSessionDate(e.target.value)}
+                  className="w-full px-4 py-2 bg-japandi-background-primary border border-japandi-border-light rounded-full text-japandi-text-primary focus:outline-none focus:border-japandi-accent-primary"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 px-4 py-2 bg-japandi-background-primary text-japandi-text-primary border border-japandi-border-light rounded-full hover:bg-japandi-background-card transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isSaving || !editSessionName.trim()}
+                  className="flex-1 px-4 py-2 bg-japandi-accent-primary text-white rounded-full hover:bg-japandi-accent-hover transition-colors disabled:opacity-50"
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Stats Tab */}
         {activeTab === "stats" && (
           <div className="space-y-4 sm:space-y-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-japandi-text-primary">
-              Live Stats
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl sm:text-2xl font-bold text-japandi-text-primary">
+                Live Stats
+              </h2>
+              <button
+                onClick={handleEditClick}
+                className="px-4 py-2 bg-japandi-background-card hover:bg-japandi-background-primary text-japandi-text-primary border border-japandi-border-light rounded-full text-sm font-medium transition-colors"
+              >
+                Edit Session
+              </button>
+            </div>
             <div className="space-y-4">
               {currentSession.players.map((player) => {
                 const stats = playerStats.find(

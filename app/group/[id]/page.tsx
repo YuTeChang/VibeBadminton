@@ -33,6 +33,7 @@ export default function GroupPage() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"sessions" | "players" | "stats">("sessions");
   const [playerStats, setPlayerStats] = useState<GroupPlayerStats[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadGroupData = useCallback(async () => {
     try {
@@ -241,19 +242,41 @@ export default function GroupPage() {
           >
             ← Back to Home
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold text-japandi-text-primary mt-4">
-            {group.name}
-          </h1>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-sm text-japandi-text-muted">Share:</span>
-            <code className="text-sm text-japandi-accent-primary bg-japandi-background-primary px-2 py-1 rounded">
-              {group.shareableLink}
-            </code>
+          <div className="flex items-start justify-between mt-4">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-japandi-text-primary">
+                {group.name}
+              </h1>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-sm text-japandi-text-muted">Share:</span>
+                <code className="text-sm text-japandi-accent-primary bg-japandi-background-primary px-2 py-1 rounded">
+                  {group.shareableLink}
+                </code>
+                <button
+                  onClick={handleCopyLink}
+                  className="text-sm text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors"
+                >
+                  {copied ? "Copied!" : "Copy link"}
+                </button>
+              </div>
+            </div>
             <button
-              onClick={handleCopyLink}
-              className="text-sm text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors"
+              onClick={async () => {
+                const confirmed = window.confirm("Are you sure you want to delete this group? This will also delete all sessions in this group. This action cannot be undone.");
+                if (!confirmed) return;
+                setIsDeleting(true);
+                try {
+                  await ApiClient.deleteGroup(groupId);
+                  router.push("/dashboard");
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Failed to delete group");
+                  setIsDeleting(false);
+                }
+              }}
+              disabled={isDeleting}
+              className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded transition-colors disabled:opacity-50 touch-manipulation"
             >
-              {copied ? "Copied!" : "Copy link"}
+              {isDeleting ? "Deleting..." : "Delete Group"}
             </button>
           </div>
         </div>

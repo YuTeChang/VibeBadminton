@@ -296,6 +296,69 @@ export class SessionService {
   }
 
   /**
+   * Get lightweight session summaries (for dashboard/list views)
+   * Returns only: id, name, date, playerCount, gameMode, groupId
+   * Much faster than getAllSessions since it doesn't fetch full player data
+   */
+  static async getSessionSummaries(): Promise<Array<{
+    id: string;
+    name: string | null;
+    date: Date;
+    playerCount: number;
+    gameMode: string;
+    groupId: string | null;
+  }>> {
+    try {
+      const supabase = createSupabaseClient();
+      
+      // Fetch all sessions
+      const { data: sessionsData, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('id, name, date, game_mode, group_id')
+        .order('created_at', { ascending: false });
+
+      if (sessionsError) {
+        throw sessionsError;
+      }
+
+      if (!sessionsData || sessionsData.length === 0) {
+        return [];
+      }
+
+      // Batch fetch player counts for all sessions in a single query
+      const sessionIds = sessionsData.map(s => s.id);
+      const { data: allPlayersData, error: playersError } = await supabase
+        .from('players')
+        .select('session_id')
+        .in('session_id', sessionIds);
+
+      if (playersError) {
+        throw playersError;
+      }
+
+      // Count players per session
+      const playerCountsBySessionId = new Map<string, number>();
+      (allPlayersData || []).forEach((player: any) => {
+        const sessionId = player.session_id;
+        playerCountsBySessionId.set(sessionId, (playerCountsBySessionId.get(sessionId) || 0) + 1);
+      });
+
+      // Map to summary format
+      return sessionsData.map((session: any) => ({
+        id: session.id,
+        name: session.name,
+        date: new Date(session.date),
+        playerCount: playerCountsBySessionId.get(session.id) || 0,
+        gameMode: session.game_mode,
+        groupId: session.group_id,
+      }));
+    } catch (error) {
+      console.error('[SessionService] Error fetching session summaries:', error);
+      throw new Error('Failed to fetch session summaries');
+    }
+  }
+
+  /**
    * Map database row to Session type
    */
   private static mapRowToSession(

@@ -70,7 +70,7 @@ export default function SummaryPage() {
     // Small delay to allow context to hydrate first
     const timer = setTimeout(loadData, 100);
     return () => clearTimeout(timer);
-  }, [params.id, loadSession]);
+  }, [params.id, loadSession, session, games]);
 
   // Sync local state with context when context updates (after loadSession completes)
   useEffect(() => {

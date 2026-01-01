@@ -26,8 +26,24 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
       clearSession();
       // Use setTimeout to ensure state updates before navigation
       setTimeout(() => {
-      router.push("/");
+      router.push("/dashboard");
       }, 100);
+    }
+  };
+
+  const handleDeleteSession = async () => {
+    const confirmed = window.confirm("Are you sure you want to delete this session? This action cannot be undone.");
+    if (!confirmed) return;
+    try {
+      const { ApiClient } = await import("@/lib/api/client");
+      await ApiClient.deleteSession(session.id);
+      clearSession();
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 100);
+    } catch (error) {
+      console.error('[SessionHeader] Failed to delete session:', error);
+      alert('Failed to delete session. Please try again.');
     }
   };
 
@@ -36,18 +52,27 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
         <div className="flex items-start justify-between mb-3">
           <Link
-            href="/"
+            href="/dashboard"
             className="text-japandi-accent-primary hover:text-japandi-accent-hover active:opacity-70 text-sm transition-all flex items-center gap-1 touch-manipulation"
           >
             ← Back to Home
           </Link>
-          <button
-            type="button"
-            onClick={handleEndSession}
-            className="text-sm text-japandi-text-secondary hover:text-japandi-text-primary active:opacity-70 transition-all touch-manipulation"
-          >
-            End Session
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDeleteSession}
+              className="text-sm text-red-600 hover:text-red-700 active:opacity-70 transition-all touch-manipulation"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={handleEndSession}
+              className="text-sm text-japandi-text-secondary hover:text-japandi-text-primary active:opacity-70 transition-all touch-manipulation"
+            >
+              End Session
+            </button>
+          </div>
         </div>
         <div className="flex items-start justify-between">
           <div className="flex-1">
