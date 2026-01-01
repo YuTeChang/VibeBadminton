@@ -205,17 +205,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const sessionJustCreatedRef = useRef<string | null>(null);
   // Track if session is being loaded (not created) to prevent POST on load
   const isLoadingSessionRef = useRef<string | null>(null);
+  // Track if we've already synced this session to prevent duplicate calls when apiAvailable changes
+  const hasSyncedSessionRef = useRef<Set<string>>(new Set());
 
   // Sync session to API and localStorage whenever it changes
   useEffect(() => {
     if (!isLoaded || typeof window === "undefined" || !session) return;
 
-    // Don't sync session on dashboard page - dashboard loads its own data
+    // Don't sync session on dashboard or home page - these pages don't need session sync
     const pathname = window.location.pathname;
     console.log('[SessionContext] Session sync effect triggered, pathname:', pathname, 'session.id:', session.id);
     
-    if (pathname === '/dashboard') {
-      console.log('[SessionContext] Skipping session sync on dashboard - only saving to localStorage');
+    if (pathname === '/dashboard' || pathname === '/') {
+      console.log('[SessionContext] Skipping session sync on', pathname, '- only saving to localStorage');
       // Still save to localStorage for offline support, but don't sync to API
       localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
       return;
@@ -239,20 +241,29 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Only sync to API if:
-    // 1. Session wasn't just created by setSession (setSession already calls createSession)
-    // 2. Session isn't being loaded (to prevent POST when loading existing session)
-    if (apiAvailable && 
+    // 1. API is available
+    // 2. Session wasn't just created by setSession (setSession already calls createSession)
+    // 3. Session isn't being loaded (to prevent POST when loading existing session)
+    // 4. We haven't already synced this session (prevents duplicate calls when apiAvailable changes)
+    const shouldSync = apiAvailable && 
         sessionJustCreatedRef.current !== session.id &&
-        isLoadingSessionRef.current !== session.id) {
+        isLoadingSessionRef.current !== session.id &&
+        !hasSyncedSessionRef.current.has(session.id);
+    
+    if (shouldSync) {
       console.log('[SessionContext] Calling createSession to sync session:', session.id, 'pathname:', pathname);
+      hasSyncedSessionRef.current.add(session.id);
       ApiClient.createSession(session).catch((error) => {
         console.warn('[SessionContext] Failed to sync session to API:', error);
+        // Remove from synced set on error so we can retry
+        hasSyncedSessionRef.current.delete(session.id);
       });
     } else {
       console.log('[SessionContext] Skipping createSession sync:', {
         apiAvailable,
         sessionJustCreated: sessionJustCreatedRef.current === session.id,
         isLoadingSession: isLoadingSessionRef.current === session.id,
+        alreadySynced: hasSyncedSessionRef.current.has(session.id),
         pathname
       });
     }
@@ -331,6 +342,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       try {
         // Mark this session as just created to prevent duplicate API call in useEffect
         sessionJustCreatedRef.current = sessionWithDefaults.id;
+        // Also mark as synced to prevent duplicate calls when apiAvailable changes
+        hasSyncedSessionRef.current.add(sessionWithDefaults.id);
         
         // Determine roundRobinCount from initialGames length if applicable
         const roundRobinCount = initialGames && initialGames.length > 0 ? initialGames.length : null;
