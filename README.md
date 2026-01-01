@@ -76,17 +76,7 @@ See [docs/SETUP_BACKEND.md](docs/SETUP_BACKEND.md) for detailed setup instructio
 
 ## Deployment
 
-**Manual Deployment Control**: Deployments only occur when `[deploy]` is in the commit message.
-
-```bash
-# Deploy
-git commit -m "Fix bug [deploy]"
-git push
-
-# Skip deployment (default)
-git commit -m "Update docs"
-git push  # No deployment triggered
-```
+Deployments happen automatically when you push to the `main` branch. Changes to documentation files only (`.md` files, `docs/` folder) will skip deployment.
 
 ---
 
