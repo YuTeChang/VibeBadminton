@@ -259,6 +259,23 @@ export class GroupService {
       
       console.log('[GroupService.getGroupSessions] Fetching sessions for groupId:', groupId);
       
+      // DEBUG: First, let's see ALL sessions and their group_ids to diagnose
+      const { data: allSessionsDebug } = await supabase
+        .from('sessions')
+        .select('id, name, group_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      console.log('[GroupService.getGroupSessions] DEBUG - All recent sessions:', {
+        total: allSessionsDebug?.length || 0,
+        sessions: allSessionsDebug?.map(s => ({
+          id: s.id,
+          name: s.name,
+          group_id: s.group_id,
+          group_id_type: typeof s.group_id,
+          matches: s.group_id === groupId
+        }))
+      });
+      
       // Query sessions with group_id filter - use order to ensure consistent results
       let { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
