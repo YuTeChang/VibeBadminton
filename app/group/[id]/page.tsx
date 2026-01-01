@@ -283,14 +283,11 @@ export default function GroupPage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - Tab switching is UI-only, no data refresh needed */}
       <div className="bg-japandi-background-card border-b border-japandi-border-light">
         <div className="max-w-2xl mx-auto px-4 flex">
           <button
-            onClick={() => {
-              setActiveTab("sessions");
-              loadGroupData(); // Refresh when switching to sessions tab
-            }}
+            onClick={() => setActiveTab("sessions")}
             className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "sessions"
                 ? "border-japandi-accent-primary text-japandi-accent-primary"
