@@ -177,6 +177,14 @@ export default function Dashboard() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
       <div className="max-w-md w-full space-y-6 sm:space-y-8 text-center">
+        <div className="flex items-center justify-between mb-4">
+          <Link
+            href="/"
+            className="text-japandi-accent-primary hover:text-japandi-accent-hover active:opacity-70 text-sm transition-all flex items-center gap-1 touch-manipulation"
+          >
+            ← Back to Home
+          </Link>
+        </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-japandi-text-primary">
           Sessions & Groups
         </h1>
