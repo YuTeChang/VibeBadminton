@@ -593,10 +593,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     
     const pathname = window.location.pathname;
     // Dashboard loads its own data (groups + summaries) - skip to avoid duplicate calls
+    // Always log this check (not just in development) to debug production issues
     if (pathname === '/dashboard') {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[SessionContext] Skipping ensureSessionsAndGroupsLoaded - dashboard loads its own data');
-      }
+      console.log('[SessionContext] Skipping ensureSessionsAndGroupsLoaded - dashboard loads its own data, pathname:', pathname);
       return;
     }
     
