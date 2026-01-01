@@ -52,12 +52,16 @@ export default function SessionPage() {
       return;
     }
 
-    // Skip if session is already loaded and matches
-    if (session && session.id === sessionId && games.length >= 0) {
-      setLocalSession(session);
-      setLocalGames(games);
-      setIsLoading(false);
-      return;
+    // Skip if session is already loaded and matches (check games belong to this session)
+    if (session && session.id === sessionId) {
+      // Session is loaded - check if games are for this session or empty
+      const gamesMatchSession = games.length === 0 || games[0]?.sessionId === sessionId;
+      if (gamesMatchSession) {
+        setLocalSession(session);
+        setLocalGames(games);
+        setIsLoading(false);
+        return;
+      }
     }
 
     // Load session via context (handles API calls and caching)

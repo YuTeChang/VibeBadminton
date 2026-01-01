@@ -60,6 +60,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         const pathname = window.location.pathname;
         const isGroupPage = pathname.startsWith('/group/');
         const isDashboard = pathname === '/dashboard' || pathname === '/';
+        // Session pages handle their own loading via loadSession - don't auto-fetch here
+        const isSessionPage = pathname.startsWith('/session/');
         
         // Load from localStorage immediately for fast initial render (no API call blocking)
         loadFromLocalStorage();
@@ -89,37 +91,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         }
         
         // Check API availability lazily (non-blocking) - doesn't delay initial render
-        // Skip health check on group pages and dashboard - we'll know if API works from actual calls
-        if (isGroupPage || isDashboard) {
+        // Skip health check on group pages, dashboard, and session pages
+        // Session pages handle their own loading, so skip API sync there too
+        if (isGroupPage || isDashboard || isSessionPage) {
           // Assume API is available - will fail gracefully if not
           setApiAvailable(true);
+          // Skip auto-sync for session pages - they call loadSession() which handles this
         } else {
-          // Check API availability for other pages
+          // Check API availability for other pages (e.g., create-session)
           isApiAvailable()
             .then((apiReady) => {
               setApiAvailable(apiReady);
-              
-              // If API is available and we have a saved session, sync in background
-              if (apiReady && savedSession) {
-                try {
-                  const parsedSession = JSON.parse(savedSession);
-                  // Only fetch session and games if we don't already have them
-                  ApiClient.getSession(parsedSession.id).then((dbSession) => {
-                    setSessionState(dbSession);
-                    // Only fetch games if we don't have them yet (avoid duplicate)
-                    return ApiClient.getGames(parsedSession.id);
-                  }).then((dbGames) => {
-                    setGames(dbGames);
-                    if (typeof window !== "undefined") {
-                      localStorage.setItem(STORAGE_KEY_GAMES, JSON.stringify(dbGames));
-                    }
-                  }).catch(() => {
-                    // Silently fail - we have localStorage version
-                  });
-                } catch {
-                  // Ignore parse errors
-                }
-              }
+              // NOTE: Removed auto-sync here to prevent duplicate API calls
+              // Session pages handle their own loading via loadSession()
+              // Other pages like create-session don't need to auto-sync
             })
             .catch(() => {
               // API unavailable - use localStorage only
@@ -261,10 +246,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       ApiClient.getSession(session.id)
         .then((existingSession) => {
           // Session exists, sync any changes
-          // IMPORTANT: Preserve groupId from existing session if current session doesn't have it
+          // IMPORTANT: Preserve groupId - prefer existing DB value over potentially stale local value
+          // This ensures groupId is never accidentally lost during sync operations
           const sessionToSync = {
             ...session,
-            groupId: session.groupId || existingSession.groupId,
+            // Use current session's groupId if set, otherwise preserve from DB
+            // Never allow groupId to become undefined/null if it existed
+            groupId: session.groupId ?? existingSession.groupId,
           };
           return ApiClient.createSession(sessionToSync);
         })
@@ -292,6 +280,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
             hasSyncedSessionRef.current.delete(session.id);
           } else {
             // Other error - try to sync anyway (might be network issue)
+            // Preserve groupId even on retry
             return ApiClient.createSession(session);
           }
         })
@@ -332,10 +321,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [games, isLoaded, session, apiAvailable]);
 
   const setSession = useCallback(async (newSession: Session, initialGames?: Omit<Game, "id" | "sessionId" | "gameNumber">[]) => {
-    // Ensure bettingEnabled has a default
+    // Ensure bettingEnabled has a default and preserve groupId
     const sessionWithDefaults = {
       ...newSession,
       bettingEnabled: newSession.bettingEnabled ?? true,
+      // Explicitly preserve groupId to ensure it's not lost
+      groupId: newSession.groupId,
     };
     
     // Optimistically update UI

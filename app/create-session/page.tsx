@@ -341,6 +341,9 @@ function CreateSessionContent() {
     // Wait for session to be saved before navigating
     try {
       await setSession(session, roundRobinGamesToAdd.length > 0 ? roundRobinGamesToAdd : undefined);
+      // Add a small delay to ensure database write is complete before navigation
+      // This helps with database replication lag
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch (error) {
       console.error('[CreateSession] Failed to save session:', error);
       // Continue anyway - session might be saved in background

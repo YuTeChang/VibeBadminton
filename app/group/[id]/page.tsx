@@ -59,11 +59,13 @@ export default function GroupPage() {
 
   // Lazy load players only when Players tab is clicked
   const loadPlayers = useCallback(async () => {
-    // Don't reload if we already have players or are currently loading
-    if (players.length > 0 || isLoadingPlayers) {
+    // Don't reload if we already loaded players
+    if (playersLoadedRef.current) {
       return;
     }
     
+    // Mark as loaded immediately to prevent concurrent calls
+    playersLoadedRef.current = true;
     setIsLoadingPlayers(true);
     try {
       const fetchedPlayers = await ApiClient.getGroupPlayers(groupId);
@@ -74,11 +76,14 @@ export default function GroupPage() {
     } finally {
       setIsLoadingPlayers(false);
     }
-  }, [groupId, players.length, isLoadingPlayers]);
+  }, [groupId]);
 
   // Track last load time to prevent duplicate calls
   const lastLoadRef = useRef<number>(0);
   const REFRESH_DEBOUNCE_MS = 500; // Don't refresh more than once per 500ms
+  
+  // Track if players have been loaded to prevent infinite loop
+  const playersLoadedRef = useRef<boolean>(false);
 
   // Single effect to load data on mount and when groupId changes
   useEffect(() => {
@@ -89,10 +94,11 @@ export default function GroupPage() {
     if (needsRefresh) {
       // Clear the flag
       sessionStorage.removeItem(needsRefreshKey);
-      // Add a small delay to account for database replication lag
+      // Add a longer delay to account for database replication lag
+      // The create-session page already waits 300ms, so 700ms total should be sufficient
       setTimeout(() => {
         loadGroupData();
-      }, 500);
+      }, 700);
       return;
     }
     

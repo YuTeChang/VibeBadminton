@@ -233,6 +233,19 @@ export default function Dashboard() {
     if (!confirmed) return;
 
     setIsDeleting(prev => ({ ...prev, [sessionId]: true }));
+    
+    // Store the deleted session info for potential rollback
+    const deletedSession = sessionSummaries.find(s => s.id === sessionId);
+    
+    // OPTIMISTIC UPDATE: Immediately remove from UI for instant feedback
+    setSessionSummaries(prev => prev.filter(s => s.id !== sessionId));
+    if (deletedSession?.groupId) {
+      setGroupSessionCounts(prev => ({
+        ...prev,
+        [deletedSession.groupId!]: Math.max(0, (prev[deletedSession.groupId!] || 0) - 1)
+      }));
+    }
+    
     try {
       // Delete from API and verify response
       const result = await ApiClient.deleteSession(sessionId);
@@ -240,7 +253,7 @@ export default function Dashboard() {
         throw new Error('Deletion failed: API returned unsuccessful response');
       }
       
-      // Remove from localStorage first to prevent it from reappearing
+      // Remove from localStorage to prevent it from reappearing
       if (typeof window !== "undefined") {
         // Remove from allSessions in localStorage
         const savedAllSessions = localStorage.getItem("poweredbypace_all_sessions");
@@ -273,18 +286,19 @@ export default function Dashboard() {
         }
       }
       
-      // Refresh summaries from API to ensure UI is in sync with database
-      // This is critical to prevent deleted sessions from reappearing on refresh
+      // Background refresh from API to ensure eventual consistency
+      // This runs after optimistic update, so even if API returns stale data, we filter it out
       try {
         const refreshedSummaries = await ApiClient.getSessionSummaries();
-        const summariesWithDates = refreshedSummaries.map(s => ({ ...s, date: new Date(s.date) }));
+        // Filter out the deleted session in case API returns stale data
+        const filteredSummaries = refreshedSummaries.filter(s => s.id !== sessionId);
+        const summariesWithDates = filteredSummaries.map(s => ({ ...s, date: new Date(s.date) }));
         setSessionSummaries(summariesWithDates);
         
         // Recalculate group counts from refreshed summaries
         if (groups.length > 0 && summariesWithDates.length > 0) {
           const counts: Record<string, number> = {};
           groups.forEach((group) => {
-            // Explicitly filter out standalone sessions (null/undefined groupId)
             const groupSessions = summariesWithDates.filter(s => 
               s.groupId != null && s.groupId === group.id
             );
@@ -295,17 +309,22 @@ export default function Dashboard() {
           setGroupSessionCounts({});
         }
       } catch {
-        // Fallback: optimistic update (remove from current summaries)
-        const deletedSession = sessionSummaries.find(s => s.id === sessionId);
-        setSessionSummaries(prev => prev.filter(s => s.id !== sessionId));
-        if (deletedSession?.groupId) {
+        // Optimistic update already done, so just log and continue
+        console.warn('Background refresh after delete failed, relying on optimistic update');
+      }
+    } catch {
+      // ROLLBACK: Restore the session to the list since deletion failed
+      if (deletedSession) {
+        setSessionSummaries(prev => [...prev, deletedSession].sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        ));
+        if (deletedSession.groupId) {
           setGroupSessionCounts(prev => ({
             ...prev,
-            [deletedSession.groupId!]: Math.max(0, (prev[deletedSession.groupId!] || 0) - 1)
+            [deletedSession.groupId!]: (prev[deletedSession.groupId!] || 0) + 1
           }));
         }
       }
-    } catch {
       alert('Failed to delete session. Please try again.');
     } finally {
       setIsDeleting(prev => {
