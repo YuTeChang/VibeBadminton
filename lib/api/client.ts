@@ -15,8 +15,15 @@ export class ApiClient {
     options?: RequestInit
   ): Promise<T> {
     try {
+      // Add cache-busting for GET requests to prevent stale data after deletions
+      const isGetRequest = !options?.method || options.method === 'GET';
+      const cacheOptions = isGetRequest 
+        ? { cache: 'no-store' as RequestCache }
+        : {};
+      
       const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
+        ...cacheOptions,
         headers: {
           'Content-Type': 'application/json',
           ...options?.headers,

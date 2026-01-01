@@ -85,7 +85,28 @@ export async function DELETE(
 ) {
   try {
     const sessionId = params.id;
+    
+    // Verify session exists before deletion
+    const existingSession = await SessionService.getSessionById(sessionId);
+    if (!existingSession) {
+      // Session doesn't exist - return success (idempotent delete)
+      return NextResponse.json({ success: true, message: 'Session already deleted' });
+    }
+    
+    // Delete the session
     await SessionService.deleteSession(sessionId);
+    
+    // Verify deletion succeeded by checking if session still exists
+    const verifySession = await SessionService.getSessionById(sessionId);
+    if (verifySession) {
+      console.error(`[API] Session ${sessionId} still exists after deletion attempt`);
+      return NextResponse.json(
+        { error: 'Failed to delete session - session still exists' },
+        { status: 500 }
+      );
+    }
+    
+    console.log(`[API] Successfully deleted session ${sessionId}`);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[API] Error deleting session:', error);

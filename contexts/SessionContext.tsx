@@ -265,13 +265,51 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         !hasSyncedSessionRef.current.has(session.id);
     
     if (shouldSync) {
-      console.log('[SessionContext] Calling createSession to sync session:', session.id, 'pathname:', pathname);
+      console.log('[SessionContext] Verifying session exists before sync:', session.id, 'pathname:', pathname);
       hasSyncedSessionRef.current.add(session.id);
-      ApiClient.createSession(session).catch((error) => {
-        console.warn('[SessionContext] Failed to sync session to API:', error);
-        // Remove from synced set on error so we can retry
-        hasSyncedSessionRef.current.delete(session.id);
-      });
+      
+      // First verify the session exists in the database
+      // If it doesn't exist (was deleted), remove it from localStorage instead of recreating it
+      ApiClient.getSession(session.id)
+        .then((existingSession) => {
+          // Session exists, sync any changes
+          console.log('[SessionContext] Session exists, syncing to API:', session.id);
+          return ApiClient.createSession(session);
+        })
+        .catch((error) => {
+          // Session doesn't exist (404) - it was deleted, remove from localStorage
+          if (error.message?.includes('404') || error.message?.includes('not found')) {
+            console.log('[SessionContext] Session was deleted, removing from localStorage:', session.id);
+            // Clear the session from state and localStorage
+            setSessionState(null);
+            setGames([]);
+            if (typeof window !== "undefined") {
+              localStorage.removeItem(STORAGE_KEY_SESSION);
+              localStorage.removeItem(STORAGE_KEY_GAMES);
+              // Also remove from all sessions list
+              setAllSessions(prev => {
+                const updated = prev.filter(s => s.id !== session.id);
+                if (updated.length === 0) {
+                  localStorage.removeItem(STORAGE_KEY_ALL_SESSIONS);
+                } else {
+                  localStorage.setItem(STORAGE_KEY_ALL_SESSIONS, JSON.stringify(updated));
+                }
+                return updated;
+              });
+            }
+            // Remove from synced set since we cleared it
+            hasSyncedSessionRef.current.delete(session.id);
+          } else {
+            // Other error - try to sync anyway (might be network issue)
+            console.warn('[SessionContext] Failed to verify session, attempting sync anyway:', error);
+            return ApiClient.createSession(session);
+          }
+        })
+        .catch((error) => {
+          console.warn('[SessionContext] Failed to sync session to API:', error);
+          // Remove from synced set on error so we can retry
+          hasSyncedSessionRef.current.delete(session.id);
+        });
     } else {
       console.log('[SessionContext] Skipping createSession sync:', {
         apiAvailable,

@@ -201,19 +201,13 @@ export default function Dashboard() {
 
     setIsDeleting(prev => ({ ...prev, [sessionId]: true }));
     try {
-      await ApiClient.deleteSession(sessionId);
-      // Remove from summaries
-      setSessionSummaries(prev => prev.filter(s => s.id !== sessionId));
-      // Update group counts
-      const deletedSession = sessionSummaries.find(s => s.id === sessionId);
-      if (deletedSession?.groupId) {
-        setGroupSessionCounts(prev => ({
-          ...prev,
-          [deletedSession.groupId!]: Math.max(0, (prev[deletedSession.groupId!] || 0) - 1)
-        }));
+      // Delete from API and verify response
+      const result = await ApiClient.deleteSession(sessionId);
+      if (!result.success) {
+        throw new Error('Deletion failed: API returned unsuccessful response');
       }
       
-      // Remove from localStorage to prevent it from reappearing on refresh
+      // Remove from localStorage first to prevent it from reappearing
       if (typeof window !== "undefined") {
         // Remove from allSessions in localStorage
         const savedAllSessions = localStorage.getItem("poweredbypace_all_sessions");
@@ -243,6 +237,37 @@ export default function Dashboard() {
           } catch (error) {
             // Ignore parse errors
           }
+        }
+      }
+      
+      // Refresh summaries from API to ensure UI is in sync with database
+      // This is critical to prevent deleted sessions from reappearing on refresh
+      try {
+        const refreshedSummaries = await ApiClient.getSessionSummaries();
+        const summariesWithDates = refreshedSummaries.map(s => ({ ...s, date: new Date(s.date) }));
+        setSessionSummaries(summariesWithDates);
+        
+        // Recalculate group counts from refreshed summaries
+        if (groups.length > 0 && summariesWithDates.length > 0) {
+          const counts: Record<string, number> = {};
+          groups.forEach((group) => {
+            const groupSessions = summariesWithDates.filter(s => s.groupId === group.id);
+            counts[group.id] = groupSessions.length;
+          });
+          setGroupSessionCounts(counts);
+        } else {
+          setGroupSessionCounts({});
+        }
+      } catch (refreshError) {
+        console.warn('[Dashboard] Failed to refresh summaries after delete, using optimistic update:', refreshError);
+        // Fallback: optimistic update (remove from current summaries)
+        const deletedSession = sessionSummaries.find(s => s.id === sessionId);
+        setSessionSummaries(prev => prev.filter(s => s.id !== sessionId));
+        if (deletedSession?.groupId) {
+          setGroupSessionCounts(prev => ({
+            ...prev,
+            [deletedSession.groupId!]: Math.max(0, (prev[deletedSession.groupId!] || 0) - 1)
+          }));
         }
       }
     } catch (error) {
