@@ -277,11 +277,27 @@ export class GroupService {
       });
       
       // Query sessions with group_id filter - use order to ensure consistent results
+      // Try exact match first
       let { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
         .select('*')
         .eq('group_id', groupId)
         .order('created_at', { ascending: false });
+      
+      // If no results, also try as string (in case of type mismatch)
+      if ((!sessionsData || sessionsData.length === 0) && !sessionsError) {
+        console.log('[GroupService.getGroupSessions] No results with exact match, trying string comparison');
+        const { data: stringMatchData } = await supabase
+          .from('sessions')
+          .select('*')
+          .eq('group_id', String(groupId))
+          .order('created_at', { ascending: false });
+        
+        if (stringMatchData && stringMatchData.length > 0) {
+          console.log('[GroupService.getGroupSessions] Found', stringMatchData.length, 'sessions with string match');
+          sessionsData = stringMatchData;
+        }
+      }
       
       console.log('[GroupService.getGroupSessions] Main query result:', {
         count: sessionsData?.length || 0,
