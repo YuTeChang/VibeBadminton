@@ -9,8 +9,9 @@ import QuickGameForm from "@/components/QuickGameForm";
 import GameHistoryList from "@/components/GameHistoryList";
 import BottomTabNav from "@/components/BottomTabNav";
 import { calculatePlayerStats } from "@/lib/calculations";
-import { Game, Session } from "@/types";
+import { Game, Session, Player } from "@/types";
 import Link from "next/link";
+import { ApiClient } from "@/lib/api/client";
 
 type Tab = "stats" | "record" | "history";
 
@@ -28,6 +29,7 @@ export default function SessionPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSessionName, setEditSessionName] = useState("");
   const [editSessionDate, setEditSessionDate] = useState("");
+  const [editPlayers, setEditPlayers] = useState<Player[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [showEditGameModal, setShowEditGameModal] = useState(false);
@@ -144,22 +146,68 @@ export default function SessionPage() {
       setEditSessionName(currentSession.name || "");
       const date = new Date(currentSession.date);
       setEditSessionDate(date.toISOString().split('T')[0]);
+      // Initialize edit players with current players or empty array
+      setEditPlayers(currentSession.players.length > 0 ? [...currentSession.players] : []);
       setShowEditModal(true);
     }
   };
 
+  const addEditPlayer = () => {
+    if (editPlayers.length < 6) {
+      setEditPlayers([...editPlayers, { id: `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, name: "" }]);
+    }
+  };
+
+  const removeEditPlayer = (index: number) => {
+    const gameMode = currentSession?.gameMode || "doubles";
+    const minPlayers = gameMode === "singles" ? 2 : 4;
+    if (editPlayers.length > minPlayers) {
+      setEditPlayers(editPlayers.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEditPlayerName = (index: number, name: string) => {
+    const updated = [...editPlayers];
+    updated[index] = { ...updated[index], name };
+    setEditPlayers(updated);
+  };
+
   const handleSaveEdit = async () => {
     if (!currentSession || !editSessionName.trim()) return;
+    
+    // Validate players
+    const gameMode = currentSession.gameMode || "doubles";
+    const minPlayers = gameMode === "singles" ? 2 : 4;
+    const validPlayers = editPlayers.filter(p => p.name.trim() !== "");
+    
+    if (validPlayers.length < minPlayers) {
+      alert(`At least ${minPlayers} players are required for ${gameMode} mode`);
+      return;
+    }
+
     setIsSaving(true);
     try {
       const updatedSession: Session = {
         ...currentSession,
         name: editSessionName.trim(),
         date: new Date(`${editSessionDate}T${new Date(currentSession.date).toTimeString().slice(0, 5)}`),
+        players: validPlayers.map(p => ({
+          id: p.id,
+          name: p.name.trim(),
+          groupPlayerId: p.groupPlayerId,
+        })),
       };
+      
+      // Update session via API
+      await ApiClient.updateSession(updatedSession);
+      
+      // Update context and local state
       await setSession(updatedSession);
       setLocalSession(updatedSession);
       setShowEditModal(false);
+      
+      // Reload session to get fresh data
+      await loadSession(currentSession.id);
     } catch (error) {
       console.error('[SessionPage] Failed to update session:', error);
       alert('Failed to update session. Please try again.');
@@ -169,7 +217,7 @@ export default function SessionPage() {
   };
 
   // Get all unplayed scheduled games
-  const scheduledGames = currentGames.filter(game => game.winningTeam === null);
+  const scheduledGames = currentGames.filter((game) => game.winningTeam === null);
   
   // Get first unplayed round robin game (next game)
   const nextUnplayedGame = scheduledGames[0] || null;
@@ -189,7 +237,7 @@ export default function SessionPage() {
       {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-japandi-background-card rounded-card p-6 max-w-md w-full shadow-soft">
+          <div className="bg-japandi-background-card rounded-card p-6 max-w-md w-full shadow-soft max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-japandi-text-primary mb-4">Edit Session</h2>
             <div className="space-y-4">
               <div>
@@ -215,6 +263,56 @@ export default function SessionPage() {
                   className="w-full px-4 py-2 bg-japandi-background-primary border border-japandi-border-light rounded-full text-japandi-text-primary focus:outline-none focus:border-japandi-accent-primary"
                 />
               </div>
+              
+              {/* Players Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-japandi-text-primary">
+                    Players ({currentSession?.gameMode === "singles" ? "2-6" : "4-6"} players)
+                  </label>
+                  {editPlayers.length < 6 && (
+                    <button
+                      type="button"
+                      onClick={addEditPlayer}
+                      className="text-sm text-japandi-accent-primary hover:text-japandi-accent-hover active:scale-95 transition-all touch-manipulation"
+                    >
+                      + Add Player
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {editPlayers.map((player, index) => {
+                    const gameMode = currentSession?.gameMode || "doubles";
+                    const minPlayers = gameMode === "singles" ? 2 : 4;
+                    return (
+                      <div key={player.id} className="flex gap-3">
+                        <input
+                          type="text"
+                          value={player.name}
+                          onChange={(e) => updateEditPlayerName(index, e.target.value)}
+                          placeholder={`Player ${index + 1}`}
+                          className="flex-1 px-4 py-2 border border-japandi-border-light rounded-card bg-japandi-background-primary text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
+                        />
+                        {editPlayers.length > minPlayers && (
+                          <button
+                            type="button"
+                            onClick={() => removeEditPlayer(index)}
+                            className="px-4 py-2 text-japandi-text-secondary hover:bg-japandi-background-card active:scale-95 rounded-card transition-all touch-manipulation"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {editPlayers.length === 0 && (
+                  <p className="mt-2 text-sm text-japandi-text-muted">
+                    Add at least {currentSession?.gameMode === "singles" ? "2" : "4"} players to record games
+                  </p>
+                )}
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowEditModal(false)}
@@ -251,19 +349,36 @@ export default function SessionPage() {
               </button>
             </div>
             <div className="space-y-4">
-              {currentSession.players.map((player) => {
-                const stats = playerStats.find(
-                  (s) => s.playerId === player.id
-                );
-                if (!stats) return null;
-                return (
-                  <LiveStatsCard
-                    key={player.id}
-                    stats={stats}
-                    player={player}
-                  />
-                );
-              })}
+              {currentSession.players.length === 0 ? (
+                <div className="bg-japandi-background-card border-2 border-japandi-accent-primary rounded-card p-6 text-center">
+                  <h3 className="text-lg font-semibold text-japandi-text-primary mb-2">
+                    No Players Added
+                  </h3>
+                  <p className="text-sm text-japandi-text-secondary mb-4">
+                    Add players to this session to start recording games and tracking stats.
+                  </p>
+                  <button
+                    onClick={handleEditClick}
+                    className="px-6 py-2 bg-japandi-accent-primary hover:bg-japandi-accent-hover text-white rounded-full font-medium transition-colors"
+                  >
+                    Add Players
+                  </button>
+                </div>
+              ) : (
+                currentSession.players.map((player) => {
+                  const stats = playerStats.find(
+                    (s) => s.playerId === player.id
+                  );
+                  if (!stats) return null;
+                  return (
+                    <LiveStatsCard
+                      key={player.id}
+                      stats={stats}
+                      player={player}
+                    />
+                  );
+                })
+              )}
             </div>
 
             {/* Next Game - Show first unplayed round robin game */}

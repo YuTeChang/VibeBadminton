@@ -133,6 +133,13 @@ export class ApiClient {
     return this.fetch<Session>(`/sessions/${sessionId}`);
   }
 
+  static async updateSession(session: Session): Promise<{ success: boolean; session: Session }> {
+    return this.fetch<{ success: boolean; session: Session }>(`/sessions/${session.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ session }),
+    });
+  }
+
   static async createSession(
     session: Session,
     initialGames?: Omit<Game, 'id' | 'sessionId' | 'gameNumber'>[],

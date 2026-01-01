@@ -204,6 +204,25 @@ export default function QuickGameForm({
     return player?.name || "";
   };
 
+  // Show message if no players exist
+  if (players.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-japandi-background-card border-2 border-japandi-accent-primary rounded-card p-6 text-center">
+          <h3 className="text-lg font-semibold text-japandi-text-primary mb-2">
+            No Players Added
+          </h3>
+          <p className="text-sm text-japandi-text-secondary mb-4">
+            You need to add players to this session before you can record games.
+          </p>
+          <p className="text-xs text-japandi-text-muted">
+            Please add players using the "Edit Session" button in the Stats tab.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {isSingles ? (
