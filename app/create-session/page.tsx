@@ -248,6 +248,7 @@ function CreateSessionContent() {
   };
 
   const minPlayersRequired = gameMode === "singles" ? 2 : 4;
+  // Check that we have enough player slots (names will be assigned defaults if empty)
   const hasEnoughPlayers = players.length >= minPlayersRequired;
   // Organizer is valid if selected, or if we have enough players (we'll default to first player)
   const hasValidOrganizer = organizerId !== "" || hasEnoughPlayers;

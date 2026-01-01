@@ -17,7 +17,15 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(group);
+    // Add caching headers for better performance
+    // Cache for 30 seconds - groups don't change frequently
+    const response = NextResponse.json(group);
+    response.headers.set(
+      'Cache-Control',
+      'public, s-maxage=30, stale-while-revalidate=60'
+    );
+    
+    return response;
   } catch (error) {
     console.error('[API] Error fetching group:', error);
     return NextResponse.json(
@@ -26,6 +34,9 @@ export async function GET(
     );
   }
 }
+
+// Enable Next.js route segment config for caching
+export const revalidate = 30; // Revalidate every 30 seconds
 
 // DELETE /api/groups/[id] - Delete a group
 export async function DELETE(

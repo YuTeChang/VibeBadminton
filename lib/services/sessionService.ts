@@ -186,10 +186,11 @@ export class SessionService {
 
       // Upsert players (insert or update if exists)
       if (session.players.length > 0) {
-        const playersData = session.players.map(player => ({
+        // Ensure all players have names (assign defaults if missing)
+        const playersData = session.players.map((player, index) => ({
           id: player.id,
           session_id: session.id,
-          name: player.name,
+          name: (player.name && player.name.trim()) || `Player ${index + 1}`,
           group_player_id: player.groupPlayerId || null,
         }));
 

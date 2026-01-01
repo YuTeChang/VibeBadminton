@@ -38,7 +38,26 @@ export async function POST(request: NextRequest) {
       name: session.name,
       groupId: session.groupId,
       hasGroupId: !!session.groupId,
+      playerCount: session.players?.length || 0,
     });
+
+    // Validate that session has players
+    if (!session.players || session.players.length === 0) {
+      return NextResponse.json(
+        { error: 'Session must have at least one player' },
+        { status: 400 }
+      );
+    }
+
+    // Validate minimum players based on game mode
+    // Note: Default names are assigned on the client side, so we just check player count
+    const minPlayers = session.gameMode === 'singles' ? 2 : 4;
+    if (session.players.length < minPlayers) {
+      return NextResponse.json(
+        { error: `Session must have at least ${minPlayers} players for ${session.gameMode} mode` },
+        { status: 400 }
+      );
+    }
 
     // Create session
     await SessionService.createSession(session, roundRobinCount);

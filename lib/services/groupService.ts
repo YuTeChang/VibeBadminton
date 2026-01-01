@@ -78,9 +78,10 @@ export class GroupService {
     try {
       const supabase = createSupabaseClient();
       
+      // Only select the columns we need for better performance
       const { data, error } = await supabase
         .from('groups')
-        .select('*')
+        .select('id, name, shareable_link, created_at')
         .eq('id', groupId)
         .single();
 

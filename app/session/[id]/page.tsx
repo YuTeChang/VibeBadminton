@@ -146,7 +146,8 @@ export default function SessionPage() {
       setEditSessionName(currentSession.name || "");
       const date = new Date(currentSession.date);
       setEditSessionDate(date.toISOString().split('T')[0]);
-      // Initialize edit players with current players or empty array
+      // Initialize edit players with current players
+      // If session has 0 players, start with empty array (user can add minimum required)
       setEditPlayers(currentSession.players.length > 0 ? [...currentSession.players] : []);
       setShowEditModal(true);
     }
@@ -178,9 +179,15 @@ export default function SessionPage() {
     // Validate players
     const gameMode = currentSession.gameMode || "doubles";
     const minPlayers = gameMode === "singles" ? 2 : 4;
-    const validPlayers = editPlayers.filter(p => p.name.trim() !== "");
     
-    if (validPlayers.length < minPlayers) {
+    // Assign default names to players without names (don't filter them out)
+    const playersWithDefaults = editPlayers.map((p, index) => ({
+      ...p,
+      name: p.name.trim() || `Player ${index + 1}`,
+    }));
+    
+    // Ensure we have at least minRequired players
+    if (playersWithDefaults.length < minPlayers) {
       alert(`At least ${minPlayers} players are required for ${gameMode} mode`);
       return;
     }
@@ -191,7 +198,7 @@ export default function SessionPage() {
         ...currentSession,
         name: editSessionName.trim(),
         date: new Date(`${editSessionDate}T${new Date(currentSession.date).toTimeString().slice(0, 5)}`),
-        players: validPlayers.map(p => ({
+        players: playersWithDefaults.map(p => ({
           id: p.id,
           name: p.name.trim(),
           groupPlayerId: p.groupPlayerId,
@@ -270,7 +277,8 @@ export default function SessionPage() {
                   <label className="block text-sm font-medium text-japandi-text-primary">
                     Players ({currentSession?.gameMode === "singles" ? "2-6" : "4-6"} players)
                   </label>
-                  {editPlayers.length < 6 && (
+                  {/* Only allow adding players if session has 0 players (to fix broken sessions) */}
+                  {editPlayers.length === 0 && editPlayers.length < 6 && (
                     <button
                       type="button"
                       onClick={addEditPlayer}
@@ -308,7 +316,7 @@ export default function SessionPage() {
                 </div>
                 {editPlayers.length === 0 && (
                   <p className="mt-2 text-sm text-japandi-text-muted">
-                    Add at least {currentSession?.gameMode === "singles" ? "2" : "4"} players to record games
+                    Add at least {currentSession?.gameMode === "singles" ? "2" : "4"} players with names to record games
                   </p>
                 )}
               </div>
