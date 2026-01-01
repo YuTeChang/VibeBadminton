@@ -103,12 +103,19 @@ npm run dev
 ### Deployment
 
 **Vercel Configuration:**
-- Automatic deployments are configured to skip when only documentation or non-code files change
-- To manually skip a deployment, add `[skip ci]` or `[vercel skip]` to your commit message:
+- **Manual Deployment Only**: Deployments only occur when you include `[deploy]` in your commit message
+- **Default Behavior**: All commits skip deployment by default (no automatic deployments)
+- **To Deploy**: Add `[deploy]` to your commit message:
   ```bash
-  git commit -m "Update docs [skip ci]"
+  git commit -m "Fix critical bug [deploy]"
+  git push
   ```
-- Deployments will only trigger when code files (`app/`, `lib/`, `components/`, etc.) or config files change
+- **Regular Commits**: Commits without `[deploy]` will not trigger deployment:
+  ```bash
+  git commit -m "Update docs"
+  git push  # No deployment triggered
+  ```
+- This gives you full control over when deployments happen, allowing you to test locally first
 
 ### Backend Setup
 
