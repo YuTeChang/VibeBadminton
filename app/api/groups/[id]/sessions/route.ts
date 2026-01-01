@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GroupService } from '@/lib/services/groupService';
 
+// Force dynamic rendering - never cache this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/groups/[id]/sessions - Get all sessions in a group
 export async function GET(
   request: NextRequest,

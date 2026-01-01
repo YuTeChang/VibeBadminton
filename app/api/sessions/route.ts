@@ -4,6 +4,10 @@ import { GameService } from '@/lib/services/gameService';
 import { Session } from '@/types';
 import { Game } from '@/types';
 
+// Force dynamic rendering - never cache this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/sessions - Get all sessions
 export async function GET() {
   try {

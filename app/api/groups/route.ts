@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GroupService } from '@/lib/services/groupService';
 import { runMigration } from '@/lib/migration';
 
+// Force dynamic rendering - never cache this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/groups - Get all groups
 export async function GET() {
   try {

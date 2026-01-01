@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SessionService } from '@/lib/services/sessionService';
 import { Session } from '@/types';
 
+// Force dynamic rendering - never cache this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/sessions/[id] - Get a specific session
 export async function GET(
   request: NextRequest,
