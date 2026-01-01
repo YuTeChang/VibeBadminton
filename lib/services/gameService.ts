@@ -1,6 +1,7 @@
 import { createSupabaseClient } from '@/lib/supabase';
 import { Game } from '@/types';
 import { EloService } from './eloService';
+import { PairingStatsService } from './pairingStatsService';
 
 export interface GameRow {
   id: string;
@@ -305,6 +306,8 @@ export class GameService {
         return;
       }
 
+      const groupId = session.group_id;
+
       // Get player mappings (session player ID -> group player ID)
       const allPlayerIds = [...game.teamA, ...game.teamB];
       const { data: players, error: playersError } = await supabase
@@ -332,9 +335,16 @@ export class GameService {
         .map(id => playerToGroupPlayer.get(id))
         .filter(Boolean) as string[];
 
-      // Reverse stats
+      // Reverse ELO and individual stats
       if (teamAGroupIds.length > 0 || teamBGroupIds.length > 0) {
         await EloService.reverseGameResult(teamAGroupIds, teamBGroupIds, game.winningTeam);
+        
+        // Reverse pairing stats for doubles games
+        if (teamAGroupIds.length === 2 && teamBGroupIds.length === 2) {
+          await PairingStatsService.reversePartnerStats(groupId, teamAGroupIds, game.winningTeam === 'A');
+          await PairingStatsService.reversePartnerStats(groupId, teamBGroupIds, game.winningTeam === 'B');
+          await PairingStatsService.reversePairingMatchup(groupId, teamAGroupIds, teamBGroupIds, game.winningTeam);
+        }
       }
     } catch (error) {
       console.error('[GameService] Error reversing stats:', error);
@@ -362,11 +372,13 @@ export class GameService {
         return;
       }
 
+      const groupId = session.group_id;
+
       // Get player mappings (session player ID -> group player ID)
       const allPlayerIds = [...game.teamA, ...game.teamB];
       const { data: players, error: playersError } = await supabase
         .from('players')
-        .select('id, group_player_id')
+        .select('id, name, group_player_id')
         .in('id', allPlayerIds);
 
       if (playersError || !players) {
@@ -374,12 +386,41 @@ export class GameService {
         return;
       }
 
+      // Get all group players for this group (for auto-linking by name)
+      const { data: groupPlayers } = await supabase
+        .from('group_players')
+        .select('id, name')
+        .eq('group_id', groupId);
+
+      const groupPlayersByName = new Map<string, string>();
+      (groupPlayers || []).forEach(gp => {
+        groupPlayersByName.set(gp.name.toLowerCase().trim(), gp.id);
+      });
+
       const playerToGroupPlayer = new Map<string, string>();
+      const playersToUpdate: { id: string; groupPlayerId: string }[] = [];
+
       players.forEach(p => {
         if (p.group_player_id) {
           playerToGroupPlayer.set(p.id, p.group_player_id);
+        } else {
+          // Try to auto-link by name match
+          const matchedGroupPlayerId = groupPlayersByName.get(p.name.toLowerCase().trim());
+          if (matchedGroupPlayerId) {
+            playerToGroupPlayer.set(p.id, matchedGroupPlayerId);
+            playersToUpdate.push({ id: p.id, groupPlayerId: matchedGroupPlayerId });
+            console.log(`[GameService] Auto-linking player "${p.name}" to group player ${matchedGroupPlayerId}`);
+          }
         }
       });
+
+      // Update players with missing group_player_id links
+      for (const update of playersToUpdate) {
+        await supabase
+          .from('players')
+          .update({ group_player_id: update.groupPlayerId })
+          .eq('id', update.id);
+      }
 
       // Map team player IDs to group player IDs
       const teamAGroupIds = game.teamA
@@ -389,9 +430,23 @@ export class GameService {
         .map(id => playerToGroupPlayer.get(id))
         .filter(Boolean) as string[];
 
-      // Update ELO ratings
+      console.log(`[GameService] Processing game result - TeamA: ${teamAGroupIds.length} players, TeamB: ${teamBGroupIds.length} players`);
+
+      // Update ELO ratings and individual stats
       if (teamAGroupIds.length > 0 || teamBGroupIds.length > 0) {
         await EloService.processGameResult(teamAGroupIds, teamBGroupIds, game.winningTeam);
+        
+        // Update pairing stats for doubles games
+        if (teamAGroupIds.length === 2 && teamBGroupIds.length === 2) {
+          // Update partner stats for both teams
+          await PairingStatsService.updatePartnerStats(groupId, teamAGroupIds, game.winningTeam === 'A');
+          await PairingStatsService.updatePartnerStats(groupId, teamBGroupIds, game.winningTeam === 'B');
+          
+          // Update head-to-head pairing matchup
+          await PairingStatsService.updatePairingMatchup(groupId, teamAGroupIds, teamBGroupIds, game.winningTeam);
+        }
+      } else {
+        console.warn('[GameService] No group player mappings found, skipping ELO update');
       }
     } catch (error) {
       // Log but don't throw - ELO update failure shouldn't fail the game update

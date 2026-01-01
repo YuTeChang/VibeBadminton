@@ -1,4 +1,4 @@
-import { Session, Game, Group, GroupPlayer, LeaderboardEntry, PlayerDetailedStats } from '@/types';
+import { Session, Game, Group, GroupPlayer, LeaderboardEntry, PlayerDetailedStats, PairingStats, PairingDetailedStats } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
@@ -117,6 +117,21 @@ export class ApiClient {
    */
   static async getPlayerDetailedStats(groupId: string, playerId: string): Promise<PlayerDetailedStats> {
     return this.fetch<PlayerDetailedStats>(`/groups/${groupId}/players/${playerId}/stats`);
+  }
+
+  /**
+   * Pairing Stats API (doubles team combinations)
+   */
+  static async getPairingLeaderboard(groupId: string): Promise<PairingStats[]> {
+    return this.fetch<PairingStats[]>(`/groups/${groupId}/pairings`);
+  }
+
+  static async getPairingDetailedStats(
+    groupId: string, 
+    player1Id: string, 
+    player2Id: string
+  ): Promise<PairingDetailedStats> {
+    return this.fetch<PairingDetailedStats>(`/groups/${groupId}/pairings/${player1Id}/${player2Id}`);
   }
 
   /**

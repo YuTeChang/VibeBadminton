@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Group, GroupPlayer, Session, LeaderboardEntry, PlayerDetailedStats } from "@/types";
+import { Group, GroupPlayer, Session, LeaderboardEntry, PlayerDetailedStats, PairingStats, PairingDetailedStats } from "@/types";
 import { ApiClient } from "@/lib/api/client";
 import { formatPercentage } from "@/lib/calculations";
 import { PlayerProfileSheet } from "@/components/PlayerProfileSheet";
+import { PairingProfileSheet } from "@/components/PairingProfileSheet";
 
 export default function GroupPage() {
   const params = useParams();
@@ -18,19 +19,24 @@ export default function GroupPage() {
   const [players, setPlayers] = useState<GroupPlayer[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [pairings, setPairings] = useState<PairingStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [isLoadingPairings, setIsLoadingPairings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<"sessions" | "leaderboard" | "players">("sessions");
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"sessions" | "leaderboard" | "players" | "pairings">("sessions");
   
   // Player profile modal state
   const [selectedPlayerStats, setSelectedPlayerStats] = useState<PlayerDetailedStats | null>(null);
   const [isLoadingPlayerStats, setIsLoadingPlayerStats] = useState(false);
+  
+  // Pairing profile modal state
+  const [selectedPairingStats, setSelectedPairingStats] = useState<PairingDetailedStats | null>(null);
+  const [isLoadingPairingStats, setIsLoadingPairingStats] = useState(false);
 
   // Load group and sessions immediately (fast initial render)
   const loadGroupData = useCallback(async () => {
@@ -100,6 +106,36 @@ export default function GroupPage() {
     }
   };
 
+  // Lazy load pairings only when Pairings tab is clicked
+  const loadPairings = useCallback(async () => {
+    if (pairingsLoadedRef.current) return;
+    
+    pairingsLoadedRef.current = true;
+    setIsLoadingPairings(true);
+    try {
+      const fetchedPairings = await ApiClient.getPairingLeaderboard(groupId);
+      setPairings(fetchedPairings || []);
+    } catch (err) {
+      console.error('[GroupPage] Error fetching pairings:', err);
+      setPairings([]);
+    } finally {
+      setIsLoadingPairings(false);
+    }
+  }, [groupId]);
+
+  // Load pairing detailed stats
+  const loadPairingStats = async (player1Id: string, player2Id: string) => {
+    setIsLoadingPairingStats(true);
+    try {
+      const stats = await ApiClient.getPairingDetailedStats(groupId, player1Id, player2Id);
+      setSelectedPairingStats(stats);
+    } catch (err) {
+      console.error('[GroupPage] Error fetching pairing stats:', err);
+    } finally {
+      setIsLoadingPairingStats(false);
+    }
+  };
+
   // Track last load time to prevent duplicate calls
   const lastLoadRef = useRef<number>(0);
   const REFRESH_DEBOUNCE_MS = 500;
@@ -107,6 +143,7 @@ export default function GroupPage() {
   // Track if data has been loaded
   const playersLoadedRef = useRef<boolean>(false);
   const leaderboardLoadedRef = useRef<boolean>(false);
+  const pairingsLoadedRef = useRef<boolean>(false);
 
   // Single effect to load data on mount and when groupId changes
   useEffect(() => {
@@ -136,8 +173,10 @@ export default function GroupPage() {
       loadPlayers();
     } else if (activeTab === 'leaderboard') {
       loadLeaderboard();
+    } else if (activeTab === 'pairings') {
+      loadPairings();
     }
-  }, [activeTab, loadPlayers, loadLeaderboard]);
+  }, [activeTab, loadPlayers, loadLeaderboard, loadPairings]);
 
   // Track navigation for refresh handling
   const hasNavigatedAwayRef = useRef(false);
@@ -208,6 +247,11 @@ export default function GroupPage() {
   const handleRefreshLeaderboard = () => {
     leaderboardLoadedRef.current = false;
     loadLeaderboard();
+  };
+
+  const handleRefreshPairings = () => {
+    pairingsLoadedRef.current = false;
+    loadPairings();
   };
 
   const getShareableUrl = () => {
@@ -302,24 +346,6 @@ export default function GroupPage() {
                 </button>
               </div>
             </div>
-            <button
-              onClick={async () => {
-                const confirmed = window.confirm("Are you sure you want to delete this group? This will also delete all sessions in this group. This action cannot be undone.");
-                if (!confirmed) return;
-                setIsDeleting(true);
-                try {
-                  await ApiClient.deleteGroup(groupId);
-                  router.push("/");
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : "Failed to delete group");
-                  setIsDeleting(false);
-                }
-              }}
-              disabled={isDeleting}
-              className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded transition-colors disabled:opacity-50 touch-manipulation"
-            >
-              {isDeleting ? "Deleting..." : "Delete Group"}
-            </button>
           </div>
         </div>
       </div>
@@ -356,6 +382,16 @@ export default function GroupPage() {
             }`}
           >
             Players
+          </button>
+          <button
+            onClick={() => setActiveTab("pairings")}
+            className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "pairings"
+                ? "border-japandi-accent-primary text-japandi-accent-primary"
+                : "border-transparent text-japandi-text-muted hover:text-japandi-text-primary"
+            }`}
+          >
+            Pairings
           </button>
         </div>
       </div>
@@ -581,6 +617,86 @@ export default function GroupPage() {
             )}
           </div>
         )}
+
+        {/* Pairings Tab */}
+        {activeTab === "pairings" && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-japandi-text-primary">Best Pairings</h2>
+                <p className="text-sm text-japandi-text-muted mt-1">
+                  Doubles team combinations ranked by win rate
+                </p>
+              </div>
+              <button
+                onClick={handleRefreshPairings}
+                className="px-3 py-2 bg-japandi-background-card hover:bg-japandi-background-primary text-japandi-text-primary text-sm font-medium rounded-full border border-japandi-border-light transition-all"
+                title="Refresh pairings"
+              >
+                ↻ Refresh
+              </button>
+            </div>
+
+            {isLoadingPairings ? (
+              <div className="text-center py-12 text-japandi-text-muted">
+                Loading pairings...
+              </div>
+            ) : pairings.length === 0 ? (
+              <div className="text-center py-12 text-japandi-text-muted">
+                <p className="mb-2">No pairings yet</p>
+                <p className="text-sm">Play some doubles games to see pairing stats!</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pairings.map((pairing, index) => (
+                  <button
+                    key={`${pairing.player1Id}-${pairing.player2Id}`}
+                    onClick={() => loadPairingStats(pairing.player1Id, pairing.player2Id)}
+                    className="w-full text-left bg-japandi-background-card border border-japandi-border-light rounded-xl p-4 shadow-soft hover:border-japandi-accent-primary transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Rank */}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                        index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                        index === 1 ? 'bg-gray-100 text-gray-600' :
+                        index === 2 ? 'bg-orange-100 text-orange-700' :
+                        'bg-japandi-background-primary text-japandi-text-muted'
+                      }`}>
+                        #{index + 1}
+                      </div>
+                      
+                      {/* Pairing Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-japandi-text-primary truncate">
+                          {pairing.player1Name} & {pairing.player2Name}
+                        </div>
+                        <div className="text-sm text-japandi-text-muted">
+                          {pairing.wins}-{pairing.losses} • {pairing.gamesPlayed} games
+                        </div>
+                      </div>
+                      
+                      {/* Win Rate */}
+                      <div className="text-right flex-shrink-0">
+                        <div className={`text-lg font-bold ${
+                          pairing.winRate >= 60 ? 'text-green-600' :
+                          pairing.winRate >= 40 ? 'text-japandi-text-primary' :
+                          'text-red-500'
+                        }`}>
+                          {formatPercentage(pairing.winRate)}
+                        </div>
+                        <div className="text-xs text-japandi-text-muted">Win Rate</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            <p className="text-center text-xs text-japandi-text-muted pt-4">
+              Tap a pairing to see head-to-head matchups
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Player Profile Sheet */}
@@ -596,6 +712,23 @@ export default function GroupPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
           <div className="bg-japandi-background-card rounded-xl px-6 py-4 shadow-lg">
             <div className="text-japandi-text-secondary">Loading player stats...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Pairing Profile Sheet */}
+      {selectedPairingStats && (
+        <PairingProfileSheet
+          stats={selectedPairingStats}
+          onClose={() => setSelectedPairingStats(null)}
+        />
+      )}
+
+      {/* Loading overlay for pairing stats */}
+      {isLoadingPairingStats && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <div className="bg-japandi-background-card rounded-xl px-6 py-4 shadow-lg">
+            <div className="text-japandi-text-secondary">Loading pairing stats...</div>
           </div>
         </div>
       )}

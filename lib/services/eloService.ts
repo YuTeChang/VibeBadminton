@@ -1,4 +1,5 @@
 import { createSupabaseClient } from '@/lib/supabase';
+import { PairingStatsService } from './pairingStatsService';
 
 /**
  * ELO Rating Service
@@ -215,28 +216,49 @@ export class EloService {
       const isTeamA = teamAIds.includes(update.groupPlayerId);
       const won = isTeamA ? winningTeam === 'A' : winningTeam === 'B';
 
-      // Get current stats
-      const { data: player } = await supabase
-        .from('group_players')
-        .select('wins, losses, total_games')
-        .eq('id', update.groupPlayerId)
-        .single();
+      try {
+        // Get current stats - handle case where record doesn't exist or columns are null
+        const { data: player, error: fetchError } = await supabase
+          .from('group_players')
+          .select('wins, losses, total_games')
+          .eq('id', update.groupPlayerId)
+          .single();
 
-      const currentWins = player?.wins || 0;
-      const currentLosses = player?.losses || 0;
+        if (fetchError) {
+          console.error('[EloService] Error fetching player stats for', update.groupPlayerId, fetchError);
+          // Try to update ELO only if we can't get current stats
+          await supabase
+            .from('group_players')
+            .update({ elo_rating: update.newRating })
+            .eq('id', update.groupPlayerId);
+          continue;
+        }
 
-      const { error } = await supabase
-        .from('group_players')
-        .update({ 
-          elo_rating: update.newRating,
-          wins: won ? currentWins + 1 : currentWins,
-          losses: won ? currentLosses : currentLosses + 1,
-          total_games: currentWins + currentLosses + 1,
-        })
-        .eq('id', update.groupPlayerId);
+        // Ensure we have valid numbers (handle null/undefined from DB)
+        const currentWins = typeof player?.wins === 'number' ? player.wins : 0;
+        const currentLosses = typeof player?.losses === 'number' ? player.losses : 0;
 
-      if (error) {
-        console.error('[EloService] Error updating rating/stats for', update.groupPlayerId, error);
+        const newWins = won ? currentWins + 1 : currentWins;
+        const newLosses = won ? currentLosses : currentLosses + 1;
+        const newTotalGames = newWins + newLosses;
+
+        console.log(`[EloService] Updating stats for ${update.groupPlayerId}: ELO=${update.newRating}, wins=${currentWins}->${newWins}, losses=${currentLosses}->${newLosses}, won=${won}`);
+
+        const { error: updateError } = await supabase
+          .from('group_players')
+          .update({ 
+            elo_rating: update.newRating,
+            wins: newWins,
+            losses: newLosses,
+            total_games: newTotalGames,
+          })
+          .eq('id', update.groupPlayerId);
+
+        if (updateError) {
+          console.error('[EloService] Error updating rating/stats for', update.groupPlayerId, updateError);
+        }
+      } catch (err) {
+        console.error('[EloService] Exception updating stats for', update.groupPlayerId, err);
       }
     }
   }
@@ -301,12 +323,20 @@ export class EloService {
   /**
    * Recalculate all ELO ratings and stats for a group from game history
    * Useful for fixing data or retroactive calculations
+   * Returns summary of what was recalculated
    */
-  static async recalculateGroupElo(groupId: string): Promise<void> {
+  static async recalculateGroupElo(groupId: string): Promise<{
+    playersReset: number;
+    gamesProcessed: number;
+    playersUpdated: string[];
+  }> {
     const supabase = createSupabaseClient();
+    const result = { playersReset: 0, gamesProcessed: 0, playersUpdated: [] as string[] };
+
+    console.log(`[EloService] Starting recalculation for group ${groupId}`);
 
     // Reset all players to default ELO and zero stats
-    await supabase
+    const { data: resetPlayers, error: resetError } = await supabase
       .from('group_players')
       .update({ 
         elo_rating: this.DEFAULT_ELO,
@@ -314,7 +344,16 @@ export class EloService {
         losses: 0,
         total_games: 0,
       })
-      .eq('group_id', groupId);
+      .eq('group_id', groupId)
+      .select('id, name');
+
+    if (resetError) {
+      console.error('[EloService] Error resetting players:', resetError);
+      throw new Error('Failed to reset players');
+    }
+
+    result.playersReset = resetPlayers?.length || 0;
+    console.log(`[EloService] Reset ${result.playersReset} players to default stats`);
 
     // Get all sessions in the group ordered by date
     const { data: sessions, error: sessionsError } = await supabase
@@ -329,7 +368,10 @@ export class EloService {
 
     // Get all games from these sessions, ordered by creation time
     const sessionIds = sessions.map(s => s.id);
-    if (sessionIds.length === 0) return;
+    if (sessionIds.length === 0) {
+      console.log('[EloService] No sessions found, recalculation complete');
+      return result;
+    }
 
     const { data: games, error: gamesError } = await supabase
       .from('games')
@@ -342,23 +384,62 @@ export class EloService {
       throw new Error('Failed to fetch games');
     }
 
+    console.log(`[EloService] Found ${games.length} completed games to process`);
+
+    // Get all group players for auto-linking by name
+    const { data: groupPlayersData } = await supabase
+      .from('group_players')
+      .select('id, name')
+      .eq('group_id', groupId);
+
+    const groupPlayersByName = new Map<string, string>();
+    const groupPlayerNames = new Map<string, string>();
+    (groupPlayersData || []).forEach(gp => {
+      groupPlayersByName.set(gp.name.toLowerCase().trim(), gp.id);
+      groupPlayerNames.set(gp.id, gp.name);
+    });
+
     // Get player mappings (session player ID -> group player ID)
     const { data: players, error: playersError } = await supabase
       .from('players')
-      .select('id, group_player_id')
-      .in('session_id', sessionIds)
-      .not('group_player_id', 'is', null);
+      .select('id, group_player_id, name')
+      .in('session_id', sessionIds);
 
     if (playersError) {
       throw new Error('Failed to fetch players');
     }
 
     const playerToGroupPlayer = new Map<string, string>();
+    const playersToUpdate: { id: string; groupPlayerId: string }[] = [];
+    
     (players || []).forEach(p => {
       if (p.group_player_id) {
         playerToGroupPlayer.set(p.id, p.group_player_id);
+      } else {
+        // Try to auto-link by name match
+        const matchedGroupPlayerId = groupPlayersByName.get(p.name.toLowerCase().trim());
+        if (matchedGroupPlayerId) {
+          playerToGroupPlayer.set(p.id, matchedGroupPlayerId);
+          playersToUpdate.push({ id: p.id, groupPlayerId: matchedGroupPlayerId });
+        }
       }
     });
+
+    // Update players with missing group_player_id links
+    if (playersToUpdate.length > 0) {
+      console.log(`[EloService] Auto-linking ${playersToUpdate.length} session players to group players`);
+      for (const update of playersToUpdate) {
+        await supabase
+          .from('players')
+          .update({ group_player_id: update.groupPlayerId })
+          .eq('id', update.id);
+      }
+    }
+
+    console.log(`[EloService] Found ${playerToGroupPlayer.size} linked session players (${playersToUpdate.length} auto-linked)`);
+
+    // Track which group players get updated
+    const updatedGroupPlayers = new Set<string>();
 
     // Process each game in order
     for (const game of games) {
@@ -370,8 +451,16 @@ export class EloService {
 
       if (teamAGroupIds.length > 0 || teamBGroupIds.length > 0) {
         await this.processGameResult(teamAGroupIds, teamBGroupIds, game.winning_team as 'A' | 'B');
+        result.gamesProcessed++;
+        teamAGroupIds.forEach(id => updatedGroupPlayers.add(id));
+        teamBGroupIds.forEach(id => updatedGroupPlayers.add(id));
       }
     }
+
+    result.playersUpdated = Array.from(updatedGroupPlayers).map(id => groupPlayerNames.get(id) || id);
+    console.log(`[EloService] Recalculation complete: ${result.gamesProcessed} games, ${result.playersUpdated.length} players updated`);
+
+    return result;
   }
 
   /**

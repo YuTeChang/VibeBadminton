@@ -114,3 +114,56 @@ export interface PlayerDetailedStats {
   // Opponent matchups
   opponentStats: OpponentStats[];
 }
+
+// ============================================================================
+// Pairing Stats Types (for doubles team combinations)
+// ============================================================================
+
+// Stats for a specific pair of players (team of 2)
+export interface PairingStats {
+  player1Id: string;
+  player1Name: string;
+  player2Id: string;
+  player2Name: string;
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+}
+
+// Head-to-head stats between two pairings
+export interface PairingMatchup {
+  // Your pairing
+  pairingPlayer1Id: string;
+  pairingPlayer1Name: string;
+  pairingPlayer2Id: string;
+  pairingPlayer2Name: string;
+  // Opponent pairing
+  opponentPlayer1Id: string;
+  opponentPlayer1Name: string;
+  opponentPlayer2Id: string;
+  opponentPlayer2Name: string;
+  // Stats (from your pairing's perspective)
+  wins: number;
+  losses: number;
+  gamesPlayed: number;
+  winRate: number;
+}
+
+// Detailed stats for a specific pairing (when clicking on a pair)
+export interface PairingDetailedStats {
+  player1Id: string;
+  player1Name: string;
+  player2Id: string;
+  player2Name: string;
+  // Core stats
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  // Recent form
+  recentForm: ('W' | 'L')[];
+  currentStreak: number;
+  // Head-to-head against other pairings
+  matchups: PairingMatchup[];
+}
