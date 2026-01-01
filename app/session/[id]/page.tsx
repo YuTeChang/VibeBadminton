@@ -29,6 +29,8 @@ export default function SessionPage() {
   const [editSessionName, setEditSessionName] = useState("");
   const [editSessionDate, setEditSessionDate] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [showEditGameModal, setShowEditGameModal] = useState(false);
   
   // Track loading state to prevent duplicate calls
   const isLoadingRef = useRef(false);
@@ -128,6 +130,13 @@ export default function SessionPage() {
     // Switch to stats tab to show updated stats
     setActiveTab("stats");
     setPrefillGame(null); // Clear prefill
+    setEditingGame(null);
+    setShowEditGameModal(false);
+  };
+
+  const handleEditGame = (game: Game) => {
+    setEditingGame(game);
+    setShowEditGameModal(true);
   };
 
   const handleEditClick = () => {
@@ -476,9 +485,9 @@ export default function SessionPage() {
             <QuickGameForm
               players={currentSession.players}
               onGameSaved={handleGameSaved}
-              initialTeamA={prefillGame?.teamA}
-              initialTeamB={prefillGame?.teamB}
-              gameToUpdate={prefillGame || undefined}
+              initialTeamA={editingGame?.teamA || prefillGame?.teamA}
+              initialTeamB={editingGame?.teamB || prefillGame?.teamB}
+              gameToUpdate={editingGame || prefillGame || undefined}
             />
           </div>
         )}
@@ -486,7 +495,42 @@ export default function SessionPage() {
         {/* History Tab */}
         {activeTab === "history" && (
           <div>
-            <GameHistoryList games={currentGames} players={currentSession.players} />
+            <GameHistoryList 
+              games={currentGames} 
+              players={currentSession.players}
+              onEditGame={handleEditGame}
+            />
+          </div>
+        )}
+
+        {/* Edit Game Modal */}
+        {showEditGameModal && editingGame && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-japandi-background-card rounded-card p-6 w-full max-w-md shadow-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-japandi-text-primary">
+                  Edit Game {editingGame.gameNumber}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowEditGameModal(false);
+                    setEditingGame(null);
+                  }}
+                  className="text-japandi-text-muted hover:text-japandi-text-primary transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <QuickGameForm
+                players={currentSession.players}
+                onGameSaved={handleGameSaved}
+                initialTeamA={editingGame.teamA}
+                initialTeamB={editingGame.teamB}
+                gameToUpdate={editingGame}
+              />
+            </div>
           </div>
         )}
       </div>

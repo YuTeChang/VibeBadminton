@@ -6,11 +6,13 @@ import { useSession } from "@/contexts/SessionContext";
 interface GameHistoryListProps {
   games: Game[];
   players: Player[];
+  onEditGame?: (game: Game) => void;
 }
 
 export default function GameHistoryList({
   games,
   players,
+  onEditGame,
 }: GameHistoryListProps) {
   const { removeLastGame, session } = useSession();
   const gameMode = session?.gameMode || "doubles";
@@ -51,6 +53,29 @@ export default function GameHistoryList({
     return result;
   };
 
+  const formatTimestamp = (date: Date | undefined): string => {
+    if (!date) return "";
+    const d = new Date(date);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    
+    if (isToday) {
+      return d.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } else {
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {playedGames.length > 0 && (
@@ -79,15 +104,31 @@ export default function GameHistoryList({
               key={game.id}
               className="bg-japandi-background-card border border-japandi-border-light rounded-card p-4 sm:p-5 shadow-soft"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-base sm:text-lg font-semibold text-japandi-text-primary">
-                    Game {game.gameNumber}
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="text-base sm:text-lg font-semibold text-japandi-text-primary">
+                      Game {game.gameNumber}
+                    </div>
+                    {game.createdAt && (
+                      <span className="text-xs text-japandi-text-muted">
+                        {formatTimestamp(game.createdAt)}
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm sm:text-base text-japandi-text-secondary mt-2 break-words">
                     {formatGameResult(game)}
                   </div>
                 </div>
+                {onEditGame && (
+                  <button
+                    onClick={() => onEditGame(game)}
+                    className="px-3 py-1.5 text-xs sm:text-sm bg-japandi-background-primary text-japandi-text-secondary hover:bg-japandi-background-card hover:text-japandi-text-primary active:scale-95 border border-japandi-border-light rounded-full transition-all touch-manipulation whitespace-nowrap"
+                    title="Edit game"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
             </div>
           ))}

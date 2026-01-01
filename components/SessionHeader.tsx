@@ -20,17 +20,6 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
     day: "numeric",
   });
 
-  const handleEndSession = () => {
-    const confirmed = window.confirm("Are you sure you want to end this session? This will clear all data.");
-    if (confirmed) {
-      clearSession();
-      // Use setTimeout to ensure state updates before navigation
-      setTimeout(() => {
-      router.push("/");
-      }, 100);
-    }
-  };
-
   const handleDeleteSession = async () => {
     const confirmed = window.confirm("Are you sure you want to delete this session? This action cannot be undone.");
     if (!confirmed) return;
@@ -64,13 +53,6 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
               className="text-sm text-red-600 hover:text-red-700 active:opacity-70 transition-all touch-manipulation"
             >
               Delete
-            </button>
-            <button
-              type="button"
-              onClick={handleEndSession}
-              className="text-sm text-japandi-text-secondary hover:text-japandi-text-primary active:opacity-70 transition-all touch-manipulation"
-            >
-              End Session
             </button>
           </div>
         </div>

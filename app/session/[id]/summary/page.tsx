@@ -15,7 +15,7 @@ import { Session, Game } from "@/types";
 export default function SummaryPage() {
   const params = useParams();
   const router = useRouter();
-  const { session, games, clearSession, loadSession } = useSession();
+  const { session, games, loadSession } = useSession();
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -125,16 +125,6 @@ export default function SummaryPage() {
     }
   };
 
-  const handleEndSession = () => {
-    const confirmed = window.confirm("Are you sure you want to end this session? This will clear all data.");
-    if (confirmed) {
-      clearSession();
-      // Use setTimeout to ensure state updates before navigation
-      setTimeout(() => {
-      router.push("/dashboard");
-      }, 100);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-japandi-background-primary">
@@ -324,15 +314,6 @@ export default function SummaryPage() {
             >
               New Session
             </Link>
-          </div>
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={handleEndSession}
-              className="w-full px-5 py-3 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-semibold rounded-full transition-all shadow-button touch-manipulation"
-            >
-              End Session
-            </button>
           </div>
         </div>
       </div>

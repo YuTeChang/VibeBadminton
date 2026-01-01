@@ -42,5 +42,7 @@ export interface Game {
   winningTeam: "A" | "B" | null; // null for unplayed round robin games
   teamAScore?: number;
   teamBScore?: number;
+  createdAt?: Date; // When the game was recorded
+  updatedAt?: Date; // When the game was last updated
 }
 

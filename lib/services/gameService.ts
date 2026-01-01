@@ -237,6 +237,8 @@ export class GameService {
       winningTeam: row.winning_team as 'A' | 'B' | null,
       teamAScore: row.team_a_score || undefined,
       teamBScore: row.team_b_score || undefined,
+      createdAt: row.created_at ? new Date(row.created_at) : undefined,
+      updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
     };
   }
 }
