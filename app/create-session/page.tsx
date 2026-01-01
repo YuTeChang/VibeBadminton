@@ -124,11 +124,16 @@ function CreateSessionContent() {
   );
   const [sessionName, setSessionName] = useState("");
   const [gameMode, setGameMode] = useState<"doubles" | "singles">("doubles");
-  const [players, setPlayers] = useState<Player[]>([
-    { id: "player-1", name: "" },
-    { id: "player-2", name: "" },
-    { id: "player-3", name: "" },
-    { id: "player-4", name: "" },
+  
+  // Generate unique player IDs to prevent conflicts when creating multiple sessions
+  // Using a function to generate IDs ensures each session gets unique player IDs
+  const generatePlayerId = () => `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  const [players, setPlayers] = useState<Player[]>(() => [
+    { id: generatePlayerId(), name: "" },
+    { id: generatePlayerId(), name: "" },
+    { id: generatePlayerId(), name: "" },
+    { id: generatePlayerId(), name: "" },
   ]);
   
   // Group and betting state
@@ -166,7 +171,7 @@ function CreateSessionContent() {
         if (prev.length < 4) {
           const newPlayers = [...prev];
           while (newPlayers.length < 4) {
-            newPlayers.push({ id: `player-${Date.now()}-${newPlayers.length}`, name: "" });
+            newPlayers.push({ id: generatePlayerId(), name: "" });
           }
           return newPlayers;
         }
@@ -195,7 +200,7 @@ function CreateSessionContent() {
     if (players.length < 6) {
       setPlayers([
         ...players,
-        { id: `player-${Date.now()}`, name: "" },
+        { id: generatePlayerId(), name: "" },
       ]);
     }
   };
@@ -228,7 +233,7 @@ function CreateSessionContent() {
       // Add to players list
       if (players.length < 6) {
         const newPlayer: Player = {
-          id: `player-${Date.now()}`,
+          id: generatePlayerId(),
           name: groupPlayer.name,
           groupPlayerId: groupPlayer.id,
         };

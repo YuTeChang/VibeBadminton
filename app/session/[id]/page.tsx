@@ -157,20 +157,6 @@ export default function SessionPage() {
     }
   };
 
-  const addEditPlayer = () => {
-    if (editPlayers.length < 6) {
-      setEditPlayers([...editPlayers, { id: `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, name: "" }]);
-    }
-  };
-
-  const removeEditPlayer = (index: number) => {
-    const gameMode = currentSession?.gameMode || "doubles";
-    const minPlayers = gameMode === "singles" ? 2 : 4;
-    if (editPlayers.length > minPlayers) {
-      setEditPlayers(editPlayers.filter((_, i) => i !== index));
-    }
-  };
-
   const updateEditPlayerName = (index: number, name: string) => {
     const updated = [...editPlayers];
     updated[index] = { ...updated[index], name };
@@ -179,34 +165,21 @@ export default function SessionPage() {
 
   const handleSaveEdit = async () => {
     if (!currentSession || !editSessionName.trim()) return;
-    
-    // Validate players
-    const gameMode = currentSession.gameMode || "doubles";
-    const minPlayers = gameMode === "singles" ? 2 : 4;
-    
-    // Assign default names to players without names (don't filter them out)
-    const playersWithDefaults = editPlayers.map((p, index) => ({
-      ...p,
-      name: p.name.trim() || `Player ${index + 1}`,
-    }));
-    
-    // Ensure we have at least minRequired players
-    if (playersWithDefaults.length < minPlayers) {
-      alert(`At least ${minPlayers} players are required for ${gameMode} mode`);
-      return;
-    }
 
     setIsSaving(true);
     try {
+      // Update player names (preserve existing player structure, just update names)
+      const updatedPlayers = editPlayers.map((p, index) => ({
+        id: p.id,
+        name: p.name.trim() || `Player ${index + 1}`,
+        groupPlayerId: p.groupPlayerId,
+      }));
+
       const updatedSession: Session = {
         ...currentSession,
         name: editSessionName.trim(),
         date: new Date(`${editSessionDate}T${new Date(currentSession.date).toTimeString().slice(0, 5)}`),
-        players: playersWithDefaults.map(p => ({
-          id: p.id,
-          name: p.name.trim(),
-          groupPlayerId: p.groupPlayerId,
-        })),
+        players: updatedPlayers,
         // Explicitly preserve groupId to prevent it from being lost
         groupId: currentSession.groupId,
       };
@@ -277,28 +250,14 @@ export default function SessionPage() {
                 />
               </div>
               
-              {/* Players Section */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-japandi-text-primary">
-                    Players ({currentSession?.gameMode === "singles" ? "2-6" : "4-6"} players)
+              {/* Players Section - Display only, editing player names allowed */}
+              {editPlayers.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-japandi-text-primary mb-3">
+                    Players
                   </label>
-                  {/* Only allow adding players if session has 0 players (to fix broken sessions) */}
-                  {editPlayers.length === 0 && editPlayers.length < 6 && (
-                    <button
-                      type="button"
-                      onClick={addEditPlayer}
-                      className="text-sm text-japandi-accent-primary hover:text-japandi-accent-hover active:scale-95 transition-all touch-manipulation"
-                    >
-                      + Add Player
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-3">
-                  {editPlayers.map((player, index) => {
-                    const gameMode = currentSession?.gameMode || "doubles";
-                    const minPlayers = gameMode === "singles" ? 2 : 4;
-                    return (
+                  <div className="space-y-3">
+                    {editPlayers.map((player, index) => (
                       <div key={player.id} className="flex gap-3">
                         <input
                           type="text"
@@ -307,25 +266,11 @@ export default function SessionPage() {
                           placeholder={`Player ${index + 1}`}
                           className="flex-1 px-4 py-2 border border-japandi-border-light rounded-card bg-japandi-background-primary text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
                         />
-                        {editPlayers.length > minPlayers && (
-                          <button
-                            type="button"
-                            onClick={() => removeEditPlayer(index)}
-                            className="px-4 py-2 text-japandi-text-secondary hover:bg-japandi-background-card active:scale-95 rounded-card transition-all touch-manipulation"
-                          >
-                            Remove
-                          </button>
-                        )}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-                {editPlayers.length === 0 && (
-                  <p className="mt-2 text-sm text-japandi-text-muted">
-                    Add at least {currentSession?.gameMode === "singles" ? "2" : "4"} players with names to record games
-                  </p>
-                )}
-              </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <button
@@ -364,19 +309,10 @@ export default function SessionPage() {
             </div>
             <div className="space-y-4">
               {currentSession.players.length === 0 ? (
-                <div className="bg-japandi-background-card border-2 border-japandi-accent-primary rounded-card p-6 text-center">
-                  <h3 className="text-lg font-semibold text-japandi-text-primary mb-2">
-                    No Players Added
-                  </h3>
-                  <p className="text-sm text-japandi-text-secondary mb-4">
-                    Add players to this session to start recording games and tracking stats.
+                <div className="bg-japandi-background-card border border-japandi-border-light rounded-card p-6 text-center">
+                  <p className="text-sm text-japandi-text-muted">
+                    No players in this session. Players must be added when creating a session.
                   </p>
-                  <button
-                    onClick={handleEditClick}
-                    className="px-6 py-2 bg-japandi-accent-primary hover:bg-japandi-accent-hover text-white rounded-full font-medium transition-colors"
-                  >
-                    Add Players
-                  </button>
                 </div>
               ) : (
                 currentSession.players.map((player) => {
