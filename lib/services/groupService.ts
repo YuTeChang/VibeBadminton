@@ -284,6 +284,14 @@ export class GroupService {
       console.error('[GroupService.getGroupSessions] DEBUG - All recent sessions:', JSON.stringify(debugInfo, null, 2));
       
       // Query sessions with group_id filter - use order to ensure consistent results
+      // Log the exact query parameters
+      console.error('[GroupService.getGroupSessions] Query params:', {
+        groupId,
+        groupIdType: typeof groupId,
+        groupIdString: String(groupId),
+        groupIdLength: groupId.length
+      });
+      
       // Try exact match first
       let { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
@@ -291,18 +299,71 @@ export class GroupService {
         .eq('group_id', groupId)
         .order('created_at', { ascending: false });
       
-      // If no results, also try as string (in case of type mismatch)
+      console.error('[GroupService.getGroupSessions] Query result:', {
+        count: sessionsData?.length || 0,
+        error: sessionsError?.message,
+        errorCode: sessionsError?.code,
+        firstSession: sessionsData?.[0] ? {
+          id: sessionsData[0].id,
+          group_id: sessionsData[0].group_id,
+          group_id_type: typeof sessionsData[0].group_id
+        } : null
+      });
+      
+      // If no results, try different approaches
       if ((!sessionsData || sessionsData.length === 0) && !sessionsError) {
-        console.log('[GroupService.getGroupSessions] No results with exact match, trying string comparison');
-        const { data: stringMatchData } = await supabase
+        console.error('[GroupService.getGroupSessions] No results, trying alternative queries...');
+        
+        // Try with explicit string conversion
+        const { data: stringMatchData, error: stringError } = await supabase
           .from('sessions')
           .select('*')
           .eq('group_id', String(groupId))
           .order('created_at', { ascending: false });
         
+        console.error('[GroupService.getGroupSessions] String match query result:', {
+          count: stringMatchData?.length || 0,
+          error: stringError?.message
+        });
+        
         if (stringMatchData && stringMatchData.length > 0) {
-          console.log('[GroupService.getGroupSessions] Found', stringMatchData.length, 'sessions with string match');
+          console.error('[GroupService.getGroupSessions] Found', stringMatchData.length, 'sessions with string match');
           sessionsData = stringMatchData;
+        } else {
+          // Try filtering in memory as a last resort
+          console.error('[GroupService.getGroupSessions] Trying in-memory filter...');
+          if (allSessionsDebug && allSessionsDebug.length > 0) {
+            const filtered = allSessionsDebug.filter(s => {
+              const matches = s.group_id === groupId || String(s.group_id) === String(groupId);
+              if (!matches && s.group_id) {
+                console.error('[GroupService.getGroupSessions] Mismatch:', {
+                  session_id: s.id,
+                  session_group_id: s.group_id,
+                  session_group_id_type: typeof s.group_id,
+                  query_groupId: groupId,
+                  query_groupId_type: typeof groupId,
+                  strict_eq: s.group_id === groupId,
+                  string_eq: String(s.group_id) === String(groupId)
+                });
+              }
+              return matches;
+            });
+            
+            if (filtered.length > 0) {
+              console.error('[GroupService.getGroupSessions] Found', filtered.length, 'sessions with in-memory filter');
+              // Fetch full data for these sessions
+              const filteredIds = filtered.map(s => s.id);
+              const { data: fullSessionsData } = await supabase
+                .from('sessions')
+                .select('*')
+                .in('id', filteredIds)
+                .order('created_at', { ascending: false });
+              
+              if (fullSessionsData) {
+                sessionsData = fullSessionsData;
+              }
+            }
+          }
         }
       }
       
