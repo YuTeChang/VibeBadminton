@@ -5,6 +5,7 @@ import { useSession } from "@/contexts/SessionContext";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ApiClient } from "@/lib/api/client";
+import { Group } from "@/types";
 
 type SessionSummary = {
   id: string;
@@ -17,14 +18,16 @@ type SessionSummary = {
 
 export default function Dashboard() {
   const router = useRouter();
-  const { session, games, loadSession, groups, ensureSessionsAndGroupsLoaded } = useSession();
+  const { session, games, loadSession } = useSession();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [sessionSummaries, setSessionSummaries] = useState<SessionSummary[]>([]);
   const [groupSessionCounts, setGroupSessionCounts] = useState<Record<string, number>>({});
   const [sessionGameCounts, setSessionGameCounts] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [isDeleting, setIsDeleting] = useState<Record<string, boolean>>({});
   const hasLoadedDataRef = useRef(false);
+  const isLoadingSummariesRef = useRef(false);
 
   useEffect(() => {
     // Prevent duplicate calls
@@ -37,19 +40,31 @@ export default function Dashboard() {
     
     const loadData = async () => {
       try {
-        // Load groups first
-        if (typeof window !== "undefined" && window.location.pathname === '/dashboard') {
-          await ensureSessionsAndGroupsLoaded();
-        }
+        // Load groups and summaries in parallel for better performance
+        // This avoids the expensive getAllSessions() call from ensureSessionsAndGroupsLoaded()
+        const [fetchedGroups, summaries] = await Promise.all([
+          ApiClient.getAllGroups(),
+          (async () => {
+            // Prevent duplicate summary calls
+            if (isLoadingSummariesRef.current) {
+              return [];
+            }
+            isLoadingSummariesRef.current = true;
+            try {
+              return await ApiClient.getSessionSummaries();
+            } finally {
+              isLoadingSummariesRef.current = false;
+            }
+          })()
+        ]);
         
-        // Load lightweight session summaries (much faster than full sessions)
-        const summaries = await ApiClient.getSessionSummaries();
+        setGroups(fetchedGroups);
         setSessionSummaries(summaries.map(s => ({ ...s, date: new Date(s.date) })));
         
         // Calculate session counts from summaries
-        if (groups && groups.length > 0 && summaries.length > 0) {
+        if (fetchedGroups && fetchedGroups.length > 0 && summaries.length > 0) {
           const counts: Record<string, number> = {};
-          groups.forEach((group) => {
+          fetchedGroups.forEach((group) => {
             const groupSessions = summaries.filter(s => s.groupId === group.id);
             counts[group.id] = groupSessions.length;
           });
@@ -81,7 +96,7 @@ export default function Dashboard() {
     };
 
     loadData();
-  }, [ensureSessionsAndGroupsLoaded, groups]);
+  }, []);
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("en-US", {
