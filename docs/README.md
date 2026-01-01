@@ -271,18 +271,28 @@ scripts/          # Database migration scripts
 ```
 
 ### Key Files
-- `app/page.tsx` - Home page (simple landing)
-- `app/dashboard/page.tsx` - Dashboard (groups and sessions)
+
+**Frontend (Client-Side):**
+- `app/page.tsx` - Home page (landing)
+- `app/dashboard/page.tsx` - Dashboard (sessions & groups)
 - `app/create-group/page.tsx` - Create group form
 - `app/create-session/page.tsx` - Create session form
 - `app/group/[id]/page.tsx` - Group detail page
 - `app/session/[id]/page.tsx` - Live session (tabs)
 - `app/session/[id]/summary/page.tsx` - Final summary
 - `contexts/SessionContext.tsx` - State management
-- `lib/calculations.ts` - Money and stats calculations
+- `lib/api/client.ts` - API client (calls backend)
+- `lib/calculations.ts` - Client-side calculations
+
+**Backend (Server-Side):**
+- `app/api/sessions/route.ts` - Session API endpoints
+- `app/api/sessions/summary/route.ts` - Lightweight summary endpoint
+- `app/api/groups/[id]/sessions/route.ts` - Group sessions endpoint
+- `lib/services/sessionService.ts` - Session database operations
+- `lib/services/gameService.ts` - Game database operations
 - `lib/services/groupService.ts` - Group database operations
-- `lib/services/sessionService.ts` - Session database operations (with summary endpoint)
 - `lib/services/statsService.ts` - Cross-session stats aggregation
+- `lib/supabase.ts` - Database connection
 
 ### Design System
 - **Style**: Japandi/Scandinavian minimal
