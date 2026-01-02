@@ -157,7 +157,7 @@ export class ApiClient {
     totalPlayers: number;
     avgPointDifferential: number | null;
     gamesPerSession: number;
-    closestMatchup: {
+    closestMatchups: Array<{
       team1Player1Name: string;
       team1Player2Name: string;
       team2Player1Name: string;
@@ -165,7 +165,7 @@ export class ApiClient {
       team1Wins: number;
       team2Wins: number;
       totalGames: number;
-    } | null;
+    }>;
     highestElo: { name: string; rating: number } | null;
     eloSpread: number | null;
     bestWinStreak: { name: string; streak: number } | null;

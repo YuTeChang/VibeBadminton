@@ -624,7 +624,7 @@ export class GroupService {
     totalPlayers: number;
     avgPointDifferential: number | null;
     gamesPerSession: number;
-    closestMatchup: {
+    closestMatchups: Array<{
       team1Player1Name: string;
       team1Player2Name: string;
       team2Player1Name: string;
@@ -632,7 +632,7 @@ export class GroupService {
       team1Wins: number;
       team2Wins: number;
       totalGames: number;
-    } | null;
+    }>;
     highestElo: { name: string; rating: number } | null;
     eloSpread: number | null;
     bestWinStreak: { name: string; streak: number } | null;
@@ -901,8 +901,8 @@ export class GroupService {
         }
       }
 
-      // Find closest matchup
-      let closestMatchup: {
+      // Find closest matchups (all rivalries with the same closeness)
+      let closestMatchups: Array<{
         team1Player1Name: string;
         team1Player2Name: string;
         team2Player1Name: string;
@@ -910,34 +910,32 @@ export class GroupService {
         team1Wins: number;
         team2Wins: number;
         totalGames: number;
-      } | null = null;
+      }> = [];
 
       if (matchups && matchups.length > 0) {
-        // Find closest rivalry - prefer smallest win difference, then most games as tie-breaker
-        const closest = matchups.reduce((best, current) => {
-          const currentDiff = Math.abs(current.team1_wins - current.team1_losses);
-          const bestDiff = best ? Math.abs(best.team1_wins - best.team1_losses) : Infinity;
-          // If same closeness, prefer the matchup with more games
-          if (currentDiff === bestDiff) {
-            return current.total_games > (best?.total_games || 0) ? current : best;
-          }
-          return currentDiff < bestDiff ? current : best;
-        }, null as typeof matchups[0] | null);
+        // Find the minimum difference (closest rivalry)
+        const minDiff = matchups.reduce((min, current) => {
+          const diff = Math.abs(current.team1_wins - current.team1_losses);
+          return diff < min ? diff : min;
+        }, Infinity);
 
-        if (closest) {
-          const playerNameMap = new Map<string, string>();
-          (players || []).forEach(p => playerNameMap.set(p.id, p.name));
+        // Get all matchups with the minimum difference, sorted by total games
+        const closestAll = matchups
+          .filter(m => Math.abs(m.team1_wins - m.team1_losses) === minDiff)
+          .sort((a, b) => b.total_games - a.total_games);
 
-          closestMatchup = {
-            team1Player1Name: playerNameMap.get(closest.team1_player1_id) || 'Unknown',
-            team1Player2Name: playerNameMap.get(closest.team1_player2_id) || 'Unknown',
-            team2Player1Name: playerNameMap.get(closest.team2_player1_id) || 'Unknown',
-            team2Player2Name: playerNameMap.get(closest.team2_player2_id) || 'Unknown',
-            team1Wins: closest.team1_wins,
-            team2Wins: closest.team1_losses,
-            totalGames: closest.total_games,
-          };
-        }
+        const playerNameMap = new Map<string, string>();
+        (players || []).forEach(p => playerNameMap.set(p.id, p.name));
+
+        closestMatchups = closestAll.map(closest => ({
+          team1Player1Name: playerNameMap.get(closest.team1_player1_id) || 'Unknown',
+          team1Player2Name: playerNameMap.get(closest.team1_player2_id) || 'Unknown',
+          team2Player1Name: playerNameMap.get(closest.team2_player1_id) || 'Unknown',
+          team2Player2Name: playerNameMap.get(closest.team2_player2_id) || 'Unknown',
+          team1Wins: closest.team1_wins,
+          team2Wins: closest.team1_losses,
+          totalGames: closest.total_games,
+        }));
       }
 
       // Find dream team (best pairing by win rate)
@@ -969,7 +967,7 @@ export class GroupService {
         totalPlayers,
         avgPointDifferential,
         gamesPerSession: totalSessions > 0 ? Math.round((totalGames / totalSessions) * 10) / 10 : 0,
-        closestMatchup,
+        closestMatchups,
         highestElo,
         eloSpread,
         bestWinStreak,
@@ -990,7 +988,7 @@ export class GroupService {
         totalPlayers: 0,
         avgPointDifferential: null,
         gamesPerSession: 0,
-        closestMatchup: null,
+        closestMatchups: [],
         highestElo: null,
         eloSpread: null,
         bestWinStreak: null,

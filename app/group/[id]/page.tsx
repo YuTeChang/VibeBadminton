@@ -27,7 +27,7 @@ export default function GroupPage() {
     totalPlayers: number;
     avgPointDifferential: number | null;
     gamesPerSession: number;
-    closestMatchup: {
+    closestMatchups: Array<{
       team1Player1Name: string;
       team1Player2Name: string;
       team2Player1Name: string;
@@ -35,7 +35,7 @@ export default function GroupPage() {
       team1Wins: number;
       team2Wins: number;
       totalGames: number;
-    } | null;
+    }>;
     highestElo: { name: string; rating: number } | null;
     eloSpread: number | null;
     bestWinStreak: { name: string; streak: number } | null;
@@ -707,22 +707,28 @@ export default function GroupPage() {
                               <div className="text-lg font-bold text-green-600">{groupStats.dreamTeam.winRate}%</div>
                             </div>
                           )}
-                          {groupStats.closestMatchup && (
-                            <div className="bg-japandi-background-primary/50 rounded-lg p-3">
+                          {groupStats.closestMatchups && groupStats.closestMatchups.length > 0 && (
+                            <div className="space-y-2">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-base">⚔️</span>
-                                <div className="text-xs text-japandi-text-muted">Closest Rivalry</div>
+                                <div className="text-xs text-japandi-text-muted">
+                                  Closest Rival{groupStats.closestMatchups.length > 1 ? 'ries' : 'ry'}
+                                </div>
                               </div>
-                              <div className="text-sm font-medium text-japandi-text-primary">
-                                {groupStats.closestMatchup.team1Player1Name} & {groupStats.closestMatchup.team1Player2Name}
-                              </div>
-                              <div className="text-xs text-japandi-text-muted">vs</div>
-                              <div className="text-sm font-medium text-japandi-text-primary">
-                                {groupStats.closestMatchup.team2Player1Name} & {groupStats.closestMatchup.team2Player2Name}
-                              </div>
-                              <div className="text-xs text-japandi-accent-primary mt-1">
-                                {groupStats.closestMatchup.team1Wins}-{groupStats.closestMatchup.team2Wins} ({groupStats.closestMatchup.totalGames} games)
-                              </div>
+                              {groupStats.closestMatchups.map((matchup, idx) => (
+                                <div key={idx} className="bg-japandi-background-primary/50 rounded-lg p-3">
+                                  <div className="text-sm font-medium text-japandi-text-primary">
+                                    {matchup.team1Player1Name} & {matchup.team1Player2Name}
+                                  </div>
+                                  <div className="text-xs text-japandi-text-muted">vs</div>
+                                  <div className="text-sm font-medium text-japandi-text-primary">
+                                    {matchup.team2Player1Name} & {matchup.team2Player2Name}
+                                  </div>
+                                  <div className="text-xs text-japandi-accent-primary mt-1">
+                                    {matchup.team1Wins}-{matchup.team2Wins} ({matchup.totalGames} games)
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
