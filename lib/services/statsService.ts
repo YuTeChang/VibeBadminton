@@ -82,6 +82,8 @@ export class StatsService {
           playerToGroupPlayer.set(p.id, p.group_player_id);
         }
       });
+      
+      console.log(`[getLeaderboard] Found ${players?.length || 0} session player mappings, ${sessionIds.length} sessions`);
 
       // Get ALL completed games (not just recent 50)
       const { data: allGames } = await supabase
@@ -90,6 +92,8 @@ export class StatsService {
         .in('session_id', sessionIds)
         .not('winning_team', 'is', null)
         .order('created_at', { ascending: false });
+      
+      console.log(`[getLeaderboard] Found ${allGames?.length || 0} total completed games`);
 
       // Compute stats for each player from games
       const statsMap = new Map<string, { wins: number; losses: number; recentForm: ('W' | 'L')[] }>();
@@ -180,6 +184,8 @@ export class StatsService {
     try {
       const supabase = createSupabaseClient();
       
+      console.log(`[getPlayerDetailedStats] Starting for groupId=${groupId}, groupPlayerId=${groupPlayerId}`);
+      
       // Get the player
       const { data: player, error: playerError } = await supabase
         .from('group_players')
@@ -221,6 +227,8 @@ export class StatsService {
       const groupPlayerToName = new Map<string, string>();
       const thisPlayerSessionIds = new Set<string>();
       
+      console.log(`[getPlayerDetailedStats] Found ${sessionPlayers?.length || 0} session players across ${sessionIds.length} sessions`);
+      
       (sessionPlayers || []).forEach((p) => {
         if (p.group_player_id) {
           playerToGroupPlayer.set(p.id, p.group_player_id);
@@ -230,6 +238,9 @@ export class StatsService {
           }
         }
       });
+      
+      console.log(`[getPlayerDetailedStats] Player ${player.name} has ${thisPlayerSessionIds.size} sessions with linked entries`);
+      console.log(`[getPlayerDetailedStats] playerToGroupPlayer map size: ${playerToGroupPlayer.size}`);
 
       // Get all completed games
       const { data: games } = await supabase
@@ -238,6 +249,8 @@ export class StatsService {
         .in('session_id', sessionIds)
         .not('winning_team', 'is', null)
         .order('created_at', { ascending: false });
+      
+      console.log(`[getPlayerDetailedStats] Found ${games?.length || 0} total completed games`);
 
       // Calculate stats
       let wins = 0;
@@ -252,6 +265,7 @@ export class StatsService {
       let streakType: 'W' | 'L' | null = null;
       let bestWinStreak = 0;
       let tempWinStreak = 0;
+      let gamesPlayerFoundIn = 0;
 
       (games || []).forEach((game) => {
         const teamA = this.parseJsonArray(game.team_a);
@@ -265,6 +279,8 @@ export class StatsService {
           || teamB.find(id => playerToGroupPlayer.get(id) === groupPlayerId);
         
         if (!thisPlayerSessionId) return; // Player not in this game
+        
+        gamesPlayerFoundIn++;
 
         const isOnTeamA = teamA.includes(thisPlayerSessionId);
         const playerTeam = isOnTeamA ? teamA : teamB;
@@ -374,6 +390,8 @@ export class StatsService {
         .sort((a, b) => b.winRate - a.winRate || b.gamesPlayed - a.gamesPlayed);
 
       const totalGames = wins + losses;
+      
+      console.log(`[getPlayerDetailedStats] Player ${player.name}: found in ${gamesPlayerFoundIn} games, wins=${wins}, losses=${losses}, totalGames=${totalGames}`);
 
       return {
         groupPlayerId: player.id,
