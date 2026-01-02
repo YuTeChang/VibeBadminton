@@ -193,11 +193,12 @@ export class StatsService {
   /**
    * Get detailed stats for a specific player
    */
+  // Cache bust: 2026-01-02T17:00 - Force fresh deployment
   static async getPlayerDetailedStats(groupId: string, groupPlayerId: string): Promise<PlayerDetailedStats | null> {
     try {
       const supabase = createSupabaseClient();
       
-      console.log(`[getPlayerDetailedStats] Starting for groupId='${groupId}' (length=${groupId.length}), groupPlayerId=${groupPlayerId}`);
+      console.log(`[getPlayerDetailedStats v2] Starting for groupId='${groupId}' (length=${groupId.length}), groupPlayerId=${groupPlayerId}`);
       
       // Get the player
       const { data: player, error: playerError } = await supabase
