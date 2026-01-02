@@ -405,8 +405,72 @@ export default function GroupPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-japandi-background-primary flex items-center justify-center">
-        <div className="text-japandi-text-secondary">Loading group...</div>
+      <div className="min-h-screen bg-japandi-background-primary pb-24">
+        {/* Header Skeleton */}
+        <div className="bg-japandi-background-card border-b border-japandi-border-light py-4 sm:py-6 px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="h-4 w-24 bg-japandi-background-primary rounded animate-pulse" />
+            <div className="mt-4">
+              <div className="h-8 w-48 bg-japandi-background-primary rounded animate-pulse" />
+              <div className="flex items-center gap-2 mt-2">
+                <div className="h-4 w-12 bg-japandi-background-primary rounded animate-pulse" />
+                <div className="h-6 w-24 bg-japandi-background-primary rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="bg-japandi-background-card border-b border-japandi-border-light">
+          <div className="max-w-2xl mx-auto px-4 flex gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="py-3 px-4">
+                <div className="h-4 w-16 bg-japandi-background-primary rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+          {/* Group Stats Card Skeleton */}
+          <div className="bg-japandi-background-card border border-japandi-border-light rounded-card p-4 shadow-soft">
+            <div className="h-4 w-32 bg-japandi-background-primary rounded animate-pulse mb-3" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="h-8 w-16 bg-japandi-background-primary rounded animate-pulse" />
+                <div className="h-3 w-20 bg-japandi-background-primary rounded animate-pulse mt-1" />
+              </div>
+              <div>
+                <div className="h-8 w-16 bg-japandi-background-primary rounded animate-pulse" />
+                <div className="h-3 w-20 bg-japandi-background-primary rounded animate-pulse mt-1" />
+              </div>
+            </div>
+          </div>
+
+          {/* Sessions Header Skeleton */}
+          <div className="flex justify-between items-center">
+            <div className="h-6 w-24 bg-japandi-background-primary rounded animate-pulse" />
+            <div className="flex gap-2">
+              <div className="h-9 w-20 bg-japandi-background-primary rounded-full animate-pulse" />
+              <div className="h-9 w-28 bg-japandi-background-primary rounded-full animate-pulse" />
+            </div>
+          </div>
+
+          {/* Session Cards Skeleton */}
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-japandi-background-card border border-japandi-border-light rounded-card p-4 shadow-soft"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="h-5 w-40 bg-japandi-background-primary rounded animate-pulse" />
+                <div className="h-6 w-20 bg-japandi-background-primary rounded-full animate-pulse" />
+              </div>
+              <div className="h-4 w-56 bg-japandi-background-primary rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -514,33 +578,52 @@ export default function GroupPage() {
         {/* Sessions Tab */}
         {activeTab === "sessions" && (
           <div className="space-y-4">
-            {/* Group Stats Card */}
-            {groupStats && (groupStats.totalGames > 0 || groupStats.totalSessions > 0) && (
-              <div className="bg-japandi-background-card border border-japandi-border-light rounded-card p-4 shadow-soft">
-                <h3 className="text-sm font-semibold text-japandi-text-primary mb-3">Group Overview</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalGames}</div>
-                    <div className="text-xs text-japandi-text-muted">Total Games</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalSessions}</div>
-                    <div className="text-xs text-japandi-text-muted">Sessions</div>
-                  </div>
-                </div>
-                {groupStats.closestMatchup && (
-                  <div className="mt-3 pt-3 border-t border-japandi-border-light">
-                    <div className="text-xs text-japandi-text-muted">Closest Rivalry</div>
-                    <div className="text-sm font-medium text-japandi-text-primary">
-                      ⚔️ {groupStats.closestMatchup.team1Player1Name} & {groupStats.closestMatchup.team1Player2Name} vs {groupStats.closestMatchup.team2Player1Name} & {groupStats.closestMatchup.team2Player2Name}
+            {/* Group Stats Card - Always show container to prevent CLS */}
+            <div className="bg-japandi-background-card border border-japandi-border-light rounded-card p-4 shadow-soft min-h-[120px]">
+              {groupStats && (groupStats.totalGames > 0 || groupStats.totalSessions > 0) ? (
+                <>
+                  <h3 className="text-sm font-semibold text-japandi-text-primary mb-3">Group Overview</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalGames}</div>
+                      <div className="text-xs text-japandi-text-muted">Total Games</div>
                     </div>
-                    <div className="text-xs text-japandi-text-muted">
-                      {groupStats.closestMatchup.team1Wins}-{groupStats.closestMatchup.team2Wins} ({groupStats.closestMatchup.totalGames} games)
+                    <div>
+                      <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalSessions}</div>
+                      <div className="text-xs text-japandi-text-muted">Sessions</div>
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+                  {groupStats.closestMatchup && (
+                    <div className="mt-3 pt-3 border-t border-japandi-border-light">
+                      <div className="text-xs text-japandi-text-muted">Closest Rivalry</div>
+                      <div className="text-sm font-medium text-japandi-text-primary">
+                        ⚔️ {groupStats.closestMatchup.team1Player1Name} & {groupStats.closestMatchup.team1Player2Name} vs {groupStats.closestMatchup.team2Player1Name} & {groupStats.closestMatchup.team2Player2Name}
+                      </div>
+                      <div className="text-xs text-japandi-text-muted">
+                        {groupStats.closestMatchup.team1Wins}-{groupStats.closestMatchup.team2Wins} ({groupStats.closestMatchup.totalGames} games)
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h3 className="text-sm font-semibold text-japandi-text-primary mb-3">Group Overview</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-2xl font-bold text-japandi-text-muted">0</div>
+                      <div className="text-xs text-japandi-text-muted">Total Games</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-japandi-text-muted">0</div>
+                      <div className="text-xs text-japandi-text-muted">Sessions</div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-japandi-text-muted mt-3 pt-3 border-t border-japandi-border-light">
+                    Play some games to see group statistics!
+                  </p>
+                </>
+              )}
+            </div>
 
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-japandi-text-primary">Sessions</h2>
@@ -614,8 +697,30 @@ export default function GroupPage() {
             </div>
 
             {isLoadingLeaderboard ? (
-              <div className="text-center py-12 text-japandi-text-muted">
-                Loading leaderboard...
+              <div className="space-y-2">
+                {/* Skeleton rows that match actual leaderboard item height */}
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-japandi-background-card border border-japandi-border-light rounded-xl p-4 shadow-soft"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Rank skeleton */}
+                      <div className="w-10 h-10 rounded-full bg-japandi-background-primary animate-pulse flex-shrink-0" />
+                      {/* Player info skeleton */}
+                      <div className="flex-1 min-w-0">
+                        <div className="h-5 w-32 bg-japandi-background-primary rounded animate-pulse" />
+                        <div className="h-4 w-24 bg-japandi-background-primary rounded animate-pulse mt-1" />
+                      </div>
+                      {/* Recent form skeleton */}
+                      <div className="flex gap-1 flex-shrink-0">
+                        {[1, 2, 3].map((j) => (
+                          <div key={j} className="w-6 h-6 rounded bg-japandi-background-primary animate-pulse" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : leaderboard.length === 0 ? (
               <div className="text-center py-12 text-japandi-text-muted">
@@ -709,12 +814,6 @@ export default function GroupPage() {
         {/* Players Tab */}
         {activeTab === "players" && (
           <div className="space-y-4">
-            {isLoadingPlayers && (
-              <div className="text-center py-8 text-japandi-text-muted">
-                Loading players...
-              </div>
-            )}
-            
             {/* Action error toast */}
             {actionError && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-card text-sm">
@@ -734,7 +833,7 @@ export default function GroupPage() {
                 value={newPlayerName}
                 onChange={(e) => setNewPlayerName(e.target.value)}
                 placeholder="Enter player name"
-                className="flex-1 px-4 py-2 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
+                className="flex-1 px-4 py-2 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary text-base focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
                 onKeyDown={(e) => e.key === "Enter" && handleAddPlayer()}
               />
               <button
@@ -746,8 +845,23 @@ export default function GroupPage() {
               </button>
             </div>
 
-            {/* Players list */}
-            {players.length === 0 && !isLoadingPlayers ? (
+            {/* Players list with skeleton loading */}
+            {isLoadingPlayers ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between bg-japandi-background-card border border-japandi-border-light rounded-card p-3"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="h-5 w-28 bg-japandi-background-primary rounded animate-pulse" />
+                      <div className="h-4 w-16 bg-japandi-background-primary rounded animate-pulse" />
+                    </div>
+                    <div className="h-4 w-16 bg-japandi-background-primary rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : players.length === 0 ? (
               <div className="text-center py-8 text-japandi-text-muted">
                 No players yet. Add your first player above!
               </div>
@@ -799,8 +913,23 @@ export default function GroupPage() {
                 </p>
                 
                 {isLoadingGuests ? (
-                  <div className="text-center py-4 text-japandi-text-muted text-sm">
-                    Loading guests...
+                  <div className="space-y-2">
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between bg-yellow-50 border border-dashed border-yellow-300 rounded-card p-3"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <div className="h-5 w-5 bg-yellow-200 rounded animate-pulse" />
+                            <div className="h-5 w-24 bg-yellow-200 rounded animate-pulse" />
+                            <div className="h-5 w-12 bg-yellow-200 rounded-full animate-pulse" />
+                          </div>
+                          <div className="h-3 w-32 bg-yellow-200 rounded animate-pulse mt-2" />
+                        </div>
+                        <div className="h-8 w-16 bg-yellow-200 rounded-full animate-pulse ml-3" />
+                      </div>
+                    ))}
                   </div>
                 ) : recentGuests.length === 0 ? (
                   <div className="text-center py-4 text-japandi-text-muted text-sm">
@@ -863,8 +992,29 @@ export default function GroupPage() {
             </div>
 
             {isLoadingPairings ? (
-              <div className="text-center py-12 text-japandi-text-muted">
-                Loading pairings...
+              <div className="space-y-2">
+                {/* Skeleton rows that match actual pairing item height */}
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-japandi-background-card border border-japandi-border-light rounded-xl p-4 shadow-soft"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Rank skeleton */}
+                      <div className="w-10 h-10 rounded-full bg-japandi-background-primary animate-pulse flex-shrink-0" />
+                      {/* Pairing info skeleton */}
+                      <div className="flex-1 min-w-0">
+                        <div className="h-5 w-40 bg-japandi-background-primary rounded animate-pulse" />
+                        <div className="h-4 w-28 bg-japandi-background-primary rounded animate-pulse mt-1" />
+                      </div>
+                      {/* Win rate skeleton */}
+                      <div className="text-right flex-shrink-0">
+                        <div className="h-6 w-14 bg-japandi-background-primary rounded animate-pulse" />
+                        <div className="h-3 w-16 bg-japandi-background-primary rounded animate-pulse mt-1" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : pairings.length === 0 ? (
               <div className="text-center py-12 text-japandi-text-muted">
