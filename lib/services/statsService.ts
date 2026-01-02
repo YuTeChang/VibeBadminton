@@ -244,6 +244,8 @@ export class StatsService {
       const opponentStatsMap = new Map<string, { wins: number; losses: number }>();
       let currentStreak = 0;
       let streakType: 'W' | 'L' | null = null;
+      let bestWinStreak = 0;
+      let tempWinStreak = 0;
 
       (games || []).forEach((game) => {
         const teamA = this.parseJsonArray(game.team_a);
@@ -297,6 +299,16 @@ export class StatsService {
           currentStreak = won ? 1 : -1;
         } else if ((won && streakType === 'W') || (!won && streakType === 'L')) {
           currentStreak += won ? 1 : -1;
+        }
+
+        // Track best win streak (iterate through all games)
+        if (won) {
+          tempWinStreak += 1;
+          if (tempWinStreak > bestWinStreak) {
+            bestWinStreak = tempWinStreak;
+          }
+        } else {
+          tempWinStreak = 0;
         }
 
         // Partner stats (for doubles - teammates)
@@ -373,6 +385,7 @@ export class StatsService {
         sessionsPlayed: thisPlayerSessionIds.size,
         recentForm: recentForm.slice(0, 5), // Keep only last 5 for display
         currentStreak,
+        bestWinStreak,
         partnerStats,
         opponentStats,
         recentGames,
@@ -407,6 +420,7 @@ export class StatsService {
       sessionsPlayed: 0,
       recentForm: [],
       currentStreak: 0,
+      bestWinStreak: 0,
       partnerStats: [],
       opponentStats: [],
     };

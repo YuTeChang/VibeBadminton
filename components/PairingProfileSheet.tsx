@@ -81,7 +81,7 @@ export function PairingProfileSheet({ stats, onClose }: PairingProfileSheetProps
             </div>
             
             {/* Extended Stats Row */}
-            <div className="grid grid-cols-3 gap-3 mt-3">
+            <div className="grid grid-cols-2 gap-3 mt-3">
               <div className="bg-japandi-background-primary rounded-xl p-4 text-center">
                 <div className="text-2xl font-bold text-japandi-accent-primary">
                   {stats.eloRating}
@@ -89,16 +89,32 @@ export function PairingProfileSheet({ stats, onClose }: PairingProfileSheetProps
                 <div className="text-xs text-japandi-text-muted mt-1">Pair ELO</div>
               </div>
               <div className="bg-japandi-background-primary rounded-xl p-4 text-center">
-                <div className={`text-2xl font-bold ${stats.pointDifferential >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {stats.pointDifferential > 0 ? '+' : ''}{stats.pointDifferential}
-                </div>
-                <div className="text-xs text-japandi-text-muted mt-1">Point Diff</div>
-              </div>
-              <div className="bg-japandi-background-primary rounded-xl p-4 text-center">
                 <div className="text-2xl font-bold text-japandi-text-primary">
                   {stats.bestWinStreak}
                 </div>
                 <div className="text-xs text-japandi-text-muted mt-1">Best Streak</div>
+              </div>
+            </div>
+            
+            {/* Points Section */}
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              <div className="bg-japandi-background-primary rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {stats.pointsFor}
+                </div>
+                <div className="text-xs text-japandi-text-muted mt-1">Pts For</div>
+              </div>
+              <div className="bg-japandi-background-primary rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-red-500">
+                  {stats.pointsAgainst}
+                </div>
+                <div className="text-xs text-japandi-text-muted mt-1">Pts Against</div>
+              </div>
+              <div className="bg-japandi-background-primary rounded-xl p-3 text-center">
+                <div className={`text-lg font-bold ${stats.pointDifferential >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {stats.pointDifferential > 0 ? '+' : ''}{stats.pointDifferential}
+                </div>
+                <div className="text-xs text-japandi-text-muted mt-1">Pts +/-</div>
               </div>
             </div>
           </div>

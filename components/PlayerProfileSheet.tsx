@@ -89,7 +89,28 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
                 <div className="text-xs text-japandi-text-muted mt-1">Win Rate</div>
               </div>
               <div className="bg-japandi-background-primary rounded-xl p-4 text-center">
-                <div className={`text-2xl font-bold ${stats.pointDifferential >= 0 ? 'text-green-600' : 'text-japandi-text-secondary'}`}>
+                <div className="text-2xl font-bold text-japandi-text-primary">
+                  {stats.bestWinStreak}
+                </div>
+                <div className="text-xs text-japandi-text-muted mt-1">Best Streak</div>
+              </div>
+            </div>
+            {/* Points Section */}
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              <div className="bg-japandi-background-primary rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-green-600">
+                  {stats.pointsScored}
+                </div>
+                <div className="text-xs text-japandi-text-muted mt-1">Pts For</div>
+              </div>
+              <div className="bg-japandi-background-primary rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-red-500">
+                  {stats.pointsConceded}
+                </div>
+                <div className="text-xs text-japandi-text-muted mt-1">Pts Against</div>
+              </div>
+              <div className="bg-japandi-background-primary rounded-xl p-3 text-center">
+                <div className={`text-lg font-bold ${stats.pointDifferential >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                   {stats.pointDifferential >= 0 ? '+' : ''}{stats.pointDifferential}
                 </div>
                 <div className="text-xs text-japandi-text-muted mt-1">Pts +/-</div>

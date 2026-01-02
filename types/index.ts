@@ -118,6 +118,7 @@ export interface PlayerDetailedStats {
   // Form & streaks
   recentForm: ('W' | 'L')[]; // Last 5-10 games
   currentStreak: number; // Positive = wins, negative = losses
+  bestWinStreak: number; // Best win streak ever
   
   // Partner synergy (doubles only)
   partnerStats: PartnerStats[];
