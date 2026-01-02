@@ -36,6 +36,8 @@ export class StatsService {
     try {
       const supabase = createSupabaseClient();
       
+      console.log(`[getLeaderboard] Starting for groupId='${groupId}' (length=${groupId.length})`);
+      
       // Get all group players
       const { data: groupPlayers, error: gpError } = await supabase
         .from('group_players')
@@ -47,10 +49,13 @@ export class StatsService {
       if (!groupPlayers || groupPlayers.length === 0) return [];
 
       // Get all sessions for this group
-      const { data: sessions } = await supabase
+      const { data: sessions, error: sessionsError } = await supabase
         .from('sessions')
         .select('id')
         .eq('group_id', groupId);
+      
+      console.log(`[getLeaderboard] Sessions query for groupId='${groupId}': found ${sessions?.length || 0} sessions, error=${sessionsError?.message || 'none'}`);
+      console.log(`[getLeaderboard] Sessions IDs: ${JSON.stringify(sessions?.map(s => s.id) || [])}`);
       
       const sessionIds = (sessions || []).map(s => s.id);
       if (sessionIds.length === 0) {
@@ -192,7 +197,7 @@ export class StatsService {
     try {
       const supabase = createSupabaseClient();
       
-      console.log(`[getPlayerDetailedStats] Starting for groupId=${groupId}, groupPlayerId=${groupPlayerId}`);
+      console.log(`[getPlayerDetailedStats] Starting for groupId='${groupId}' (length=${groupId.length}), groupPlayerId=${groupPlayerId}`);
       
       // Get the player
       const { data: player, error: playerError } = await supabase
@@ -215,13 +220,17 @@ export class StatsService {
       const rank = (allPlayers?.findIndex(p => p.id === groupPlayerId) || 0) + 1;
 
       // Get all sessions in the group
-      const { data: sessions } = await supabase
+      const { data: sessions, error: sessionsError } = await supabase
         .from('sessions')
         .select('id')
         .eq('group_id', groupId);
 
+      console.log(`[getPlayerDetailedStats] Sessions query for groupId='${groupId}': found ${sessions?.length || 0} sessions, error=${sessionsError?.message || 'none'}`);
+      console.log(`[getPlayerDetailedStats] Sessions IDs: ${JSON.stringify(sessions?.map(s => s.id) || [])}`);
+
       const sessionIds = (sessions || []).map(s => s.id);
       if (sessionIds.length === 0) {
+        console.log(`[getPlayerDetailedStats] No sessions found, returning empty stats`);
         return this.buildEmptyStats(player, rank, totalPlayers);
       }
 
