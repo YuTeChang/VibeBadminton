@@ -99,10 +99,15 @@ export class StatsService {
         const teamA = this.parseJsonArray(game.team_a);
         const teamB = this.parseJsonArray(game.team_b);
         const winningTeam = game.winning_team;
+        
+        // Use Sets to track which group players have been counted for this game
+        // This prevents double-counting if the same group player has multiple session entries
+        const countedGroupPlayers = new Set<string>();
 
         teamA.forEach((playerId: string) => {
           const groupPlayerId = playerToGroupPlayer.get(playerId);
-          if (groupPlayerId && statsMap.has(groupPlayerId)) {
+          if (groupPlayerId && statsMap.has(groupPlayerId) && !countedGroupPlayers.has(groupPlayerId)) {
+            countedGroupPlayers.add(groupPlayerId);
             const stats = statsMap.get(groupPlayerId)!;
             const won = winningTeam === 'A';
             if (won) stats.wins++;
@@ -115,7 +120,8 @@ export class StatsService {
 
         teamB.forEach((playerId: string) => {
           const groupPlayerId = playerToGroupPlayer.get(playerId);
-          if (groupPlayerId && statsMap.has(groupPlayerId)) {
+          if (groupPlayerId && statsMap.has(groupPlayerId) && !countedGroupPlayers.has(groupPlayerId)) {
+            countedGroupPlayers.add(groupPlayerId);
             const stats = statsMap.get(groupPlayerId)!;
             const won = winningTeam === 'B';
             if (won) stats.wins++;
@@ -534,11 +540,16 @@ export class StatsService {
         const winningTeam = game.winning_team;
         const teamAScore = game.team_a_score || 0;
         const teamBScore = game.team_b_score || 0;
+        
+        // Use Set to track which group players have been counted for this game
+        // This prevents double-counting if the same group player has multiple session entries
+        const countedGroupPlayers = new Set<string>();
 
         // Process team A players
         teamA.forEach((playerId: string) => {
           const groupPlayerId = playerToGroupPlayer.get(playerId);
-          if (groupPlayerId && statsMap.has(groupPlayerId)) {
+          if (groupPlayerId && statsMap.has(groupPlayerId) && !countedGroupPlayers.has(groupPlayerId)) {
+            countedGroupPlayers.add(groupPlayerId);
             const stats = statsMap.get(groupPlayerId)!;
             stats.totalGames += 1;
             if (winningTeam === 'A') {
@@ -556,7 +567,8 @@ export class StatsService {
         // Process team B players
         teamB.forEach((playerId: string) => {
           const groupPlayerId = playerToGroupPlayer.get(playerId);
-          if (groupPlayerId && statsMap.has(groupPlayerId)) {
+          if (groupPlayerId && statsMap.has(groupPlayerId) && !countedGroupPlayers.has(groupPlayerId)) {
+            countedGroupPlayers.add(groupPlayerId);
             const stats = statsMap.get(groupPlayerId)!;
             stats.totalGames += 1;
             if (winningTeam === 'B') {

@@ -384,11 +384,11 @@ export class PairingStatsService {
 
         const winningTeam = game.winning_team;
 
-        // Get group player IDs for each team
-        const teamAGroupIds = teamA.map((id: string) => playerToGroupPlayer.get(id)).filter(Boolean) as string[];
-        const teamBGroupIds = teamB.map((id: string) => playerToGroupPlayer.get(id)).filter(Boolean) as string[];
+        // Get unique group player IDs for each team (use Set to handle duplicate session entries)
+        const teamAGroupIds = Array.from(new Set(teamA.map((id: string) => playerToGroupPlayer.get(id)).filter(Boolean))) as string[];
+        const teamBGroupIds = Array.from(new Set(teamB.map((id: string) => playerToGroupPlayer.get(id)).filter(Boolean))) as string[];
 
-        // Only count if both players in each team are linked to group players
+        // Only count if both players in each team are linked to unique group players
         if (teamAGroupIds.length === 2) {
           const [p1, p2] = this.getOrderedPair(teamAGroupIds[0], teamAGroupIds[1]);
           const key = `${p1}|${p2}`;
@@ -873,9 +873,11 @@ export class PairingStatsService {
         // Only process doubles games
         if (teamA.length !== 2 || teamB.length !== 2) continue;
 
-        const teamAGroupIds = teamA.map((id: string) => playerToGroupPlayer.get(id)).filter(Boolean) as string[];
-        const teamBGroupIds = teamB.map((id: string) => playerToGroupPlayer.get(id)).filter(Boolean) as string[];
+        // Get unique group player IDs for each team (use Set to handle duplicate session entries)
+        const teamAGroupIds = Array.from(new Set(teamA.map((id: string) => playerToGroupPlayer.get(id)).filter(Boolean))) as string[];
+        const teamBGroupIds = Array.from(new Set(teamB.map((id: string) => playerToGroupPlayer.get(id)).filter(Boolean))) as string[];
 
+        // Only process if both teams have exactly 2 unique group players
         if (teamAGroupIds.length !== 2 || teamBGroupIds.length !== 2) continue;
 
         const winningTeam = game.winning_team as 'A' | 'B';
