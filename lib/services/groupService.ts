@@ -618,19 +618,18 @@ export class GroupService {
     const supabase = createSupabaseClient();
 
     try {
-      // Get total sessions
-      const { count: sessionCount } = await supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('group_id', groupId);
-
       // Get session IDs for this group
-      const { data: sessions } = await supabase
+      const { data: sessions, error: sessionError } = await supabase
         .from('sessions')
         .select('id')
         .eq('group_id', groupId);
 
+      if (sessionError) {
+        console.error('[GroupService] Error fetching sessions:', sessionError);
+      }
+
       const sessionIds = (sessions || []).map(s => s.id);
+      const totalSessions = sessionIds.length;
 
       // Get total completed games
       let totalGames = 0;
@@ -644,14 +643,17 @@ export class GroupService {
         if (gameError) {
           console.error('[GroupService] Error counting games:', gameError);
         }
+        
         console.log('[GroupService] getGroupStats:', { 
           groupId, 
-          sessionCount: sessionIds.length, 
+          totalSessions,
           gameCount,
-          sessionIds: sessionIds.slice(0, 3) // Log first 3 for debugging
+          sessionIds: sessionIds.slice(0, 5) // Log first 5 for debugging
         });
         
         totalGames = gameCount || 0;
+      } else {
+        console.log('[GroupService] getGroupStats: No sessions found for group', groupId);
       }
 
       // Get closest matchup (pairing matchup with smallest win difference, min 5 games)
@@ -703,7 +705,7 @@ export class GroupService {
 
       return {
         totalGames,
-        totalSessions: sessionCount || 0,
+        totalSessions,
         closestMatchup,
       };
     } catch (error) {
