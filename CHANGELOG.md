@@ -3,6 +3,24 @@
 ## [Unreleased] - 2025-01
 
 ### Added
+- **Vercel Analytics & Speed Insights**: Real-time visitor tracking and performance monitoring
+  - Web Analytics for page views and visitor counts
+  - Speed Insights for performance metrics (desktop/mobile)
+  - Components added to app layout for automatic tracking
+- **Matchup Detail View**: Click into opponent pairings to see full game history
+  - New `MatchupDetailSheet` component with head-to-head record, points breakdown, and game history
+  - Points for/against tracked per opponent pairing
+  - Shows dominance indicator based on win rate
+- **Enhanced Pairing Matchups**: Points tracking against each opponent pairing
+  - `PairingMatchup` type now includes `pointsFor`, `pointsAgainst`, `pointDifferential`, and `games` array
+  - Clickable matchup rows with inline points display
+  - `computeMatchupsFromGames()` now tracks scores and game details
+- **Best Win Streak**: Track best win streak ever for players and pairings
+  - Added `bestWinStreak` to player profiles and pairing stats
+  - Computed from actual game history for accuracy
+- **Points Breakdown**: Show points scored vs conceded instead of just differential
+  - Player profile shows "Pts For" (green), "Pts Against" (red), and "+/-"
+  - Pairing profile shows same breakdown
 - **Guest Player Mode**: Full guest mode with promotion option
   - When typing a non-group name in session creation, prompt to "Add as Guest" or "Add to Group"
   - Guests marked with yellow badge (👤 Guest) throughout the app

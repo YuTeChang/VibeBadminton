@@ -6,6 +6,56 @@ This document tracks all features, improvements, and fixes added to PoweredByPac
 
 ### Major Features Added
 
+#### Vercel Analytics & Speed Insights Integration
+- **Status**: ✅ Complete
+- **Description**: Real-time visitor tracking and performance monitoring
+- **Implementation**:
+  - Installed `@vercel/analytics` and `@vercel/speed-insights` packages
+  - Added `<Analytics />` and `<SpeedInsights />` components to `app/layout.tsx`
+  - Automatic tracking of page views, visitors, and performance metrics
+- **User Impact**: Better visibility into app usage and performance
+
+#### Matchup Detail View
+- **Status**: ✅ Complete
+- **Description**: Click into opponent pairings to see full game history
+- **Implementation**:
+  - New `MatchupDetailSheet` component (z-60, nested above PairingProfileSheet)
+  - Shows head-to-head record (W-L, win rate, games played)
+  - Points breakdown (for, against, differential) per matchup
+  - Full game history with scores, dates, and win/loss coloring
+  - Dominance indicator based on win rate
+  - Extended `PairingMatchup` type with `pointsFor`, `pointsAgainst`, `pointDifferential`, `games: RecentGame[]`
+  - Updated `computeMatchupsFromGames()` to track scores and game details
+- **User Impact**: Deep dive into rivalries between specific pairings
+
+#### Enhanced Pairing Matchups with Points
+- **Status**: ✅ Complete
+- **Description**: Track points scored vs each opponent pairing
+- **Implementation**:
+  - `PairingMatchup` interface extended with points tracking
+  - Clickable matchup rows with inline points display
+  - Chevron indicator for navigation
+  - Games ordered by date (most recent first)
+- **User Impact**: See at a glance how you perform against specific opponents
+
+#### Best Win Streak
+- **Status**: ✅ Complete
+- **Description**: Track best win streak ever achieved
+- **Implementation**:
+  - Added `bestWinStreak` to `PlayerDetailedStats` and `PairingDetailedStats`
+  - Computed from actual game history for accuracy
+  - Displayed in player and pairing profile sheets
+- **User Impact**: More meaningful achievement tracking
+
+#### Points Breakdown (Scored vs Conceded)
+- **Status**: ✅ Complete
+- **Description**: Show points scored vs conceded instead of just differential
+- **Implementation**:
+  - Player profile shows "Pts For" (green), "Pts Against" (red), "+/-"
+  - Pairing profile shows same breakdown
+  - Both computed from actual game scores
+- **User Impact**: Better understanding of offensive vs defensive performance
+
 #### Guest Mode
 - **Status**: ✅ Complete
 - **Description**: Allow non-group players to participate in sessions without affecting group stats

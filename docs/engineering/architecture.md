@@ -93,10 +93,16 @@ The backend business logic is organized into focused services:
 - Player pool management
 - Group sessions retrieval
 
-### StatsService (`lib/services/statsService.ts`) - NEW
-- **Leaderboard**: Get ranked players with ELO, W/L, recent form
-- **Player Detailed Stats**: Partner synergy, opponent matchups, streaks
+### StatsService (`lib/services/statsService.ts`)
+- **Leaderboard**: Get ranked players with ELO, W/L, recent form, best streak
+- **Player Detailed Stats**: Partner synergy, opponent matchups, streaks, points scored/conceded
 - Aggregates data across sessions for cross-session statistics
+
+### PairingStatsService (`lib/services/pairingStatsService.ts`)
+- **Pairing Leaderboard**: Get ranked doubles pairings by win rate
+- **Pairing Detailed Stats**: W/L, ELO, streaks, points breakdown
+- **Head-to-Head Matchups**: Stats against specific opponent pairings with game history
+- **computeMatchupsFromGames()**: Computes points and game details per matchup
 
 ### EloService (`lib/services/eloService.ts`) - NEW
 - **ELO Calculation**: Standard algorithm with K-factor of 32

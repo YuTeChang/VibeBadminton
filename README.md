@@ -82,10 +82,12 @@ See [docs/SETUP_BACKEND.md](docs/SETUP_BACKEND.md) for detailed setup instructio
 - ✅ **Universal Stats**: Win rate, points always shown
 - ✅ **Conditional UI**: Betting fields only shown when enabled
 
-### Performance
+### Performance & Monitoring
 - ✅ **Optimized APIs**: Lightweight endpoints, batch queries
 - ✅ **Smart Caching**: Duplicate call prevention
 - ✅ **Fast Loading**: Dashboard loads ~72% faster (~500ms vs ~1800ms)
+- ✅ **Vercel Analytics**: Real-time visitor tracking and page view counts
+- ✅ **Speed Insights**: Performance metrics for desktop and mobile
 
 ---
 
@@ -97,6 +99,7 @@ See [docs/SETUP_BACKEND.md](docs/SETUP_BACKEND.md) for detailed setup instructio
 - **State**: React Context API
 - **Backend**: Next.js API Routes
 - **Database**: Supabase (PostgreSQL)
+- **Analytics**: Vercel Analytics & Speed Insights
 
 ---
 

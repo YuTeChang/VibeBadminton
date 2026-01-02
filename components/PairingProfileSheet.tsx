@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { PairingDetailedStats } from "@/types";
+import { PairingDetailedStats, PairingMatchup } from "@/types";
 import { formatPercentage } from "@/lib/calculations";
+import { MatchupDetailSheet } from "./MatchupDetailSheet";
 
 interface PairingProfileSheetProps {
   stats: PairingDetailedStats;
@@ -11,6 +12,7 @@ interface PairingProfileSheetProps {
 
 export function PairingProfileSheet({ stats, onClose }: PairingProfileSheetProps) {
   const [showAllGames, setShowAllGames] = useState(false);
+  const [selectedMatchup, setSelectedMatchup] = useState<PairingMatchup | null>(null);
   
   // Get top matchups (sorted by games played)
   const topMatchups = stats.matchups.slice(0, 5);
@@ -158,26 +160,43 @@ export function PairingProfileSheet({ stats, onClose }: PairingProfileSheetProps
               </h3>
               <div className="space-y-2">
                 {topMatchups.map((matchup, i) => (
-                  <div
+                  <button
                     key={i}
-                    className="flex items-center justify-between bg-japandi-background-primary rounded-xl p-3"
+                    onClick={() => setSelectedMatchup(matchup)}
+                    className="w-full text-left bg-japandi-background-primary rounded-xl p-3 hover:bg-japandi-background-primary/80 transition-colors"
                   >
-                    <div>
-                      <div className="font-medium text-japandi-text-primary">
-                        {matchup.opponentPlayer1Name} & {matchup.opponentPlayer2Name}
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-japandi-text-primary">
+                          {matchup.opponentPlayer1Name} & {matchup.opponentPlayer2Name}
+                        </div>
+                        <div className="text-xs text-japandi-text-muted">
+                          {matchup.wins}-{matchup.losses} ({matchup.gamesPlayed} games)
+                        </div>
+                        {/* Points breakdown */}
+                        <div className="flex items-center gap-2 mt-1 text-xs">
+                          <span className="text-green-600">{matchup.pointsFor} pts</span>
+                          <span className="text-japandi-text-muted">-</span>
+                          <span className="text-red-500">{matchup.pointsAgainst} pts</span>
+                          <span className={`font-medium ${matchup.pointDifferential >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            ({matchup.pointDifferential > 0 ? '+' : ''}{matchup.pointDifferential})
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-xs text-japandi-text-muted">
-                        {matchup.wins}-{matchup.losses} ({matchup.gamesPlayed} games)
+                      <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                        <div className={`text-sm font-semibold ${
+                          matchup.winRate >= 60 ? 'text-green-600' : 
+                          matchup.winRate >= 40 ? 'text-japandi-text-primary' : 
+                          'text-red-600'
+                        }`}>
+                          {formatPercentage(matchup.winRate)}
+                        </div>
+                        <svg className="w-4 h-4 text-japandi-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
                     </div>
-                    <div className={`text-sm font-semibold ${
-                      matchup.winRate >= 60 ? 'text-green-600' : 
-                      matchup.winRate >= 40 ? 'text-japandi-text-primary' : 
-                      'text-red-600'
-                    }`}>
-                      {formatPercentage(matchup.winRate)}
-                    </div>
-                  </div>
+                  </button>
                 ))}
               </div>
               
@@ -256,6 +275,14 @@ export function PairingProfileSheet({ stats, onClose }: PairingProfileSheetProps
           )}
         </div>
       </div>
+      
+      {/* Matchup Detail Sheet */}
+      {selectedMatchup && (
+        <MatchupDetailSheet
+          matchup={selectedMatchup}
+          onClose={() => setSelectedMatchup(null)}
+        />
+      )}
     </div>
   );
 }

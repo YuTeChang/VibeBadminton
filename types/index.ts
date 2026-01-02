@@ -170,6 +170,12 @@ export interface PairingMatchup {
   losses: number;
   gamesPlayed: number;
   winRate: number;
+  // Points stats
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDifferential: number;
+  // Game history for this matchup
+  games: RecentGame[];
 }
 
 // Detailed stats for a specific pairing (when clicking on a pair)

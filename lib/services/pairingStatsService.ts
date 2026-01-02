@@ -560,29 +560,40 @@ export class PairingStatsService {
       // Get player mappings
       const { data: sessionPlayers } = await supabase
         .from('players')
-        .select('id, group_player_id')
+        .select('id, group_player_id, name')
         .in('session_id', sessionIds)
         .not('group_player_id', 'is', null);
 
       const player1SessionIds = new Set<string>();
       const player2SessionIds = new Set<string>();
       const sessionPlayerToGroup = new Map<string, string>();
+      const sessionPlayerToName = new Map<string, string>();
 
       (sessionPlayers || []).forEach(p => {
         if (p.group_player_id === player1Id) player1SessionIds.add(p.id);
         if (p.group_player_id === player2Id) player2SessionIds.add(p.id);
-        if (p.group_player_id) sessionPlayerToGroup.set(p.id, p.group_player_id);
+        if (p.group_player_id) {
+          sessionPlayerToGroup.set(p.id, p.group_player_id);
+          sessionPlayerToName.set(p.id, p.name || 'Unknown');
+        }
       });
 
-      // Get all completed doubles games
+      // Get all completed doubles games with scores
       const { data: games } = await supabase
         .from('games')
-        .select('team_a, team_b, winning_team')
+        .select('team_a, team_b, winning_team, team_a_score, team_b_score, created_at')
         .in('session_id', sessionIds)
-        .not('winning_team', 'is', null);
+        .not('winning_team', 'is', null)
+        .order('created_at', { ascending: false });
 
-      // Compute matchup stats
-      const matchupMap = new Map<string, { wins: number; losses: number }>();
+      // Compute matchup stats with points and game history
+      const matchupMap = new Map<string, { 
+        wins: number; 
+        losses: number;
+        pointsFor: number;
+        pointsAgainst: number;
+        games: RecentGame[];
+      }>();
 
       (games || []).forEach(game => {
         const teamA = typeof game.team_a === 'string' ? JSON.parse(game.team_a) : game.team_a;
@@ -609,12 +620,33 @@ export class PairingStatsService {
         const [oppP1, oppP2] = this.getOrderedPair(opponentGroupIds[0], opponentGroupIds[1]);
         const key = `${oppP1}|${oppP2}`;
 
-        if (!matchupMap.has(key)) matchupMap.set(key, { wins: 0, losses: 0 });
+        if (!matchupMap.has(key)) {
+          matchupMap.set(key, { wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, games: [] });
+        }
         const stats = matchupMap.get(key)!;
 
         const won = (inTeamA && game.winning_team === 'A') || (inTeamB && game.winning_team === 'B');
         if (won) stats.wins++;
         else stats.losses++;
+
+        // Calculate points from our pairing's perspective
+        const ourScore = inTeamA ? (game.team_a_score ?? 0) : (game.team_b_score ?? 0);
+        const theirScore = inTeamA ? (game.team_b_score ?? 0) : (game.team_a_score ?? 0);
+        stats.pointsFor += ourScore;
+        stats.pointsAgainst += theirScore;
+
+        // Build game record
+        const teamANames = teamA.map((id: string) => sessionPlayerToName.get(id) || 'Unknown');
+        const teamBNames = teamB.map((id: string) => sessionPlayerToName.get(id) || 'Unknown');
+        
+        stats.games.push({
+          teamANames,
+          teamBNames,
+          teamAScore: game.team_a_score,
+          teamBScore: game.team_b_score,
+          won,
+          date: game.created_at ? new Date(game.created_at) : undefined,
+        });
       });
 
       // Build result array
@@ -636,6 +668,10 @@ export class PairingStatsService {
           losses: stats.losses,
           gamesPlayed,
           winRate: gamesPlayed > 0 ? (stats.wins / gamesPlayed) * 100 : 0,
+          pointsFor: stats.pointsFor,
+          pointsAgainst: stats.pointsAgainst,
+          pointDifferential: stats.pointsFor - stats.pointsAgainst,
+          games: stats.games,
         });
       });
 
