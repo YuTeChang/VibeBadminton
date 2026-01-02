@@ -43,6 +43,8 @@ export default function GroupPage() {
     dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number; wins: number; losses: number } | null;
     unluckyPlayer: { name: string; count: number } | null;
     unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
+    clutchPlayer: { name: string; count: number } | null;
+    clutchPairing: { player1Name: string; player2Name: string; count: number } | null;
     firstSessionDate: Date | null;
     daysSinceFirstSession: number | null;
   } | null>(null);
@@ -725,6 +727,41 @@ export default function GroupPage() {
                           )}
                         </div>
                       </div>
+
+                      {/* Clutch Stats */}
+                      {(groupStats.clutchPlayer || groupStats.clutchPairing) && (
+                        <div>
+                          <div className="text-xs font-medium text-japandi-text-muted uppercase tracking-wide mb-2">Clutch (Won by 1-2 pts)</div>
+                          <div className="space-y-2">
+                            {groupStats.clutchPlayer && (
+                              <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">🎯</span>
+                                  <div>
+                                    <div className="text-sm font-medium text-japandi-text-primary">{groupStats.clutchPlayer.name}</div>
+                                    <div className="text-xs text-japandi-text-muted">Most Clutch Player</div>
+                                  </div>
+                                </div>
+                                <div className="text-lg font-bold text-green-600">{groupStats.clutchPlayer.count}</div>
+                              </div>
+                            )}
+                            {groupStats.clutchPairing && (
+                              <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">🎯</span>
+                                  <div>
+                                    <div className="text-sm font-medium text-japandi-text-primary">
+                                      {groupStats.clutchPairing.player1Name} & {groupStats.clutchPairing.player2Name}
+                                    </div>
+                                    <div className="text-xs text-japandi-text-muted">Most Clutch Pair</div>
+                                  </div>
+                                </div>
+                                <div className="text-lg font-bold text-green-600">{groupStats.clutchPairing.count}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Unlucky Stats */}
                       {(groupStats.unluckyPlayer || groupStats.unluckyPairing) && (

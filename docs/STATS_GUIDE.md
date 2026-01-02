@@ -92,11 +92,27 @@ Tap on a player to see their detailed profile.
 
 **Example:** `W W L W L` = Won most recent, won second most recent, lost third, etc.
 
-### Unlucky Games
+---
 
-**What it is:** Games lost by a narrow margin (1-2 points).
+## Close Games Section
 
-**Why it matters:** Shows games that could have gone either way - these close losses indicate competitive play even though they resulted in a loss.
+The Close Games section shows games decided by narrow margins (1-2 points). These are split into two categories:
+
+### Clutch Games 🎯
+
+**What it is:** Games **won** by a narrow margin (1-2 points).
+
+**Why it matters:** Shows when you came through in pressure situations. Clutch wins demonstrate the ability to close out tight games.
+
+**Display:** 
+- Green tile showing total count
+- Tap to expand and see the specific games with scores and dates
+
+### Unlucky Games 💔
+
+**What it is:** Games **lost** by a narrow margin (1-2 points).
+
+**Why it matters:** Shows games that could have gone either way - these close losses indicate competitive play even though they resulted in a loss. A high unlucky count alongside a low win rate might suggest you're competitive but need to work on closing out games.
 
 **Display:** Tap to expand and see the specific games with scores and dates.
 
@@ -184,7 +200,21 @@ Found in the expandable "Group Overview" section on the group page.
 
 **What it is:** Player who has participated in the most games.
 
-### Unlucky Stats
+### Clutch Stats 🎯
+
+#### Clutch Player
+
+**What it is:** Player with the most games won by narrow margins (1-2 points).
+
+**Why it matters:** Shows who performs best under pressure - players who can close out tight games when it matters most.
+
+#### Clutch Pairing
+
+**What it is:** The partnership with the most narrow wins together.
+
+**Why it matters:** A duo that consistently wins the close ones, demonstrating composure under pressure.
+
+### Unlucky Stats 💔
 
 #### Unluckiest Player
 

@@ -3,11 +3,23 @@
 ## [Unreleased] - 2025-01
 
 ### Added
+- **Clutch Stats**: Track games won by narrow margins (1-2 points) - the reverse of unlucky games
+  - New `ClutchGame` type tracking close wins
+  - Clutch Player and Clutch Pairing shown in Group Overview
+  - Player and Pairing profiles now show "Close Games" section with both clutch and unlucky tiles
+  - Clickable tiles expand to show specific game history with scores and dates
+  - Green styling for clutch (🎯), red styling for unlucky (💔)
 - **Statistics Documentation**: New comprehensive STATS_GUIDE.md explaining all statistics
   - How each stat is calculated and what it means
   - Tips for interpreting stats correctly
   - ELO system explanation
   - Statistical significance guidance
+
+### Changed
+- **Player/Pairing Profile Sheets**: Redesigned unlucky games section as "Close Games"
+  - Two-column tile layout showing clutch and unlucky counts
+  - Tap either tile to expand game history below
+  - Better visual hierarchy with emoji icons and count display
 
 ### Fixed
 - **Current Streak Bug**: Fixed incorrect streak calculation that showed cumulative historic streaks

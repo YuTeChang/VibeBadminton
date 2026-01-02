@@ -173,6 +173,8 @@ export class ApiClient {
     dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number; wins: number; losses: number } | null;
     unluckyPlayer: { name: string; count: number } | null;
     unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
+    clutchPlayer: { name: string; count: number } | null;
+    clutchPairing: { player1Name: string; player2Name: string; count: number } | null;
     firstSessionDate: Date | null;
     daysSinceFirstSession: number | null;
   }> {

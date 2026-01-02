@@ -640,6 +640,8 @@ export class GroupService {
     dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number; wins: number; losses: number } | null;
     unluckyPlayer: { name: string; count: number } | null;
     unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
+    clutchPlayer: { name: string; count: number } | null;
+    clutchPairing: { player1Name: string; player2Name: string; count: number } | null;
     firstSessionDate: Date | null;
     daysSinceFirstSession: number | null;
   }> {
@@ -696,6 +698,8 @@ export class GroupService {
       let avgPointDifferential: number | null = null;
       let unluckyPlayerData: { name: string; count: number } | null = null;
       let unluckyPairingData: { player1Name: string; player2Name: string; count: number } | null = null;
+      let clutchPlayerData: { name: string; count: number } | null = null;
+      let clutchPairingData: { player1Name: string; player2Name: string; count: number } | null = null;
 
       if (sessionIds.length > 0) {
         // Get all games with scores for analysis
@@ -707,12 +711,14 @@ export class GroupService {
 
         totalGames = allGames?.length || 0;
 
-        // Calculate average point differential and unlucky stats
+        // Calculate average point differential, unlucky and clutch stats
         if (allGames && allGames.length > 0) {
           let totalDiff = 0;
           let gamesWithScores = 0;
           const playerUnluckyMap = new Map<string, number>(); // groupPlayerId -> unlucky count
           const pairingUnluckyMap = new Map<string, number>(); // "p1:p2" sorted key -> unlucky count
+          const playerClutchMap = new Map<string, number>(); // groupPlayerId -> clutch count
+          const pairingClutchMap = new Map<string, number>(); // "p1:p2" sorted key -> clutch count
 
           // Get player mappings
           const { data: sessionPlayers } = await supabase
@@ -741,11 +747,12 @@ export class GroupService {
               totalDiff += diff;
               gamesWithScores++;
 
-              // Check for unlucky games (lost by 1-2 points)
+              // Check for close games (won/lost by 1-2 points)
               if (diff <= 2) {
                 const losingTeam = winningTeam === 'A' ? teamB : teamA;
+                const winningTeamPlayers = winningTeam === 'A' ? teamA : teamB;
                 
-                // Track individual player unlucky games
+                // Track individual player unlucky games (losers)
                 losingTeam.forEach((playerId: string) => {
                   const groupPlayerId = sessionPlayerToGroup.get(playerId);
                   if (groupPlayerId) {
@@ -753,13 +760,31 @@ export class GroupService {
                   }
                 });
 
-                // Track pairing unlucky games (for doubles)
+                // Track pairing unlucky games (for doubles - losers)
                 if (losingTeam.length === 2) {
                   const gp1 = sessionPlayerToGroup.get(losingTeam[0]);
                   const gp2 = sessionPlayerToGroup.get(losingTeam[1]);
                   if (gp1 && gp2) {
                     const pairingKey = [gp1, gp2].sort().join(':');
                     pairingUnluckyMap.set(pairingKey, (pairingUnluckyMap.get(pairingKey) || 0) + 1);
+                  }
+                }
+
+                // Track individual player clutch games (winners)
+                winningTeamPlayers.forEach((playerId: string) => {
+                  const groupPlayerId = sessionPlayerToGroup.get(playerId);
+                  if (groupPlayerId) {
+                    playerClutchMap.set(groupPlayerId, (playerClutchMap.get(groupPlayerId) || 0) + 1);
+                  }
+                });
+
+                // Track pairing clutch games (for doubles - winners)
+                if (winningTeamPlayers.length === 2) {
+                  const gp1 = sessionPlayerToGroup.get(winningTeamPlayers[0]);
+                  const gp2 = sessionPlayerToGroup.get(winningTeamPlayers[1]);
+                  if (gp1 && gp2) {
+                    const pairingKey = [gp1, gp2].sort().join(':');
+                    pairingClutchMap.set(pairingKey, (pairingClutchMap.get(pairingKey) || 0) + 1);
                   }
                 }
               }
@@ -787,6 +812,22 @@ export class GroupService {
             };
           }
 
+          // Find most clutch player
+          let maxPlayerClutch = 0;
+          let maxPlayerClutchId: string | null = null;
+          playerClutchMap.forEach((count, id) => {
+            if (count > maxPlayerClutch) {
+              maxPlayerClutch = count;
+              maxPlayerClutchId = id;
+            }
+          });
+          if (maxPlayerClutchId && maxPlayerClutch > 0) {
+            clutchPlayerData = {
+              name: playerNameMap.get(maxPlayerClutchId) || 'Unknown',
+              count: maxPlayerClutch,
+            };
+          }
+
           // Find most unlucky pairing
           const pairingEntries = Array.from(pairingUnluckyMap.entries());
           const mostUnluckyPairing = pairingEntries.reduce<{ key: string; count: number } | null>(
@@ -804,6 +845,26 @@ export class GroupService {
               player1Name: playerNameMap.get(keyParts[0]) || 'Unknown',
               player2Name: playerNameMap.get(keyParts[1]) || 'Unknown',
               count: mostUnluckyPairing.count,
+            };
+          }
+
+          // Find most clutch pairing
+          const clutchPairingEntries = Array.from(pairingClutchMap.entries());
+          const mostClutchPairing = clutchPairingEntries.reduce<{ key: string; count: number } | null>(
+            (best, [key, count]) => {
+              if (!best || count > best.count) {
+                return { key, count };
+              }
+              return best;
+            },
+            null
+          );
+          if (mostClutchPairing && mostClutchPairing.count > 0) {
+            const keyParts = mostClutchPairing.key.split(':');
+            clutchPairingData = {
+              player1Name: playerNameMap.get(keyParts[0]) || 'Unknown',
+              player2Name: playerNameMap.get(keyParts[1]) || 'Unknown',
+              count: mostClutchPairing.count,
             };
           }
         }
@@ -911,6 +972,8 @@ export class GroupService {
         dreamTeam,
         unluckyPlayer: unluckyPlayerData,
         unluckyPairing: unluckyPairingData,
+        clutchPlayer: clutchPlayerData,
+        clutchPairing: clutchPairingData,
         firstSessionDate,
         daysSinceFirstSession,
       };
@@ -930,6 +993,8 @@ export class GroupService {
         dreamTeam: null,
         unluckyPlayer: null,
         unluckyPairing: null,
+        clutchPlayer: null,
+        clutchPairing: null,
         firstSessionDate: null,
         daysSinceFirstSession: null,
       };

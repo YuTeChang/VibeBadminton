@@ -1,5 +1,5 @@
 import { createSupabaseClient } from '@/lib/supabase';
-import { PairingStats, PairingMatchup, PairingDetailedStats, RecentGame, UnluckyGame } from '@/types';
+import { PairingStats, PairingMatchup, PairingDetailedStats, RecentGame, UnluckyGame, ClutchGame } from '@/types';
 
 /**
  * Service for managing pairing statistics (doubles team combinations)
@@ -484,7 +484,7 @@ export class PairingStatsService {
       (players || []).forEach(p => playerNames.set(p.id, p.name));
 
       // Get recent games and compute stats from games
-      const { recentForm, recentGames, unluckyGames, wins, losses, pointsFor, pointsAgainst, bestWinStreak } = await this.getRecentGamesForPairingWithStats(
+      const { recentForm, recentGames, unluckyGames, clutchGames, wins, losses, pointsFor, pointsAgainst, bestWinStreak } = await this.getRecentGamesForPairingWithStats(
         groupId, orderedP1, orderedP2, playerNames
       );
 
@@ -531,6 +531,8 @@ export class PairingStatsService {
         matchups: matchupStats,
         unluckyGames,
         unluckyCount: unluckyGames.length,
+        clutchGames,
+        clutchCount: clutchGames.length,
       };
     } catch (error) {
       console.error('[PairingStatsService] Error fetching pairing detailed stats:', error);
@@ -686,7 +688,7 @@ export class PairingStatsService {
 
   /**
    * Get recent games with details for a pairing - computed from games table
-   * Also returns total wins/losses, points, best streak, and unlucky games for accuracy
+   * Also returns total wins/losses, points, best streak, unlucky and clutch games for accuracy
    */
   private static async getRecentGamesForPairingWithStats(
     groupId: string,
@@ -697,6 +699,7 @@ export class PairingStatsService {
     recentForm: ('W' | 'L')[]; 
     recentGames: RecentGame[]; 
     unluckyGames: UnluckyGame[];
+    clutchGames: ClutchGame[];
     wins: number; 
     losses: number;
     pointsFor: number;
@@ -713,7 +716,7 @@ export class PairingStatsService {
         .eq('group_id', groupId);
 
       const sessionIds = (sessions || []).map(s => s.id);
-      if (sessionIds.length === 0) return { recentForm: [], recentGames: [], unluckyGames: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, bestWinStreak: 0 };
+      if (sessionIds.length === 0) return { recentForm: [], recentGames: [], unluckyGames: [], clutchGames: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, bestWinStreak: 0 };
 
       // Get player mappings
       const { data: sessionPlayers } = await supabase
@@ -744,6 +747,7 @@ export class PairingStatsService {
       const recentForm: ('W' | 'L')[] = [];
       const recentGames: RecentGame[] = [];
       const unluckyGames: UnluckyGame[] = [];
+      const clutchGames: ClutchGame[] = [];
       let wins = 0;
       let losses = 0;
       let pointsFor = 0;
@@ -767,10 +771,26 @@ export class PairingStatsService {
           pointsFor += game.team_a_score || 0;
           pointsAgainst += game.team_b_score || 0;
           
-          // Track best win streak
+          // Track best win streak and clutch games
           if (won) {
             tempWinStreak++;
             if (tempWinStreak > bestWinStreak) bestWinStreak = tempWinStreak;
+            
+            // Check for clutch games (won by 1-2 points)
+            if (game.team_a_score !== null && game.team_b_score !== null) {
+              const margin = Math.abs(game.team_a_score - game.team_b_score);
+              if (margin >= 1 && margin <= 2) {
+                clutchGames.push({
+                  teamANames: teamA.map((id: string) => playerNames.get(sessionPlayerToGroup.get(id) || '') || 'Unknown'),
+                  teamBNames: teamB.map((id: string) => playerNames.get(sessionPlayerToGroup.get(id) || '') || 'Unknown'),
+                  teamAScore: game.team_a_score ?? undefined,
+                  teamBScore: game.team_b_score ?? undefined,
+                  won: true,
+                  date: game.created_at ? new Date(game.created_at) : undefined,
+                  margin,
+                });
+              }
+            }
           } else {
             tempWinStreak = 0;
             
@@ -808,10 +828,26 @@ export class PairingStatsService {
           pointsFor += game.team_b_score || 0;
           pointsAgainst += game.team_a_score || 0;
           
-          // Track best win streak
+          // Track best win streak and clutch games
           if (won) {
             tempWinStreak++;
             if (tempWinStreak > bestWinStreak) bestWinStreak = tempWinStreak;
+            
+            // Check for clutch games (won by 1-2 points)
+            if (game.team_a_score !== null && game.team_b_score !== null) {
+              const margin = Math.abs(game.team_a_score - game.team_b_score);
+              if (margin >= 1 && margin <= 2) {
+                clutchGames.push({
+                  teamANames: teamA.map((id: string) => playerNames.get(sessionPlayerToGroup.get(id) || '') || 'Unknown'),
+                  teamBNames: teamB.map((id: string) => playerNames.get(sessionPlayerToGroup.get(id) || '') || 'Unknown'),
+                  teamAScore: game.team_a_score ?? undefined,
+                  teamBScore: game.team_b_score ?? undefined,
+                  won: true,
+                  date: game.created_at ? new Date(game.created_at) : undefined,
+                  margin,
+                });
+              }
+            }
           } else {
             tempWinStreak = 0;
             
@@ -846,10 +882,10 @@ export class PairingStatsService {
         }
       });
 
-      return { recentForm, recentGames, unluckyGames, wins, losses, pointsFor, pointsAgainst, bestWinStreak };
+      return { recentForm, recentGames, unluckyGames, clutchGames, wins, losses, pointsFor, pointsAgainst, bestWinStreak };
     } catch (error) {
       console.error('[PairingStatsService] Error getting recent games:', error);
-      return { recentForm: [], recentGames: [], unluckyGames: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, bestWinStreak: 0 };
+      return { recentForm: [], recentGames: [], unluckyGames: [], clutchGames: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, bestWinStreak: 0 };
     }
   }
 

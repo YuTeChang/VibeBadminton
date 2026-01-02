@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PlayerDetailedStats, PartnerStats, OpponentStats } from "@/types";
+import { PlayerDetailedStats, PartnerStats, OpponentStats, ClutchGame, UnluckyGame } from "@/types";
 import { formatPercentage } from "@/lib/calculations";
 import { PlayerMatchupDetailSheet } from "./PlayerMatchupDetailSheet";
 
@@ -22,6 +22,7 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
   const [selectedMatchup, setSelectedMatchup] = useState<SelectedMatchup>(null);
   const [showAllGames, setShowAllGames] = useState(false);
   const [showUnluckyGames, setShowUnluckyGames] = useState(false);
+  const [showClutchGames, setShowClutchGames] = useState(false);
   const [showAllPartners, setShowAllPartners] = useState(false);
   const [showAllOpponents, setShowAllOpponents] = useState(false);
   
@@ -165,33 +166,103 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
             </div>
           )}
 
-          {/* Unlucky Games - Lost by 1-2 points */}
-          {stats.unluckyGames && stats.unluckyGames.length > 0 && (
+          {/* Close Games - Clutch & Unlucky */}
+          {((stats.clutchGames && stats.clutchGames.length > 0) || (stats.unluckyGames && stats.unluckyGames.length > 0)) && (
             <div>
-              <button
-                onClick={() => setShowUnluckyGames(!showUnluckyGames)}
-                className="w-full flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-xl p-3 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">💔</span>
-                  <div className="text-left">
-                    <div className="font-medium text-japandi-text-primary">Unlucky Games</div>
-                    <div className="text-xs text-japandi-text-muted">Lost by 1-2 points</div>
-                  </div>
+              <h3 className="text-sm font-semibold text-japandi-text-muted uppercase tracking-wide mb-3">
+                Close Games (Won/Lost by 1-2 pts)
+              </h3>
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                {/* Clutch tile */}
+                <button
+                  onClick={() => stats.clutchGames && stats.clutchGames.length > 0 && setShowClutchGames(!showClutchGames)}
+                  disabled={!stats.clutchGames || stats.clutchGames.length === 0}
+                  className={`flex flex-col items-center justify-center bg-green-50 dark:bg-green-900/20 rounded-xl p-4 transition-colors ${
+                    stats.clutchGames && stats.clutchGames.length > 0 
+                      ? 'hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer' 
+                      : 'opacity-50 cursor-default'
+                  }`}
+                >
+                  <span className="text-2xl mb-1">🎯</span>
+                  <span className="text-2xl font-bold text-green-600">{stats.clutchCount || 0}</span>
+                  <span className="text-xs text-japandi-text-muted">Clutch Wins</span>
+                  {stats.clutchGames && stats.clutchGames.length > 0 && (
+                    <svg 
+                      className={`w-4 h-4 text-japandi-text-muted mt-1 transition-transform ${showClutchGames ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  )}
+                </button>
+                
+                {/* Unlucky tile */}
+                <button
+                  onClick={() => stats.unluckyGames && stats.unluckyGames.length > 0 && setShowUnluckyGames(!showUnluckyGames)}
+                  disabled={!stats.unluckyGames || stats.unluckyGames.length === 0}
+                  className={`flex flex-col items-center justify-center bg-red-50 dark:bg-red-900/20 rounded-xl p-4 transition-colors ${
+                    stats.unluckyGames && stats.unluckyGames.length > 0 
+                      ? 'hover:bg-red-100 dark:hover:bg-red-900/30 cursor-pointer' 
+                      : 'opacity-50 cursor-default'
+                  }`}
+                >
+                  <span className="text-2xl mb-1">💔</span>
+                  <span className="text-2xl font-bold text-red-500">{stats.unluckyCount || 0}</span>
+                  <span className="text-xs text-japandi-text-muted">Unlucky Losses</span>
+                  {stats.unluckyGames && stats.unluckyGames.length > 0 && (
+                    <svg 
+                      className={`w-4 h-4 text-japandi-text-muted mt-1 transition-transform ${showUnluckyGames ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              
+              {/* Clutch Games Expanded */}
+              {showClutchGames && stats.clutchGames && stats.clutchGames.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {stats.clutchGames.map((game, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl p-3 bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-800/30"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-japandi-text-primary truncate">
+                            {game.teamANames.join(' & ')}
+                          </div>
+                          <div className="text-xs text-japandi-text-muted">vs</div>
+                          <div className="text-sm text-japandi-text-primary truncate">
+                            {game.teamBNames.join(' & ')}
+                          </div>
+                        </div>
+                        <div className="text-right ml-3 flex-shrink-0">
+                          <div className="text-lg font-bold text-green-600">
+                            {game.teamAScore}-{game.teamBScore}
+                          </div>
+                          <div className="text-xs text-green-500">
+                            Won by {game.margin}
+                          </div>
+                          {game.date && (
+                            <div className="text-xs text-japandi-text-muted mt-1">
+                              {new Date(game.date).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-red-500">{stats.unluckyGames.length}</span>
-                  <svg 
-                    className={`w-4 h-4 text-japandi-text-muted transition-transform ${showUnluckyGames ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </button>
-              {showUnluckyGames && (
+              )}
+              
+              {/* Unlucky Games Expanded */}
+              {showUnluckyGames && stats.unluckyGames && stats.unluckyGames.length > 0 && (
                 <div className="mt-2 space-y-2">
                   {stats.unluckyGames.map((game, i) => (
                     <div

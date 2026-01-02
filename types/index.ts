@@ -103,6 +103,11 @@ export interface UnluckyGame extends RecentGame {
   margin: number; // 1 or 2
 }
 
+// Clutch game (won by 1-2 points)
+export interface ClutchGame extends RecentGame {
+  margin: number; // 1 or 2
+}
+
 // Extended Group Overview Statistics
 export interface GroupOverviewStats {
   // Basic counts
@@ -142,6 +147,10 @@ export interface GroupOverviewStats {
   // Unlucky stats - most games lost by 1-2 points
   unluckyPlayer: { name: string; count: number } | null;
   unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
+  
+  // Clutch stats - most games won by 1-2 points
+  clutchPlayer: { name: string; count: number } | null;
+  clutchPairing: { player1Name: string; player2Name: string; count: number } | null;
   
   // History
   firstSessionDate: Date | null;
@@ -185,6 +194,10 @@ export interface PlayerDetailedStats {
   // Unlucky games - games lost by 1-2 points
   unluckyGames?: UnluckyGame[];
   unluckyCount?: number;
+  
+  // Clutch games - games won by 1-2 points
+  clutchGames?: ClutchGame[];
+  clutchCount?: number;
 }
 
 // ============================================================================
@@ -264,4 +277,7 @@ export interface PairingDetailedStats {
   // Unlucky games - games lost by 1-2 points
   unluckyGames?: UnluckyGame[];
   unluckyCount?: number;
+  // Clutch games - games won by 1-2 points
+  clutchGames?: ClutchGame[];
+  clutchCount?: number;
 }
