@@ -200,6 +200,34 @@ Found in the expandable "Group Overview" section on the group page.
 
 **What it is:** Player who has participated in the most games.
 
+### Pair Records
+
+These mirror the individual records but track partnerships instead. If multiple pairs are tied for a record, all tied pairs are shown.
+
+#### Highest Pair ELO 👑
+
+**What it is:** The partnership(s) with the highest combined ELO rating.
+
+**How it's calculated:** Each pair has their own ELO that updates when they play together.
+
+**Criteria:** Only pairs with 5+ games together are considered.
+
+#### Best Pair Streak 🔥
+
+**What it is:** The partnership(s) with the longest consecutive win streak together.
+
+**How it's calculated:** Tracks the maximum number of wins in a row the pair achieved while playing as teammates.
+
+**Criteria:** Only pairs with 5+ games together are considered.
+
+#### Most Games Together 💪
+
+**What it is:** The partnership(s) that have played the most games as teammates.
+
+**Why it matters:** Shows the most consistent/frequent partnerships in the group.
+
+**Criteria:** Only pairs with 5+ games together are considered.
+
 ### Clutch Stats 🎯
 
 #### Clutch Player

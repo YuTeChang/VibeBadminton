@@ -637,6 +637,10 @@ export class GroupService {
     eloSpread: number | null;
     bestWinStreak: { name: string; streak: number } | null;
     mostGamesPlayed: { name: string; games: number } | null;
+    // Pairing records (arrays to support ties)
+    highestPairElo: Array<{ player1Name: string; player2Name: string; rating: number }>;
+    bestPairStreak: Array<{ player1Name: string; player2Name: string; streak: number }>;
+    mostGamesTogether: Array<{ player1Name: string; player2Name: string; games: number }>;
     dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number; wins: number; losses: number } | null;
     unluckyPlayer: { name: string; count: number } | null;
     unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
@@ -671,7 +675,7 @@ export class GroupService {
           .eq('group_id', groupId),
         supabase
           .from('partner_stats')
-          .select('player1_id, player2_id, wins, losses, total_games')
+          .select('player1_id, player2_id, wins, losses, total_games, elo_rating, best_win_streak')
           .eq('group_id', groupId)
           .gte('total_games', 5)
       ]);
@@ -901,6 +905,52 @@ export class GroupService {
         }
       }
 
+      // Calculate pairing records (with tie support)
+      let highestPairElo: Array<{ player1Name: string; player2Name: string; rating: number }> = [];
+      let bestPairStreak: Array<{ player1Name: string; player2Name: string; streak: number }> = [];
+      let mostGamesTogether: Array<{ player1Name: string; player2Name: string; games: number }> = [];
+
+      if (partnerStats && partnerStats.length > 0) {
+        const pairNameMap = new Map<string, string>();
+        (players || []).forEach(p => pairNameMap.set(p.id, p.name));
+
+        // Highest Pair ELO (all ties)
+        const maxPairElo = Math.max(...partnerStats.map(p => p.elo_rating || 1500));
+        if (maxPairElo > 1500) {
+          highestPairElo = partnerStats
+            .filter(p => (p.elo_rating || 1500) === maxPairElo)
+            .map(p => ({
+              player1Name: pairNameMap.get(p.player1_id) || 'Unknown',
+              player2Name: pairNameMap.get(p.player2_id) || 'Unknown',
+              rating: p.elo_rating || 1500,
+            }));
+        }
+
+        // Best Pair Streak (all ties)
+        const maxPairStreak = Math.max(...partnerStats.map(p => p.best_win_streak || 0));
+        if (maxPairStreak > 0) {
+          bestPairStreak = partnerStats
+            .filter(p => (p.best_win_streak || 0) === maxPairStreak)
+            .map(p => ({
+              player1Name: pairNameMap.get(p.player1_id) || 'Unknown',
+              player2Name: pairNameMap.get(p.player2_id) || 'Unknown',
+              streak: p.best_win_streak || 0,
+            }));
+        }
+
+        // Most Games Together (all ties)
+        const maxPairGames = Math.max(...partnerStats.map(p => p.total_games || 0));
+        if (maxPairGames > 0) {
+          mostGamesTogether = partnerStats
+            .filter(p => (p.total_games || 0) === maxPairGames)
+            .map(p => ({
+              player1Name: pairNameMap.get(p.player1_id) || 'Unknown',
+              player2Name: pairNameMap.get(p.player2_id) || 'Unknown',
+              games: p.total_games || 0,
+            }));
+        }
+      }
+
       // Find closest matchups (all rivalries with the same closeness)
       let closestMatchups: Array<{
         team1Player1Name: string;
@@ -972,6 +1022,9 @@ export class GroupService {
         eloSpread,
         bestWinStreak,
         mostGamesPlayed,
+        highestPairElo,
+        bestPairStreak,
+        mostGamesTogether,
         dreamTeam,
         unluckyPlayer: unluckyPlayerData,
         unluckyPairing: unluckyPairingData,
@@ -993,6 +1046,9 @@ export class GroupService {
         eloSpread: null,
         bestWinStreak: null,
         mostGamesPlayed: null,
+        highestPairElo: [],
+        bestPairStreak: [],
+        mostGamesTogether: [],
         dreamTeam: null,
         unluckyPlayer: null,
         unluckyPairing: null,

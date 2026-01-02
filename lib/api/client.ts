@@ -170,6 +170,10 @@ export class ApiClient {
     eloSpread: number | null;
     bestWinStreak: { name: string; streak: number } | null;
     mostGamesPlayed: { name: string; games: number } | null;
+    // Pairing records (arrays to support ties)
+    highestPairElo: Array<{ player1Name: string; player2Name: string; rating: number }>;
+    bestPairStreak: Array<{ player1Name: string; player2Name: string; streak: number }>;
+    mostGamesTogether: Array<{ player1Name: string; player2Name: string; games: number }>;
     dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number; wins: number; losses: number } | null;
     unluckyPlayer: { name: string; count: number } | null;
     unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;

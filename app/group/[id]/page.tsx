@@ -40,6 +40,10 @@ export default function GroupPage() {
     eloSpread: number | null;
     bestWinStreak: { name: string; streak: number } | null;
     mostGamesPlayed: { name: string; games: number } | null;
+    // Pairing records (arrays to support ties)
+    highestPairElo: Array<{ player1Name: string; player2Name: string; rating: number }>;
+    bestPairStreak: Array<{ player1Name: string; player2Name: string; streak: number }>;
+    mostGamesTogether: Array<{ player1Name: string; player2Name: string; games: number }>;
     dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number; wins: number; losses: number } | null;
     unluckyPlayer: { name: string; count: number } | null;
     unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
@@ -688,6 +692,57 @@ export default function GroupPage() {
                           )}
                         </div>
                       </div>
+
+                      {/* Pair Records */}
+                      {(groupStats.highestPairElo.length > 0 || groupStats.bestPairStreak.length > 0 || groupStats.mostGamesTogether.length > 0) && (
+                        <div>
+                          <div className="text-xs font-medium text-japandi-text-muted uppercase tracking-wide mb-2">Pair Records</div>
+                          <div className="space-y-2">
+                            {groupStats.highestPairElo.length > 0 && groupStats.highestPairElo.map((pair, idx) => (
+                              <div key={`elo-${idx}`} className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">👑</span>
+                                  <div>
+                                    <div className="text-sm font-medium text-japandi-text-primary">
+                                      {pair.player1Name} & {pair.player2Name}
+                                    </div>
+                                    <div className="text-xs text-japandi-text-muted">Highest Pair ELO</div>
+                                  </div>
+                                </div>
+                                <div className="text-lg font-bold text-japandi-accent-primary">{pair.rating}</div>
+                              </div>
+                            ))}
+                            {groupStats.bestPairStreak.length > 0 && groupStats.bestPairStreak.map((pair, idx) => (
+                              <div key={`streak-${idx}`} className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">🔥</span>
+                                  <div>
+                                    <div className="text-sm font-medium text-japandi-text-primary">
+                                      {pair.player1Name} & {pair.player2Name}
+                                    </div>
+                                    <div className="text-xs text-japandi-text-muted">Best Pair Streak</div>
+                                  </div>
+                                </div>
+                                <div className="text-lg font-bold text-japandi-accent-primary">{pair.streak}</div>
+                              </div>
+                            ))}
+                            {groupStats.mostGamesTogether.length > 0 && groupStats.mostGamesTogether.map((pair, idx) => (
+                              <div key={`games-${idx}`} className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">💪</span>
+                                  <div>
+                                    <div className="text-sm font-medium text-japandi-text-primary">
+                                      {pair.player1Name} & {pair.player2Name}
+                                    </div>
+                                    <div className="text-xs text-japandi-text-muted">Most Games Together</div>
+                                  </div>
+                                </div>
+                                <div className="text-lg font-bold text-japandi-accent-primary">{pair.games}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Pairs */}
                       <div>
