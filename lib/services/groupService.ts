@@ -491,6 +491,129 @@ export class GroupService {
       console.error('[GroupService] Error in reversePlayerStats:', error);
     }
   }
+
+  /**
+   * Get group-level statistics
+   * Returns total games, total sessions, most active player, and closest matchup
+   */
+  static async getGroupStats(groupId: string): Promise<{
+    totalGames: number;
+    totalSessions: number;
+    mostActivePlayer: { id: string; name: string; gamesPlayed: number } | null;
+    closestMatchup: {
+      team1Player1Name: string;
+      team1Player2Name: string;
+      team2Player1Name: string;
+      team2Player2Name: string;
+      team1Wins: number;
+      team2Wins: number;
+      totalGames: number;
+    } | null;
+  }> {
+    const supabase = createSupabaseClient();
+
+    try {
+      // Get total sessions
+      const { count: sessionCount } = await supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('group_id', groupId);
+
+      // Get session IDs for this group
+      const { data: sessions } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('group_id', groupId);
+
+      const sessionIds = (sessions || []).map(s => s.id);
+
+      // Get total completed games
+      let totalGames = 0;
+      if (sessionIds.length > 0) {
+        const { count: gameCount } = await supabase
+          .from('games')
+          .select('*', { count: 'exact', head: true })
+          .in('session_id', sessionIds)
+          .not('winning_team', 'is', null);
+        totalGames = gameCount || 0;
+      }
+
+      // Get most active player (player with most total_games)
+      const { data: topPlayer } = await supabase
+        .from('group_players')
+        .select('id, name, total_games')
+        .eq('group_id', groupId)
+        .order('total_games', { ascending: false })
+        .limit(1)
+        .single();
+
+      const mostActivePlayer = topPlayer && topPlayer.total_games > 0
+        ? { id: topPlayer.id, name: topPlayer.name, gamesPlayed: topPlayer.total_games }
+        : null;
+
+      // Get closest matchup (pairing matchup with smallest win difference, min 5 games)
+      const { data: matchups } = await supabase
+        .from('pairing_matchups')
+        .select('team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, team1_wins, team1_losses, total_games')
+        .eq('group_id', groupId)
+        .gte('total_games', 5);
+
+      let closestMatchup: {
+        team1Player1Name: string;
+        team1Player2Name: string;
+        team2Player1Name: string;
+        team2Player2Name: string;
+        team1Wins: number;
+        team2Wins: number;
+        totalGames: number;
+      } | null = null;
+
+      if (matchups && matchups.length > 0) {
+        // Find matchup with smallest absolute difference
+        const closest = matchups.reduce((best, current) => {
+          const currentDiff = Math.abs(current.team1_wins - current.team1_losses);
+          const bestDiff = best ? Math.abs(best.team1_wins - best.team1_losses) : Infinity;
+          return currentDiff < bestDiff ? current : best;
+        }, null as typeof matchups[0] | null);
+
+        if (closest) {
+          // Get player names
+          const { data: players } = await supabase
+            .from('group_players')
+            .select('id, name')
+            .in('id', [closest.team1_player1_id, closest.team1_player2_id, closest.team2_player1_id, closest.team2_player2_id]);
+
+          const playerNames = new Map<string, string>();
+          (players || []).forEach(p => playerNames.set(p.id, p.name));
+
+          closestMatchup = {
+            team1Player1Name: playerNames.get(closest.team1_player1_id) || 'Unknown',
+            team1Player2Name: playerNames.get(closest.team1_player2_id) || 'Unknown',
+            team2Player1Name: playerNames.get(closest.team2_player1_id) || 'Unknown',
+            team2Player2Name: playerNames.get(closest.team2_player2_id) || 'Unknown',
+            team1Wins: closest.team1_wins,
+            team2Wins: closest.team1_losses,
+            totalGames: closest.total_games,
+          };
+        }
+      }
+
+      return {
+        totalGames,
+        totalSessions: sessionCount || 0,
+        mostActivePlayer,
+        closestMatchup,
+      };
+    } catch (error) {
+      console.error('[GroupService] Error fetching group stats:', error);
+      return {
+        totalGames: 0,
+        totalSessions: 0,
+        mostActivePlayer: null,
+        closestMatchup: null,
+      };
+    }
+  }
 }
 
 

@@ -438,9 +438,31 @@ export class GameService {
         
         // Update pairing stats for doubles games
         if (teamAGroupIds.length === 2 && teamBGroupIds.length === 2) {
-          // Update partner stats for both teams
-          await PairingStatsService.updatePartnerStats(groupId, teamAGroupIds, game.winningTeam === 'A');
-          await PairingStatsService.updatePartnerStats(groupId, teamBGroupIds, game.winningTeam === 'B');
+          // Get current pairing ELOs before updating (for ELO calculation)
+          const teamAElo = await PairingStatsService.getPairingElo(groupId, teamAGroupIds[0], teamAGroupIds[1]);
+          const teamBElo = await PairingStatsService.getPairingElo(groupId, teamBGroupIds[0], teamBGroupIds[1]);
+          
+          // Get scores if available
+          const teamAScore = game.teamAScore;
+          const teamBScore = game.teamBScore;
+          
+          // Update partner stats for both teams with opponent ELO and scores
+          await PairingStatsService.updatePartnerStats(
+            groupId, 
+            teamAGroupIds, 
+            game.winningTeam === 'A',
+            teamBElo,
+            teamAScore,
+            teamBScore
+          );
+          await PairingStatsService.updatePartnerStats(
+            groupId, 
+            teamBGroupIds, 
+            game.winningTeam === 'B',
+            teamAElo,
+            teamBScore,
+            teamAScore
+          );
           
           // Update head-to-head pairing matchup
           await PairingStatsService.updatePairingMatchup(groupId, teamAGroupIds, teamBGroupIds, game.winningTeam);

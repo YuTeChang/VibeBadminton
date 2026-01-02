@@ -263,10 +263,12 @@ Include comments in migration files:
 ```
 scripts/
   migrations/
-    001-add-groups.sql          # First migration
-    002-add-notifications.sql   # Second migration
-    003-update-sessions.sql     # Third migration
-    README.md                   # This file
+    001-add-groups.sql              # Groups and group_players tables
+    002-add-elo-rating.sql          # ELO rating column for group_players
+    003-add-player-stats.sql        # Wins, losses, total_games columns
+    004-add-pairing-stats.sql       # partner_stats and pairing_matchups tables
+    005-add-extended-stats.sql      # Streaks, pairing ELO, point tracking
+    README.md                       # This file
 ```
 
 ## Environment Variables

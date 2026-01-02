@@ -509,6 +509,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // Try to get session from API first
     try {
       sessionToLoad = await ApiClient.getSession(sessionId);
+      // Mark this session as already synced since we just loaded it from the database
+      // This prevents the sync useEffect from making a redundant POST request
+      if (sessionToLoad) {
+        hasSyncedSessionRef.current.add(sessionId);
+      }
       // Update allSessions cache with fresh data
       if (sessionToLoad) {
         setAllSessions(prev => {

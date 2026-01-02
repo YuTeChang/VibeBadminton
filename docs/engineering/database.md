@@ -113,6 +113,12 @@ Player pool for a group. Players here can be linked to session players for cross
 | `group_id` | VARCHAR(255) | Foreign key to `groups.id` |
 | `name` | VARCHAR(255) | Player name |
 | `elo_rating` | INTEGER | ELO rating (default: 1500) |
+| `wins` | INTEGER | Total wins across all sessions (default: 0) |
+| `losses` | INTEGER | Total losses across all sessions (default: 0) |
+| `total_games` | INTEGER | Total games played (default: 0) |
+| `current_streak` | INTEGER | Current win/loss streak: positive=wins, negative=losses (default: 0) |
+| `best_win_streak` | INTEGER | Best win streak ever achieved (default: 0) |
+| `sessions_attended` | INTEGER | Number of sessions attended (default: 0) |
 | `created_at` | TIMESTAMP | Creation timestamp |
 
 **Indexes:**
@@ -199,9 +205,9 @@ Individual games within a session.
 
 ---
 
-### `partner_stats` (NEW)
+### `partner_stats`
 
-Tracks win/loss record when two players are on the same team (doubles).
+Tracks win/loss record and ELO when two players are on the same team (doubles). Each pairing has its own ELO rating, treating the pair as a single competitive unit.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -212,6 +218,11 @@ Tracks win/loss record when two players are on the same team (doubles).
 | `wins` | INTEGER | Games won together (default: 0) |
 | `losses` | INTEGER | Games lost together (default: 0) |
 | `total_games` | INTEGER | Total games played together |
+| `elo_rating` | INTEGER | Pairing ELO rating (default: 1500) - independent of individual ELO |
+| `current_streak` | INTEGER | Current win/loss streak: positive=wins, negative=losses (default: 0) |
+| `best_win_streak` | INTEGER | Best win streak for this pairing (default: 0) |
+| `points_for` | INTEGER | Total points scored as a pair (default: 0) |
+| `points_against` | INTEGER | Total points conceded as a pair (default: 0) |
 | `created_at` | TIMESTAMP | Creation timestamp |
 | `updated_at` | TIMESTAMP | Last update timestamp |
 
@@ -229,7 +240,7 @@ Tracks win/loss record when two players are on the same team (doubles).
 
 ---
 
-### `pairing_matchups` (NEW)
+### `pairing_matchups`
 
 Tracks head-to-head record between two specific pairings.
 

@@ -195,7 +195,6 @@ export class EloService {
     await this.updatePlayerRatingsAndStats(updates.map(u => ({
       groupPlayerId: u.groupPlayerId,
       newRating: u.newRating,
-      won: u.change > 0 || (u.change === 0 && validTeamA.includes(u.groupPlayerId) ? winningTeam === 'A' : winningTeam === 'B'),
     })), winningTeam, validTeamA, validTeamB);
 
     return { updates };
@@ -203,9 +202,10 @@ export class EloService {
 
   /**
    * Update ELO ratings AND win/loss stats for multiple players
+   * Also tracks current streak and best win streak
    */
   static async updatePlayerRatingsAndStats(
-    updates: { groupPlayerId: string; newRating: number; won: boolean }[],
+    updates: { groupPlayerId: string; newRating: number }[],
     winningTeam: 'A' | 'B',
     teamAIds: string[],
     teamBIds: string[]
@@ -213,6 +213,7 @@ export class EloService {
     const supabase = createSupabaseClient();
 
     for (const update of updates) {
+      // Determine if player won based on which team they were on
       const isTeamA = teamAIds.includes(update.groupPlayerId);
       const won = isTeamA ? winningTeam === 'A' : winningTeam === 'B';
 
@@ -220,7 +221,7 @@ export class EloService {
         // Get current stats - handle case where record doesn't exist or columns are null
         const { data: player, error: fetchError } = await supabase
           .from('group_players')
-          .select('wins, losses, total_games')
+          .select('wins, losses, total_games, current_streak, best_win_streak')
           .eq('id', update.groupPlayerId)
           .single();
 
@@ -237,12 +238,27 @@ export class EloService {
         // Ensure we have valid numbers (handle null/undefined from DB)
         const currentWins = typeof player?.wins === 'number' ? player.wins : 0;
         const currentLosses = typeof player?.losses === 'number' ? player.losses : 0;
+        const currentStreak = typeof player?.current_streak === 'number' ? player.current_streak : 0;
+        const bestWinStreak = typeof player?.best_win_streak === 'number' ? player.best_win_streak : 0;
 
         const newWins = won ? currentWins + 1 : currentWins;
         const newLosses = won ? currentLosses : currentLosses + 1;
         const newTotalGames = newWins + newLosses;
 
-        console.log(`[EloService] Updating stats for ${update.groupPlayerId}: ELO=${update.newRating}, wins=${currentWins}->${newWins}, losses=${currentLosses}->${newLosses}, won=${won}`);
+        // Update streak: positive = win streak, negative = loss streak
+        // Win continues win streak (or starts new), loss resets to -1
+        // Loss continues loss streak (or starts new), win resets to +1
+        let newStreak: number;
+        if (won) {
+          newStreak = currentStreak >= 0 ? currentStreak + 1 : 1;
+        } else {
+          newStreak = currentStreak <= 0 ? currentStreak - 1 : -1;
+        }
+
+        // Update best win streak if current win streak exceeds it
+        const newBestWinStreak = newStreak > bestWinStreak ? newStreak : bestWinStreak;
+
+        console.log(`[EloService] Updating stats for ${update.groupPlayerId}: ELO=${update.newRating}, wins=${currentWins}->${newWins}, losses=${currentLosses}->${newLosses}, streak=${currentStreak}->${newStreak}, bestStreak=${bestWinStreak}->${newBestWinStreak}, won=${won}`);
 
         const { error: updateError } = await supabase
           .from('group_players')
@@ -251,6 +267,8 @@ export class EloService {
             wins: newWins,
             losses: newLosses,
             total_games: newTotalGames,
+            current_streak: newStreak,
+            best_win_streak: newBestWinStreak,
           })
           .eq('id', update.groupPlayerId);
 
@@ -343,6 +361,8 @@ export class EloService {
         wins: 0,
         losses: 0,
         total_games: 0,
+        current_streak: 0,
+        best_win_streak: 0,
       })
       .eq('group_id', groupId)
       .select('id, name');

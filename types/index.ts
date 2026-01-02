@@ -129,6 +129,12 @@ export interface PairingStats {
   wins: number;
   losses: number;
   winRate: number;
+  eloRating?: number; // Pairing-specific ELO (treats pair as one unit)
+  currentStreak?: number; // Positive = wins, negative = losses
+  bestWinStreak?: number;
+  pointsFor?: number;
+  pointsAgainst?: number;
+  pointDifferential?: number;
 }
 
 // Head-to-head stats between two pairings
@@ -161,9 +167,17 @@ export interface PairingDetailedStats {
   wins: number;
   losses: number;
   winRate: number;
+  // ELO rating for this pairing
+  eloRating: number;
+  // Point differential
+  pointsFor: number;
+  pointsAgainst: number;
+  pointDifferential: number;
+  // Streaks
+  currentStreak: number;
+  bestWinStreak: number;
   // Recent form
   recentForm: ('W' | 'L')[];
-  currentStreak: number;
   // Head-to-head against other pairings
   matchups: PairingMatchup[];
 }

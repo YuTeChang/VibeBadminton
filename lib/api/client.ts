@@ -113,6 +113,26 @@ export class ApiClient {
   }
 
   /**
+   * Group Overview Stats API
+   */
+  static async getGroupOverviewStats(groupId: string): Promise<{
+    totalGames: number;
+    totalSessions: number;
+    mostActivePlayer: { id: string; name: string; gamesPlayed: number } | null;
+    closestMatchup: {
+      team1Player1Name: string;
+      team1Player2Name: string;
+      team2Player1Name: string;
+      team2Player2Name: string;
+      team1Wins: number;
+      team2Wins: number;
+      totalGames: number;
+    } | null;
+  }> {
+    return this.fetch(`/groups/${groupId}/overview`);
+  }
+
+  /**
    * Player Detailed Stats API
    */
   static async getPlayerDetailedStats(groupId: string, playerId: string): Promise<PlayerDetailedStats> {

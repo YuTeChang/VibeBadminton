@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { StatsService } from '@/lib/services/statsService';
 import { EloService } from '@/lib/services/eloService';
+import { PairingStatsService } from '@/lib/services/pairingStatsService';
 
 // Simple in-memory rate limiting for recalculation
 const recalculationTimestamps = new Map<string, number>();
@@ -73,13 +74,19 @@ export async function POST(
     // Update timestamp before processing to prevent parallel requests
     recalculationTimestamps.set(groupId, now);
 
-    console.log(`[API] Admin: Recalculating stats for group ${groupId}`);
-    const result = await EloService.recalculateGroupElo(groupId);
+    console.log(`[API] Admin: Recalculating all stats for group ${groupId}`);
+    
+    // Recalculate individual player ELO and win/loss stats
+    const eloResult = await EloService.recalculateGroupElo(groupId);
+    
+    // Also recalculate pairing stats (partner and matchup stats)
+    const pairingResult = await PairingStatsService.recalculatePairingStats(groupId);
 
     return NextResponse.json({
       success: true,
-      message: 'Stats recalculated successfully',
-      ...result,
+      message: 'All stats recalculated successfully',
+      playerStats: eloResult,
+      pairingStats: pairingResult,
     });
   } catch (error) {
     console.error('[API] Error recalculating stats:', error);

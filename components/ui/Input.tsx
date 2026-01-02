@@ -21,7 +21,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           className={cn(
-            "w-full px-4 py-3 border rounded-card bg-japandi-background-card text-japandi-text-primary",
+            "w-full px-4 py-3 border rounded-card bg-japandi-background-card text-japandi-text-primary text-base",
             "focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all",
             "placeholder:text-japandi-text-muted",
             error

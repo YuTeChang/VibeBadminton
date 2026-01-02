@@ -6,6 +6,47 @@ This document tracks all features, improvements, and fixes added to PoweredByPac
 
 ### Major Features Added
 
+#### Extended Stats System
+- **Status**: ✅ Complete
+- **Description**: Added streak tracking, pairing ELO, point differential, and group overview stats
+- **Implementation**:
+  - **Player Streaks**: Track `current_streak` and `best_win_streak` on `group_players`
+    - Positive values = win streak, negative = loss streak
+    - Shows 🔥 badge for 3+ win streak, ❄️ for 3+ loss streak on leaderboard
+  - **Pairing ELO**: Independent ELO for each doubles pair (treats pair as single unit)
+    - Starts at 1500, K-factor 32
+    - Different from combining individual ELOs
+  - **Pairing Point Differential**: Track `points_for` and `points_against` for pairs
+  - **Pairing Streaks**: Track current and best win streaks for pairs
+  - **Group Overview Stats**: New card showing total games, sessions, most active player, closest matchup
+- **Database Migration**: `005-add-extended-stats.sql`
+- **User Impact**: More meaningful stats, better competitive insights
+
+#### Leaderboard Enhancements
+- **Status**: ✅ Complete
+- **Description**: Replaced ELO display with Recent Form, added streak badges
+- **Implementation**:
+  - Replaced ELO number with W/L boxes showing recent form (3 on mobile, 5 on desktop)
+  - Added 🔥 (hot) and ❄️ (cold) streak badges next to player names
+  - ELO still used internally for ranking, just hidden from UI
+- **User Impact**: More intuitive at-a-glance view of player performance
+
+#### Pairing Profile Enhancements
+- **Status**: ✅ Complete
+- **Description**: Added pairing ELO, point differential, and best streak to pairing profile sheet
+- **Implementation**:
+  - New stats row showing Pair ELO, Point Diff (+/-), Best Streak
+  - Point differential shows green/red color based on positive/negative
+- **User Impact**: Deeper insights into doubles pairing performance
+
+#### Mobile Input Zoom Fix
+- **Status**: ✅ Complete
+- **Description**: Fixed iOS Safari auto-zoom when focusing on score input fields
+- **Implementation**:
+  - Added `text-base` (16px) class to all input fields
+  - iOS zooms on inputs with font-size < 16px
+- **User Impact**: Smoother mobile experience when recording game scores
+
 #### ELO Rating & Leaderboard System
 - **Status**: ✅ Complete
 - **Description**: Track player skill with ELO ratings and view group leaderboards

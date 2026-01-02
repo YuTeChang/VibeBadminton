@@ -20,6 +20,20 @@ export default function GroupPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [pairings, setPairings] = useState<PairingStats[]>([]);
+  const [groupStats, setGroupStats] = useState<{
+    totalGames: number;
+    totalSessions: number;
+    mostActivePlayer: { id: string; name: string; gamesPlayed: number } | null;
+    closestMatchup: {
+      team1Player1Name: string;
+      team1Player2Name: string;
+      team2Player1Name: string;
+      team2Player2Name: string;
+      team1Wins: number;
+      team2Wins: number;
+      totalGames: number;
+    } | null;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
@@ -45,13 +59,15 @@ export default function GroupPage() {
       setError(null);
       
       // Only load group and sessions initially - players/leaderboard load lazily
-      const [fetchedGroup, fetchedSessions] = await Promise.all([
+      const [fetchedGroup, fetchedSessions, fetchedStats] = await Promise.all([
         ApiClient.getGroup(groupId),
         ApiClient.getGroupSessions(groupId).catch(() => []),
+        ApiClient.getGroupOverviewStats(groupId).catch(() => null),
       ]);
       
       setGroup(fetchedGroup);
       setSessions(fetchedSessions || []);
+      setGroupStats(fetchedStats);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load group");
     } finally {
@@ -292,6 +308,30 @@ export default function GroupPage() {
     return <span className="text-japandi-text-muted text-sm">-</span>;
   };
 
+  // Calculate streak from recent form and render badge
+  const renderStreakBadge = (recentForm: ('W' | 'L')[]) => {
+    if (recentForm.length === 0) return null;
+    
+    let streak = 0;
+    const firstResult = recentForm[0];
+    for (const result of recentForm) {
+      if (result === firstResult) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    // Only show badge for 3+ streaks
+    if (streak < 3) return null;
+    
+    if (firstResult === 'W') {
+      return <span className="text-sm" title={`${streak} game win streak`}>🔥</span>;
+    } else {
+      return <span className="text-sm" title={`${streak} game losing streak`}>❄️</span>;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-japandi-background-primary flex items-center justify-center">
@@ -400,6 +440,42 @@ export default function GroupPage() {
         {/* Sessions Tab */}
         {activeTab === "sessions" && (
           <div className="space-y-4">
+            {/* Group Stats Card */}
+            {groupStats && (groupStats.totalGames > 0 || groupStats.totalSessions > 0) && (
+              <div className="bg-japandi-background-card border border-japandi-border-light rounded-card p-4 shadow-soft">
+                <h3 className="text-sm font-semibold text-japandi-text-primary mb-3">Group Overview</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalGames}</div>
+                    <div className="text-xs text-japandi-text-muted">Total Games</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalSessions}</div>
+                    <div className="text-xs text-japandi-text-muted">Sessions</div>
+                  </div>
+                </div>
+                {groupStats.mostActivePlayer && (
+                  <div className="mt-3 pt-3 border-t border-japandi-border-light">
+                    <div className="text-xs text-japandi-text-muted">Most Active</div>
+                    <div className="text-sm font-medium text-japandi-text-primary">
+                      🏆 {groupStats.mostActivePlayer.name} ({groupStats.mostActivePlayer.gamesPlayed} games)
+                    </div>
+                  </div>
+                )}
+                {groupStats.closestMatchup && (
+                  <div className="mt-3 pt-3 border-t border-japandi-border-light">
+                    <div className="text-xs text-japandi-text-muted">Closest Rivalry</div>
+                    <div className="text-sm font-medium text-japandi-text-primary">
+                      ⚔️ {groupStats.closestMatchup.team1Player1Name} & {groupStats.closestMatchup.team1Player2Name} vs {groupStats.closestMatchup.team2Player1Name} & {groupStats.closestMatchup.team2Player2Name}
+                    </div>
+                    <div className="text-xs text-japandi-text-muted">
+                      {groupStats.closestMatchup.team1Wins}-{groupStats.closestMatchup.team2Wins} ({groupStats.closestMatchup.totalGames} games)
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-japandi-text-primary">Sessions</h2>
               <div className="flex gap-2">
@@ -505,6 +581,7 @@ export default function GroupPage() {
                           <span className="font-semibold text-japandi-text-primary truncate">
                             {entry.playerName}
                           </span>
+                          {renderStreakBadge(entry.recentForm)}
                           {renderTrend(entry.trend)}
                         </div>
                         <div className="text-sm text-japandi-text-muted">
@@ -512,29 +589,43 @@ export default function GroupPage() {
                         </div>
                       </div>
                       
-                      {/* ELO */}
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-lg font-bold text-japandi-text-primary">
-                          {entry.eloRating}
+                      {/* Recent Form - Last 3 on mobile, last 5 on desktop */}
+                      {entry.recentForm.length > 0 ? (
+                        <div className="flex gap-1 flex-shrink-0">
+                          {/* Mobile: show last 3 */}
+                          <div className="flex gap-1 sm:hidden">
+                            {entry.recentForm.slice(0, 3).map((result, i) => (
+                              <div
+                                key={i}
+                                className={`w-6 h-6 rounded text-xs font-bold flex items-center justify-center ${
+                                  result === 'W'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                }`}
+                              >
+                                {result}
+                              </div>
+                            ))}
+                          </div>
+                          {/* Desktop: show last 5 */}
+                          <div className="hidden sm:flex gap-1">
+                            {entry.recentForm.slice(0, 5).map((result, i) => (
+                              <div
+                                key={i}
+                                className={`w-6 h-6 rounded text-xs font-bold flex items-center justify-center ${
+                                  result === 'W'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                }`}
+                              >
+                                {result}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="text-xs text-japandi-text-muted">ELO</div>
-                      </div>
-                      
-                      {/* Recent Form */}
-                      {entry.recentForm.length > 0 && (
-                        <div className="hidden sm:flex gap-1 flex-shrink-0">
-                          {entry.recentForm.slice(0, 5).map((result, i) => (
-                            <div
-                              key={i}
-                              className={`w-6 h-6 rounded text-xs font-bold flex items-center justify-center ${
-                                result === 'W'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-red-100 text-red-700'
-                              }`}
-                            >
-                              {result}
-                            </div>
-                          ))}
+                      ) : (
+                        <div className="text-xs text-japandi-text-muted flex-shrink-0">
+                          No games
                         </div>
                       )}
                     </div>
@@ -591,9 +682,12 @@ export default function GroupPage() {
                 {players.map((player) => (
                   <div
                     key={player.id}
-                    className="flex items-center justify-between bg-japandi-background-card border border-japandi-border-light rounded-card p-3"
+                    className="flex items-center justify-between bg-japandi-background-card border border-japandi-border-light rounded-card p-3 hover:border-japandi-accent-primary transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => loadPlayerStats(player.id)}
+                      className="flex-1 flex items-center gap-3 text-left"
+                    >
                       <span className="text-japandi-text-primary font-medium">{player.name}</span>
                       {(player.totalGames ?? 0) > 0 ? (
                         <span className="text-sm text-japandi-text-muted">
@@ -604,10 +698,10 @@ export default function GroupPage() {
                       ) : (
                         <span className="text-xs text-japandi-text-muted">No games yet</span>
                       )}
-                    </div>
+                    </button>
                     <button
                       onClick={() => handleRemovePlayer(player.id)}
-                      className="text-red-500 hover:text-red-700 text-sm transition-colors"
+                      className="text-red-500 hover:text-red-700 text-sm transition-colors ml-2"
                     >
                       Remove
                     </button>
@@ -615,6 +709,10 @@ export default function GroupPage() {
                 ))}
               </div>
             )}
+            
+            <p className="text-center text-xs text-japandi-text-muted pt-2">
+              Tap a player to see detailed stats
+            </p>
           </div>
         )}
 

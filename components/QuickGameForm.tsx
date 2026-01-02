@@ -504,7 +504,7 @@ export default function QuickGameForm({
                 value={teamAScore}
                 onChange={(e) => setTeamAScore(e.target.value)}
                 placeholder="e.g., 21"
-                className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary text-base focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
                 aria-label={isSingles ? `${getPlayerName((teamA as [string | null])[0])} score` : "Team A score"}
               />
             </div>
@@ -520,7 +520,7 @@ export default function QuickGameForm({
                 value={teamBScore}
                 onChange={(e) => setTeamBScore(e.target.value)}
                 placeholder="e.g., 19"
-                className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-japandi-border-light rounded-card bg-japandi-background-card text-japandi-text-primary text-base focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
                 aria-label={isSingles ? `${getPlayerName((teamB as [string | null])[0])} score` : "Team B score"}
               />
             </div>

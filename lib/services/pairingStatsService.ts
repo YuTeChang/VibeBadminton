@@ -6,12 +6,54 @@ import { PairingStats, PairingMatchup, PairingDetailedStats } from '@/types';
  * Maintains stored aggregates for efficient reads while keeping games as source of truth
  */
 export class PairingStatsService {
+  private static readonly DEFAULT_PAIRING_ELO = 1500;
+  private static readonly K_FACTOR = 32;
+
+  /**
+   * Calculate expected score for ELO (probability of winning)
+   */
+  private static calculateExpectedScore(rating: number, opponentRating: number): number {
+    return 1 / (1 + Math.pow(10, (opponentRating - rating) / 400));
+  }
+
+  /**
+   * Calculate new ELO rating after a game
+   */
+  private static calculateNewRating(currentRating: number, opponentRating: number, won: boolean): number {
+    const expectedScore = this.calculateExpectedScore(currentRating, opponentRating);
+    const actualScore = won ? 1 : 0;
+    const newRating = Math.round(currentRating + this.K_FACTOR * (actualScore - expectedScore));
+    return Math.max(100, newRating);
+  }
+
   /**
    * Helper to get ordered pair IDs (ensures consistent key ordering)
    * Always returns [smaller_id, larger_id]
    */
   static getOrderedPair(id1: string, id2: string): [string, string] {
     return id1 < id2 ? [id1, id2] : [id2, id1];
+  }
+
+  /**
+   * Get the ELO rating for a pairing (returns default if no record exists)
+   */
+  static async getPairingElo(groupId: string, player1Id: string, player2Id: string): Promise<number> {
+    const supabase = createSupabaseClient();
+    const [orderedP1, orderedP2] = this.getOrderedPair(player1Id, player2Id);
+
+    try {
+      const { data } = await supabase
+        .from('partner_stats')
+        .select('elo_rating')
+        .eq('group_id', groupId)
+        .eq('player1_id', orderedP1)
+        .eq('player2_id', orderedP2)
+        .single();
+
+      return data?.elo_rating ?? this.DEFAULT_PAIRING_ELO;
+    } catch {
+      return this.DEFAULT_PAIRING_ELO;
+    }
   }
 
   /**
@@ -35,11 +77,15 @@ export class PairingStatsService {
   /**
    * Update partner stats when a game is recorded
    * Called from EloService.processGameResult
+   * Includes ELO calculation, streak tracking, and point differential
    */
   static async updatePartnerStats(
     groupId: string,
     teamGroupPlayerIds: string[],
-    won: boolean
+    won: boolean,
+    opponentPairingElo?: number,
+    pointsFor?: number,
+    pointsAgainst?: number
   ): Promise<void> {
     // Only applicable for doubles (2 players)
     if (teamGroupPlayerIds.length !== 2) return;
@@ -51,13 +97,36 @@ export class PairingStatsService {
       // Try to get existing record
       const { data: existing } = await supabase
         .from('partner_stats')
-        .select('id, wins, losses, total_games')
+        .select('id, wins, losses, total_games, elo_rating, current_streak, best_win_streak, points_for, points_against')
         .eq('group_id', groupId)
         .eq('player1_id', player1Id)
         .eq('player2_id', player2Id)
         .single();
 
       if (existing) {
+        // Calculate new ELO if opponent ELO is provided
+        const currentElo = existing.elo_rating ?? this.DEFAULT_PAIRING_ELO;
+        const newElo = opponentPairingElo 
+          ? this.calculateNewRating(currentElo, opponentPairingElo, won)
+          : currentElo;
+
+        // Calculate new streak
+        const currentStreak = existing.current_streak ?? 0;
+        let newStreak: number;
+        if (won) {
+          newStreak = currentStreak >= 0 ? currentStreak + 1 : 1;
+        } else {
+          newStreak = currentStreak <= 0 ? currentStreak - 1 : -1;
+        }
+
+        // Update best win streak if exceeded
+        const bestWinStreak = existing.best_win_streak ?? 0;
+        const newBestWinStreak = newStreak > bestWinStreak ? newStreak : bestWinStreak;
+
+        // Calculate points
+        const newPointsFor = (existing.points_for ?? 0) + (pointsFor ?? 0);
+        const newPointsAgainst = (existing.points_against ?? 0) + (pointsAgainst ?? 0);
+
         // Update existing record
         await supabase
           .from('partner_stats')
@@ -65,11 +134,21 @@ export class PairingStatsService {
             wins: won ? existing.wins + 1 : existing.wins,
             losses: won ? existing.losses : existing.losses + 1,
             total_games: existing.total_games + 1,
+            elo_rating: newElo,
+            current_streak: newStreak,
+            best_win_streak: newBestWinStreak,
+            points_for: newPointsFor,
+            points_against: newPointsAgainst,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existing.id);
       } else {
-        // Create new record
+        // Create new record with default ELO
+        // For new pairings, calculate ELO change from default if opponent ELO provided
+        const newElo = opponentPairingElo 
+          ? this.calculateNewRating(this.DEFAULT_PAIRING_ELO, opponentPairingElo, won)
+          : this.DEFAULT_PAIRING_ELO;
+
         await supabase
           .from('partner_stats')
           .insert({
@@ -79,6 +158,11 @@ export class PairingStatsService {
             wins: won ? 1 : 0,
             losses: won ? 0 : 1,
             total_games: 1,
+            elo_rating: newElo,
+            current_streak: won ? 1 : -1,
+            best_win_streak: won ? 1 : 0,
+            points_for: pointsFor ?? 0,
+            points_against: pointsAgainst ?? 0,
           });
       }
     } catch (error) {
@@ -354,17 +438,26 @@ export class PairingStatsService {
       // Calculate recent form from games (computed on-the-fly)
       const recentForm = await this.getRecentFormForPairing(groupId, orderedP1, orderedP2);
 
-      // Calculate streak
-      let currentStreak = 0;
-      for (const result of recentForm) {
-        if (currentStreak === 0) {
-          currentStreak = result === 'W' ? 1 : -1;
-        } else if ((currentStreak > 0 && result === 'W') || (currentStreak < 0 && result === 'L')) {
-          currentStreak += result === 'W' ? 1 : -1;
-        } else {
-          break;
+      // Use stored streak if available, otherwise compute from recent form
+      let currentStreak = partnerStat?.current_streak ?? 0;
+      if (currentStreak === 0 && recentForm.length > 0) {
+        // Compute from recent form as fallback
+        for (const result of recentForm) {
+          if (currentStreak === 0) {
+            currentStreak = result === 'W' ? 1 : -1;
+          } else if ((currentStreak > 0 && result === 'W') || (currentStreak < 0 && result === 'L')) {
+            currentStreak += result === 'W' ? 1 : -1;
+          } else {
+            break;
+          }
         }
       }
+
+      // Get stored values with defaults
+      const eloRating = partnerStat?.elo_rating ?? this.DEFAULT_PAIRING_ELO;
+      const bestWinStreak = partnerStat?.best_win_streak ?? 0;
+      const pointsFor = partnerStat?.points_for ?? 0;
+      const pointsAgainst = partnerStat?.points_against ?? 0;
 
       return {
         player1Id: orderedP1,
@@ -377,8 +470,13 @@ export class PairingStatsService {
         winRate: partnerStat?.total_games > 0 
           ? (partnerStat.wins / partnerStat.total_games) * 100 
           : 0,
-        recentForm: recentForm.slice(0, 5),
+        eloRating,
+        pointsFor,
+        pointsAgainst,
+        pointDifferential: pointsFor - pointsAgainst,
         currentStreak,
+        bestWinStreak,
+        recentForm: recentForm.slice(0, 5),
         matchups: matchupStats,
       };
     } catch (error) {
@@ -522,10 +620,18 @@ export class PairingStatsService {
         if (teamAGroupIds.length !== 2 || teamBGroupIds.length !== 2) continue;
 
         const winningTeam = game.winning_team as 'A' | 'B';
+        
+        // Get current pairing ELOs before update (for ELO calculation)
+        const teamAElo = await this.getPairingElo(groupId, teamAGroupIds[0], teamAGroupIds[1]);
+        const teamBElo = await this.getPairingElo(groupId, teamBGroupIds[0], teamBGroupIds[1]);
+        
+        // Get scores if available
+        const teamAScore = game.team_a_score ?? undefined;
+        const teamBScore = game.team_b_score ?? undefined;
 
-        // Update partner stats for both teams
-        await this.updatePartnerStats(groupId, teamAGroupIds, winningTeam === 'A');
-        await this.updatePartnerStats(groupId, teamBGroupIds, winningTeam === 'B');
+        // Update partner stats for both teams with opponent ELO and scores
+        await this.updatePartnerStats(groupId, teamAGroupIds, winningTeam === 'A', teamBElo, teamAScore, teamBScore);
+        await this.updatePartnerStats(groupId, teamBGroupIds, winningTeam === 'B', teamAElo, teamBScore, teamAScore);
 
         // Update pairing matchup
         await this.updatePairingMatchup(groupId, teamAGroupIds, teamBGroupIds, winningTeam);
