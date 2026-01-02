@@ -95,6 +95,57 @@ export interface RecentGame {
   teamBScore?: number;
   won: boolean;
   date?: Date;
+  pointDifferential?: number; // Winner score - loser score
+}
+
+// Unlucky game (lost by 1-2 points)
+export interface UnluckyGame extends RecentGame {
+  margin: number; // 1 or 2
+}
+
+// Extended Group Overview Statistics
+export interface GroupOverviewStats {
+  // Basic counts
+  totalGames: number;
+  totalSessions: number;
+  totalPlayers: number;
+  
+  // Competitiveness
+  avgPointDifferential: number | null; // Average (winner score - loser score)
+  gamesPerSession: number;
+  
+  // Closest Rivalry (existing)
+  closestMatchup: {
+    team1Player1Name: string;
+    team1Player2Name: string;
+    team2Player1Name: string;
+    team2Player2Name: string;
+    team1Wins: number;
+    team2Wins: number;
+    totalGames: number;
+  } | null;
+  
+  // Records
+  highestElo: { name: string; rating: number } | null;
+  eloSpread: number | null; // Max - Min ELO
+  bestWinStreak: { name: string; streak: number } | null;
+  mostGamesPlayed: { name: string; games: number } | null;
+  
+  // Dream Team - Best pairing
+  dreamTeam: { 
+    player1Name: string; 
+    player2Name: string; 
+    winRate: number; 
+    gamesPlayed: number;
+  } | null;
+  
+  // Unlucky stats - most games lost by 1-2 points
+  unluckyPlayer: { name: string; count: number } | null;
+  unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
+  
+  // History
+  firstSessionDate: Date | null;
+  daysSinceFirstSession: number | null;
 }
 
 // Detailed player statistics for player profile
@@ -130,6 +181,10 @@ export interface PlayerDetailedStats {
   
   // Recent games with details
   recentGames?: RecentGame[];
+  
+  // Unlucky games - games lost by 1-2 points
+  unluckyGames?: UnluckyGame[];
+  unluckyCount?: number;
 }
 
 // ============================================================================
@@ -206,4 +261,7 @@ export interface PairingDetailedStats {
   recentGames?: RecentGame[];
   // Head-to-head against other pairings
   matchups: PairingMatchup[];
+  // Unlucky games - games lost by 1-2 points
+  unluckyGames?: UnluckyGame[];
+  unluckyCount?: number;
 }

@@ -1,5 +1,5 @@
 import { createSupabaseClient } from '@/lib/supabase';
-import { PairingStats, PairingMatchup, PairingDetailedStats, RecentGame } from '@/types';
+import { PairingStats, PairingMatchup, PairingDetailedStats, RecentGame, UnluckyGame } from '@/types';
 
 /**
  * Service for managing pairing statistics (doubles team combinations)
@@ -484,7 +484,7 @@ export class PairingStatsService {
       (players || []).forEach(p => playerNames.set(p.id, p.name));
 
       // Get recent games and compute stats from games
-      const { recentForm, recentGames, wins, losses, pointsFor, pointsAgainst, bestWinStreak } = await this.getRecentGamesForPairingWithStats(
+      const { recentForm, recentGames, unluckyGames, wins, losses, pointsFor, pointsAgainst, bestWinStreak } = await this.getRecentGamesForPairingWithStats(
         groupId, orderedP1, orderedP2, playerNames
       );
 
@@ -529,6 +529,8 @@ export class PairingStatsService {
         recentForm: recentForm.slice(0, 5),
         recentGames, // Return all 10 recent games
         matchups: matchupStats,
+        unluckyGames,
+        unluckyCount: unluckyGames.length,
       };
     } catch (error) {
       console.error('[PairingStatsService] Error fetching pairing detailed stats:', error);
@@ -684,7 +686,7 @@ export class PairingStatsService {
 
   /**
    * Get recent games with details for a pairing - computed from games table
-   * Also returns total wins/losses, points, and best streak for accuracy
+   * Also returns total wins/losses, points, best streak, and unlucky games for accuracy
    */
   private static async getRecentGamesForPairingWithStats(
     groupId: string,
@@ -694,6 +696,7 @@ export class PairingStatsService {
   ): Promise<{ 
     recentForm: ('W' | 'L')[]; 
     recentGames: RecentGame[]; 
+    unluckyGames: UnluckyGame[];
     wins: number; 
     losses: number;
     pointsFor: number;
@@ -710,7 +713,7 @@ export class PairingStatsService {
         .eq('group_id', groupId);
 
       const sessionIds = (sessions || []).map(s => s.id);
-      if (sessionIds.length === 0) return { recentForm: [], recentGames: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, bestWinStreak: 0 };
+      if (sessionIds.length === 0) return { recentForm: [], recentGames: [], unluckyGames: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, bestWinStreak: 0 };
 
       // Get player mappings
       const { data: sessionPlayers } = await supabase
@@ -740,6 +743,7 @@ export class PairingStatsService {
 
       const recentForm: ('W' | 'L')[] = [];
       const recentGames: RecentGame[] = [];
+      const unluckyGames: UnluckyGame[] = [];
       let wins = 0;
       let losses = 0;
       let pointsFor = 0;
@@ -769,6 +773,22 @@ export class PairingStatsService {
             if (tempWinStreak > bestWinStreak) bestWinStreak = tempWinStreak;
           } else {
             tempWinStreak = 0;
+            
+            // Check for unlucky games (lost by 1-2 points)
+            if (game.team_a_score !== null && game.team_b_score !== null) {
+              const margin = Math.abs(game.team_a_score - game.team_b_score);
+              if (margin >= 1 && margin <= 2) {
+                unluckyGames.push({
+                  teamANames: teamA.map((id: string) => playerNames.get(sessionPlayerToGroup.get(id) || '') || 'Unknown'),
+                  teamBNames: teamB.map((id: string) => playerNames.get(sessionPlayerToGroup.get(id) || '') || 'Unknown'),
+                  teamAScore: game.team_a_score ?? undefined,
+                  teamBScore: game.team_b_score ?? undefined,
+                  won: false,
+                  date: game.created_at ? new Date(game.created_at) : undefined,
+                  margin,
+                });
+              }
+            }
           }
           
           if (recentForm.length < 10) recentForm.push(won ? 'W' : 'L');
@@ -794,6 +814,22 @@ export class PairingStatsService {
             if (tempWinStreak > bestWinStreak) bestWinStreak = tempWinStreak;
           } else {
             tempWinStreak = 0;
+            
+            // Check for unlucky games (lost by 1-2 points)
+            if (game.team_a_score !== null && game.team_b_score !== null) {
+              const margin = Math.abs(game.team_a_score - game.team_b_score);
+              if (margin >= 1 && margin <= 2) {
+                unluckyGames.push({
+                  teamANames: teamA.map((id: string) => playerNames.get(sessionPlayerToGroup.get(id) || '') || 'Unknown'),
+                  teamBNames: teamB.map((id: string) => playerNames.get(sessionPlayerToGroup.get(id) || '') || 'Unknown'),
+                  teamAScore: game.team_a_score ?? undefined,
+                  teamBScore: game.team_b_score ?? undefined,
+                  won: false,
+                  date: game.created_at ? new Date(game.created_at) : undefined,
+                  margin,
+                });
+              }
+            }
           }
           
           if (recentForm.length < 10) recentForm.push(won ? 'W' : 'L');
@@ -810,10 +846,10 @@ export class PairingStatsService {
         }
       });
 
-      return { recentForm, recentGames, wins, losses, pointsFor, pointsAgainst, bestWinStreak };
+      return { recentForm, recentGames, unluckyGames, wins, losses, pointsFor, pointsAgainst, bestWinStreak };
     } catch (error) {
       console.error('[PairingStatsService] Error getting recent games:', error);
-      return { recentForm: [], recentGames: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, bestWinStreak: 0 };
+      return { recentForm: [], recentGames: [], unluckyGames: [], wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, bestWinStreak: 0 };
     }
   }
 

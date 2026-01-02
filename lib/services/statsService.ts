@@ -1,5 +1,5 @@
 import { createSupabaseClient } from '@/lib/supabase';
-import { LeaderboardEntry, PlayerDetailedStats, PartnerStats, OpponentStats, RecentGame } from '@/types';
+import { LeaderboardEntry, PlayerDetailedStats, PartnerStats, OpponentStats, RecentGame, UnluckyGame } from '@/types';
 
 export interface GroupPlayerStats {
   groupPlayerId: string;
@@ -264,6 +264,7 @@ export class StatsService {
       let pointsConceded = 0;
       const recentForm: ('W' | 'L')[] = [];
       const recentGames: RecentGame[] = [];
+      const unluckyGames: UnluckyGame[] = []; // Games lost by 1-2 points
       const partnerStatsMap = new Map<string, { wins: number; losses: number; games: RecentGame[] }>();
       const opponentStatsMap = new Map<string, { wins: number; losses: number; games: RecentGame[] }>();
       let currentStreak = 0;
@@ -301,6 +302,20 @@ export class StatsService {
           losses += 1;
           pointsScored += isOnTeamA ? teamAScore : teamBScore;
           pointsConceded += isOnTeamA ? teamBScore : teamAScore;
+          
+          // Check for unlucky games (lost by 1-2 points)
+          const margin = Math.abs(teamAScore - teamBScore);
+          if (margin >= 1 && margin <= 2 && game.team_a_score !== null && game.team_b_score !== null) {
+            unluckyGames.push({
+              teamANames: teamA.map(id => groupPlayerToName.get(playerToGroupPlayer.get(id) || '') || 'Unknown'),
+              teamBNames: teamB.map(id => groupPlayerToName.get(playerToGroupPlayer.get(id) || '') || 'Unknown'),
+              teamAScore: game.team_a_score ?? undefined,
+              teamBScore: game.team_b_score ?? undefined,
+              won: false,
+              date: game.created_at ? new Date(game.created_at) : undefined,
+              margin,
+            });
+          }
         }
 
         // Recent form (first 10 games since we sorted desc)
@@ -437,6 +452,8 @@ export class StatsService {
         partnerStats,
         opponentStats,
         recentGames,
+        unluckyGames,
+        unluckyCount: unluckyGames.length,
       };
     } catch (error) {
       console.error('[StatsService] Error fetching player detailed stats:', error);

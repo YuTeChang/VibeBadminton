@@ -600,12 +600,30 @@ export class GroupService {
   }
 
   /**
-   * Get group-level statistics
-   * Returns total games, total sessions, and closest matchup
+   * Helper to parse JSON array from database
+   */
+  private static parseJsonArray(data: unknown): string[] {
+    if (Array.isArray(data)) return data;
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Get extended group-level statistics
+   * Returns comprehensive stats including unlucky games, records, etc.
    */
   static async getGroupStats(groupId: string): Promise<{
     totalGames: number;
     totalSessions: number;
+    totalPlayers: number;
+    avgPointDifferential: number | null;
+    gamesPerSession: number;
     closestMatchup: {
       team1Player1Name: string;
       team1Player2Name: string;
@@ -615,39 +633,211 @@ export class GroupService {
       team2Wins: number;
       totalGames: number;
     } | null;
+    highestElo: { name: string; rating: number } | null;
+    eloSpread: number | null;
+    bestWinStreak: { name: string; streak: number } | null;
+    mostGamesPlayed: { name: string; games: number } | null;
+    dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number } | null;
+    unluckyPlayer: { name: string; count: number } | null;
+    unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
+    firstSessionDate: Date | null;
+    daysSinceFirstSession: number | null;
   }> {
     const supabase = createSupabaseClient();
 
     try {
-      // Run independent queries in parallel for better performance
-      const [sessionsResult, matchupsResult] = await Promise.all([
+      // Run all independent queries in parallel
+      const [
+        sessionsResult,
+        matchupsResult,
+        playersResult,
+        partnerStatsResult
+      ] = await Promise.all([
         supabase
           .from('sessions')
-          .select('id')
-          .eq('group_id', groupId),
+          .select('id, date, created_at')
+          .eq('group_id', groupId)
+          .order('date', { ascending: true }),
         supabase
           .from('pairing_matchups')
           .select('team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, team1_wins, team1_losses, total_games')
+          .eq('group_id', groupId)
+          .gte('total_games', 5),
+        supabase
+          .from('group_players')
+          .select('id, name, elo_rating, wins, losses, total_games, best_win_streak')
+          .eq('group_id', groupId),
+        supabase
+          .from('partner_stats')
+          .select('player1_id, player2_id, wins, losses, total_games')
           .eq('group_id', groupId)
           .gte('total_games', 5)
       ]);
 
       const { data: sessions } = sessionsResult;
       const { data: matchups } = matchupsResult;
+      const { data: players } = playersResult;
+      const { data: partnerStats } = partnerStatsResult;
 
       const sessionIds = (sessions || []).map(s => s.id);
       const totalSessions = sessionIds.length;
+      const totalPlayers = players?.length || 0;
 
-      // Get total completed games count
+      // Get first session date
+      const firstSessionDate = sessions && sessions.length > 0 
+        ? new Date(sessions[0].date || sessions[0].created_at) 
+        : null;
+      const daysSinceFirstSession = firstSessionDate 
+        ? Math.floor((Date.now() - firstSessionDate.getTime()) / (1000 * 60 * 60 * 24))
+        : null;
+
+      // Fetch all completed games with scores for detailed analysis
       let totalGames = 0;
+      let avgPointDifferential: number | null = null;
+      let unluckyPlayerData: { name: string; count: number } | null = null;
+      let unluckyPairingData: { player1Name: string; player2Name: string; count: number } | null = null;
+
       if (sessionIds.length > 0) {
-        const { count: gameCount } = await supabase
+        // Get all games with scores for analysis
+        const { data: allGames } = await supabase
           .from('games')
-          .select('*', { count: 'exact', head: true })
+          .select('team_a, team_b, winning_team, team_a_score, team_b_score')
           .in('session_id', sessionIds)
           .not('winning_team', 'is', null);
-        
-        totalGames = gameCount || 0;
+
+        totalGames = allGames?.length || 0;
+
+        // Calculate average point differential and unlucky stats
+        if (allGames && allGames.length > 0) {
+          let totalDiff = 0;
+          let gamesWithScores = 0;
+          const playerUnluckyMap = new Map<string, number>(); // groupPlayerId -> unlucky count
+          const pairingUnluckyMap = new Map<string, number>(); // "p1:p2" sorted key -> unlucky count
+
+          // Get player mappings
+          const { data: sessionPlayers } = await supabase
+            .from('players')
+            .select('id, group_player_id')
+            .in('session_id', sessionIds)
+            .not('group_player_id', 'is', null);
+
+          const sessionPlayerToGroup = new Map<string, string>();
+          (sessionPlayers || []).forEach(p => {
+            if (p.group_player_id) {
+              sessionPlayerToGroup.set(p.id, p.group_player_id);
+            }
+          });
+
+          allGames.forEach((game) => {
+            const teamAScore = game.team_a_score;
+            const teamBScore = game.team_b_score;
+            const winningTeam = game.winning_team as 'A' | 'B';
+            const teamA = this.parseJsonArray(game.team_a);
+            const teamB = this.parseJsonArray(game.team_b);
+
+            // Calculate point differential
+            if (teamAScore !== null && teamBScore !== null) {
+              const diff = Math.abs(teamAScore - teamBScore);
+              totalDiff += diff;
+              gamesWithScores++;
+
+              // Check for unlucky games (lost by 1-2 points)
+              if (diff <= 2) {
+                const losingTeam = winningTeam === 'A' ? teamB : teamA;
+                
+                // Track individual player unlucky games
+                losingTeam.forEach((playerId: string) => {
+                  const groupPlayerId = sessionPlayerToGroup.get(playerId);
+                  if (groupPlayerId) {
+                    playerUnluckyMap.set(groupPlayerId, (playerUnluckyMap.get(groupPlayerId) || 0) + 1);
+                  }
+                });
+
+                // Track pairing unlucky games (for doubles)
+                if (losingTeam.length === 2) {
+                  const gp1 = sessionPlayerToGroup.get(losingTeam[0]);
+                  const gp2 = sessionPlayerToGroup.get(losingTeam[1]);
+                  if (gp1 && gp2) {
+                    const pairingKey = [gp1, gp2].sort().join(':');
+                    pairingUnluckyMap.set(pairingKey, (pairingUnluckyMap.get(pairingKey) || 0) + 1);
+                  }
+                }
+              }
+            }
+          });
+
+          avgPointDifferential = gamesWithScores > 0 ? Math.round((totalDiff / gamesWithScores) * 10) / 10 : null;
+
+          // Find most unlucky player
+          const playerNameMap = new Map<string, string>();
+          (players || []).forEach(p => playerNameMap.set(p.id, p.name));
+
+          let maxPlayerUnlucky = 0;
+          let maxPlayerUnluckyId: string | null = null;
+          playerUnluckyMap.forEach((count, id) => {
+            if (count > maxPlayerUnlucky) {
+              maxPlayerUnlucky = count;
+              maxPlayerUnluckyId = id;
+            }
+          });
+          if (maxPlayerUnluckyId && maxPlayerUnlucky > 0) {
+            unluckyPlayerData = {
+              name: playerNameMap.get(maxPlayerUnluckyId) || 'Unknown',
+              count: maxPlayerUnlucky,
+            };
+          }
+
+          // Find most unlucky pairing
+          const pairingEntries = Array.from(pairingUnluckyMap.entries());
+          const mostUnluckyPairing = pairingEntries.reduce<{ key: string; count: number } | null>(
+            (best, [key, count]) => {
+              if (!best || count > best.count) {
+                return { key, count };
+              }
+              return best;
+            },
+            null
+          );
+          if (mostUnluckyPairing && mostUnluckyPairing.count > 0) {
+            const keyParts = mostUnluckyPairing.key.split(':');
+            unluckyPairingData = {
+              player1Name: playerNameMap.get(keyParts[0]) || 'Unknown',
+              player2Name: playerNameMap.get(keyParts[1]) || 'Unknown',
+              count: mostUnluckyPairing.count,
+            };
+          }
+        }
+      }
+
+      // Calculate player records
+      let highestElo: { name: string; rating: number } | null = null;
+      let eloSpread: number | null = null;
+      let bestWinStreak: { name: string; streak: number } | null = null;
+      let mostGamesPlayed: { name: string; games: number } | null = null;
+
+      if (players && players.length > 0) {
+        const sortedByElo = [...players].sort((a, b) => (b.elo_rating || 1500) - (a.elo_rating || 1500));
+        const maxElo = sortedByElo[0].elo_rating || 1500;
+        const minElo = sortedByElo[sortedByElo.length - 1].elo_rating || 1500;
+
+        highestElo = { name: sortedByElo[0].name, rating: maxElo };
+        eloSpread = maxElo - minElo;
+
+        const withStreak = players.filter(p => (p.best_win_streak || 0) > 0);
+        if (withStreak.length > 0) {
+          const bestStreakPlayer = withStreak.reduce((a, b) => 
+            (a.best_win_streak || 0) > (b.best_win_streak || 0) ? a : b
+          );
+          bestWinStreak = { name: bestStreakPlayer.name, streak: bestStreakPlayer.best_win_streak || 0 };
+        }
+
+        const withGames = players.filter(p => (p.total_games || 0) > 0);
+        if (withGames.length > 0) {
+          const mostGamesPlayer = withGames.reduce((a, b) => 
+            (a.total_games || 0) > (b.total_games || 0) ? a : b
+          );
+          mostGamesPlayed = { name: mostGamesPlayer.name, games: mostGamesPlayer.total_games || 0 };
+        }
       }
 
       // Find closest matchup
@@ -669,19 +859,14 @@ export class GroupService {
         }, null as typeof matchups[0] | null);
 
         if (closest) {
-          const { data: players } = await supabase
-            .from('group_players')
-            .select('id, name')
-            .in('id', [closest.team1_player1_id, closest.team1_player2_id, closest.team2_player1_id, closest.team2_player2_id]);
-
-          const playerNames = new Map<string, string>();
-          (players || []).forEach(p => playerNames.set(p.id, p.name));
+          const playerNameMap = new Map<string, string>();
+          (players || []).forEach(p => playerNameMap.set(p.id, p.name));
 
           closestMatchup = {
-            team1Player1Name: playerNames.get(closest.team1_player1_id) || 'Unknown',
-            team1Player2Name: playerNames.get(closest.team1_player2_id) || 'Unknown',
-            team2Player1Name: playerNames.get(closest.team2_player1_id) || 'Unknown',
-            team2Player2Name: playerNames.get(closest.team2_player2_id) || 'Unknown',
+            team1Player1Name: playerNameMap.get(closest.team1_player1_id) || 'Unknown',
+            team1Player2Name: playerNameMap.get(closest.team1_player2_id) || 'Unknown',
+            team2Player1Name: playerNameMap.get(closest.team2_player1_id) || 'Unknown',
+            team2Player2Name: playerNameMap.get(closest.team2_player2_id) || 'Unknown',
             team1Wins: closest.team1_wins,
             team2Wins: closest.team1_losses,
             totalGames: closest.total_games,
@@ -689,17 +874,62 @@ export class GroupService {
         }
       }
 
+      // Find dream team (best pairing by win rate)
+      let dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number } | null = null;
+
+      if (partnerStats && partnerStats.length > 0) {
+        const best = partnerStats.reduce((a, b) => {
+          const aWinRate = a.total_games > 0 ? a.wins / a.total_games : 0;
+          const bWinRate = b.total_games > 0 ? b.wins / b.total_games : 0;
+          return aWinRate > bWinRate ? a : b;
+        });
+
+        const playerNameMap = new Map<string, string>();
+        (players || []).forEach(p => playerNameMap.set(p.id, p.name));
+
+        dreamTeam = {
+          player1Name: playerNameMap.get(best.player1_id) || 'Unknown',
+          player2Name: playerNameMap.get(best.player2_id) || 'Unknown',
+          winRate: best.total_games > 0 ? Math.round((best.wins / best.total_games) * 100) : 0,
+          gamesPlayed: best.total_games,
+        };
+      }
+
       return {
         totalGames,
         totalSessions,
+        totalPlayers,
+        avgPointDifferential,
+        gamesPerSession: totalSessions > 0 ? Math.round((totalGames / totalSessions) * 10) / 10 : 0,
         closestMatchup,
+        highestElo,
+        eloSpread,
+        bestWinStreak,
+        mostGamesPlayed,
+        dreamTeam,
+        unluckyPlayer: unluckyPlayerData,
+        unluckyPairing: unluckyPairingData,
+        firstSessionDate,
+        daysSinceFirstSession,
       };
     } catch (error) {
       console.error('[GroupService] Error fetching group stats:', error);
       return {
         totalGames: 0,
         totalSessions: 0,
+        totalPlayers: 0,
+        avgPointDifferential: null,
+        gamesPerSession: 0,
         closestMatchup: null,
+        highestElo: null,
+        eloSpread: null,
+        bestWinStreak: null,
+        mostGamesPlayed: null,
+        dreamTeam: null,
+        unluckyPlayer: null,
+        unluckyPairing: null,
+        firstSessionDate: null,
+        daysSinceFirstSession: null,
       };
     }
   }

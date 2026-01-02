@@ -6,6 +6,25 @@ This document tracks all features, improvements, and fixes added to PoweredByPac
 
 ### Major Features Added
 
+#### Extended Group Overview with Unlucky Stats
+- **Status**: ✅ Complete
+- **Description**: Expandable Group Overview card with comprehensive stats and "Unlucky" tracking
+- **Implementation**:
+  - New `GroupOverviewStats` type with 15+ fields
+  - Expandable card: collapsed shows Games/Sessions/Players, expanded shows full stats
+  - **Records Section**: Highest ELO, Best Win Streak, Most Games Played
+  - **Pairs Section**: Dream Team (best win rate pairing), Closest Rivalry
+  - **Unlucky Stats**: Players/pairs who lost the most games by 1-2 points
+  - `groupService.getGroupStats()` returns extended stats computed from games
+  - `UnluckyGame` type extends `RecentGame` with `margin` field
+  - Days since first session counter
+- **Technical Details**:
+  - `statsService.getPlayerDetailedStats()` now returns `unluckyGames[]` and `unluckyCount`
+  - `pairingStatsService.getPairingDetailedStats()` now returns `unluckyGames[]` and `unluckyCount`
+  - PlayerProfileSheet and PairingProfileSheet show expandable unlucky games list
+  - Unlucky tile is clickable and expands to show all games lost by 1-2 points
+- **User Impact**: Deep insights into group performance, recognition for close losses
+
 #### Vercel Analytics & Speed Insights Integration
 - **Status**: ✅ Complete
 - **Description**: Real-time visitor tracking and performance monitoring

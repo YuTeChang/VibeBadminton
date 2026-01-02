@@ -154,6 +154,9 @@ export class ApiClient {
   static async getGroupOverviewStats(groupId: string): Promise<{
     totalGames: number;
     totalSessions: number;
+    totalPlayers: number;
+    avgPointDifferential: number | null;
+    gamesPerSession: number;
     closestMatchup: {
       team1Player1Name: string;
       team1Player2Name: string;
@@ -163,6 +166,15 @@ export class ApiClient {
       team2Wins: number;
       totalGames: number;
     } | null;
+    highestElo: { name: string; rating: number } | null;
+    eloSpread: number | null;
+    bestWinStreak: { name: string; streak: number } | null;
+    mostGamesPlayed: { name: string; games: number } | null;
+    dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number } | null;
+    unluckyPlayer: { name: string; count: number } | null;
+    unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
+    firstSessionDate: Date | null;
+    daysSinceFirstSession: number | null;
   }> {
     return this.fetch(`/groups/${groupId}/overview`);
   }

@@ -24,6 +24,9 @@ export default function GroupPage() {
   const [groupStats, setGroupStats] = useState<{
     totalGames: number;
     totalSessions: number;
+    totalPlayers: number;
+    avgPointDifferential: number | null;
+    gamesPerSession: number;
     closestMatchup: {
       team1Player1Name: string;
       team1Player2Name: string;
@@ -33,7 +36,17 @@ export default function GroupPage() {
       team2Wins: number;
       totalGames: number;
     } | null;
+    highestElo: { name: string; rating: number } | null;
+    eloSpread: number | null;
+    bestWinStreak: { name: string; streak: number } | null;
+    mostGamesPlayed: { name: string; games: number } | null;
+    dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number } | null;
+    unluckyPlayer: { name: string; count: number } | null;
+    unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
+    firstSessionDate: Date | null;
+    daysSinceFirstSession: number | null;
   } | null>(null);
+  const [isStatsExpanded, setIsStatsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
@@ -578,50 +591,208 @@ export default function GroupPage() {
         {/* Sessions Tab */}
         {activeTab === "sessions" && (
           <div className="space-y-4">
-            {/* Group Stats Card - Always show container to prevent CLS */}
-            <div className="bg-japandi-background-card border border-japandi-border-light rounded-card p-4 shadow-soft min-h-[120px]">
+            {/* Group Stats Card - Expandable with extended stats */}
+            <div className="bg-japandi-background-card border border-japandi-border-light rounded-card shadow-soft overflow-hidden">
               {groupStats && (groupStats.totalGames > 0 || groupStats.totalSessions > 0) ? (
                 <>
-                  <h3 className="text-sm font-semibold text-japandi-text-primary mb-3">Group Overview</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalGames}</div>
-                      <div className="text-xs text-japandi-text-muted">Total Games</div>
+                  {/* Header - Always visible */}
+                  <button
+                    onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+                    className="w-full p-4 text-left hover:bg-japandi-background-primary/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-japandi-text-primary">Group Overview</h3>
+                      <span className="text-japandi-text-muted text-xs">
+                        {isStatsExpanded ? '▲ Less' : '▼ More'}
+                      </span>
                     </div>
-                    <div>
-                      <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalSessions}</div>
-                      <div className="text-xs text-japandi-text-muted">Sessions</div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalGames}</div>
+                        <div className="text-xs text-japandi-text-muted">Games</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalSessions}</div>
+                        <div className="text-xs text-japandi-text-muted">Sessions</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-japandi-accent-primary">{groupStats.totalPlayers || 0}</div>
+                        <div className="text-xs text-japandi-text-muted">Players</div>
+                      </div>
                     </div>
-                  </div>
-                  {groupStats.closestMatchup && (
-                    <div className="mt-3 pt-3 border-t border-japandi-border-light">
-                      <div className="text-xs text-japandi-text-muted">Closest Rivalry</div>
-                      <div className="text-sm font-medium text-japandi-text-primary">
-                        ⚔️ {groupStats.closestMatchup.team1Player1Name} & {groupStats.closestMatchup.team1Player2Name} vs {groupStats.closestMatchup.team2Player1Name} & {groupStats.closestMatchup.team2Player2Name}
+                  </button>
+                  
+                  {/* Expanded Stats */}
+                  {isStatsExpanded && (
+                    <div className="px-4 pb-4 space-y-4 border-t border-japandi-border-light">
+                      {/* Performance Stats */}
+                      <div className="pt-3">
+                        <div className="text-xs font-medium text-japandi-text-muted uppercase tracking-wide mb-2">Performance</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {groupStats.avgPointDifferential !== null && (
+                            <div className="bg-japandi-background-primary/50 rounded-lg p-3">
+                              <div className="text-lg font-bold text-japandi-text-primary">{groupStats.avgPointDifferential}</div>
+                              <div className="text-xs text-japandi-text-muted">Avg Point Diff</div>
+                            </div>
+                          )}
+                          {groupStats.gamesPerSession > 0 && (
+                            <div className="bg-japandi-background-primary/50 rounded-lg p-3">
+                              <div className="text-lg font-bold text-japandi-text-primary">{groupStats.gamesPerSession}</div>
+                              <div className="text-xs text-japandi-text-muted">Games/Session</div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs text-japandi-text-muted">
-                        {groupStats.closestMatchup.team1Wins}-{groupStats.closestMatchup.team2Wins} ({groupStats.closestMatchup.totalGames} games)
+
+                      {/* Records */}
+                      <div>
+                        <div className="text-xs font-medium text-japandi-text-muted uppercase tracking-wide mb-2">Records</div>
+                        <div className="space-y-2">
+                          {groupStats.highestElo && (
+                            <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">👑</span>
+                                <div>
+                                  <div className="text-sm font-medium text-japandi-text-primary">{groupStats.highestElo.name}</div>
+                                  <div className="text-xs text-japandi-text-muted">Highest ELO</div>
+                                </div>
+                              </div>
+                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.highestElo.rating}</div>
+                            </div>
+                          )}
+                          {groupStats.bestWinStreak && groupStats.bestWinStreak.streak > 0 && (
+                            <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">🔥</span>
+                                <div>
+                                  <div className="text-sm font-medium text-japandi-text-primary">{groupStats.bestWinStreak.name}</div>
+                                  <div className="text-xs text-japandi-text-muted">Best Win Streak</div>
+                                </div>
+                              </div>
+                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.bestWinStreak.streak}</div>
+                            </div>
+                          )}
+                          {groupStats.mostGamesPlayed && (
+                            <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">🎯</span>
+                                <div>
+                                  <div className="text-sm font-medium text-japandi-text-primary">{groupStats.mostGamesPlayed.name}</div>
+                                  <div className="text-xs text-japandi-text-muted">Most Games</div>
+                                </div>
+                              </div>
+                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.mostGamesPlayed.games}</div>
+                            </div>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Pairs */}
+                      <div>
+                        <div className="text-xs font-medium text-japandi-text-muted uppercase tracking-wide mb-2">Pairs</div>
+                        <div className="space-y-2">
+                          {groupStats.dreamTeam && (
+                            <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">🤝</span>
+                                <div>
+                                  <div className="text-sm font-medium text-japandi-text-primary">
+                                    {groupStats.dreamTeam.player1Name} & {groupStats.dreamTeam.player2Name}
+                                  </div>
+                                  <div className="text-xs text-japandi-text-muted">Dream Team ({groupStats.dreamTeam.gamesPlayed}g)</div>
+                                </div>
+                              </div>
+                              <div className="text-lg font-bold text-green-600">{groupStats.dreamTeam.winRate}%</div>
+                            </div>
+                          )}
+                          {groupStats.closestMatchup && (
+                            <div className="bg-japandi-background-primary/50 rounded-lg p-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-base">⚔️</span>
+                                <div className="text-xs text-japandi-text-muted">Closest Rivalry</div>
+                              </div>
+                              <div className="text-sm font-medium text-japandi-text-primary">
+                                {groupStats.closestMatchup.team1Player1Name} & {groupStats.closestMatchup.team1Player2Name}
+                              </div>
+                              <div className="text-xs text-japandi-text-muted">vs</div>
+                              <div className="text-sm font-medium text-japandi-text-primary">
+                                {groupStats.closestMatchup.team2Player1Name} & {groupStats.closestMatchup.team2Player2Name}
+                              </div>
+                              <div className="text-xs text-japandi-accent-primary mt-1">
+                                {groupStats.closestMatchup.team1Wins}-{groupStats.closestMatchup.team2Wins} ({groupStats.closestMatchup.totalGames} games)
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Unlucky Stats */}
+                      {(groupStats.unluckyPlayer || groupStats.unluckyPairing) && (
+                        <div>
+                          <div className="text-xs font-medium text-japandi-text-muted uppercase tracking-wide mb-2">Unlucky (Lost by 1-2 pts)</div>
+                          <div className="space-y-2">
+                            {groupStats.unluckyPlayer && (
+                              <div className="flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">💔</span>
+                                  <div>
+                                    <div className="text-sm font-medium text-japandi-text-primary">{groupStats.unluckyPlayer.name}</div>
+                                    <div className="text-xs text-japandi-text-muted">Unluckiest Player</div>
+                                  </div>
+                                </div>
+                                <div className="text-lg font-bold text-red-500">{groupStats.unluckyPlayer.count}</div>
+                              </div>
+                            )}
+                            {groupStats.unluckyPairing && (
+                              <div className="flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">💔</span>
+                                  <div>
+                                    <div className="text-sm font-medium text-japandi-text-primary">
+                                      {groupStats.unluckyPairing.player1Name} & {groupStats.unluckyPairing.player2Name}
+                                    </div>
+                                    <div className="text-xs text-japandi-text-muted">Unluckiest Pair</div>
+                                  </div>
+                                </div>
+                                <div className="text-lg font-bold text-red-500">{groupStats.unluckyPairing.count}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* History */}
+                      {groupStats.daysSinceFirstSession !== null && groupStats.daysSinceFirstSession > 0 && (
+                        <div className="pt-2 border-t border-japandi-border-light">
+                          <div className="text-xs text-japandi-text-muted text-center">
+                            🎂 {groupStats.daysSinceFirstSession} days since first session
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
               ) : (
-                <>
+                <div className="p-4">
                   <h3 className="text-sm font-semibold text-japandi-text-primary mb-3">Group Overview</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <div className="text-2xl font-bold text-japandi-text-muted">0</div>
-                      <div className="text-xs text-japandi-text-muted">Total Games</div>
+                      <div className="text-xs text-japandi-text-muted">Games</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-japandi-text-muted">0</div>
                       <div className="text-xs text-japandi-text-muted">Sessions</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-japandi-text-muted">0</div>
+                      <div className="text-xs text-japandi-text-muted">Players</div>
                     </div>
                   </div>
                   <p className="text-xs text-japandi-text-muted mt-3 pt-3 border-t border-japandi-border-light">
                     Play some games to see group statistics!
                   </p>
-                </>
+                </div>
               )}
             </div>
 

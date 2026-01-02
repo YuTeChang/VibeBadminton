@@ -21,6 +21,7 @@ type SelectedMatchup = {
 export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) {
   const [selectedMatchup, setSelectedMatchup] = useState<SelectedMatchup>(null);
   const [showAllGames, setShowAllGames] = useState(false);
+  const [showUnluckyGames, setShowUnluckyGames] = useState(false);
   
   // Get top 3 partners and opponents
   const topPartners = stats.partnerStats.slice(0, 3);
@@ -158,6 +159,70 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
                     : `😢 ${Math.abs(stats.currentStreak)} game losing streak`
                   }
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Unlucky Games - Lost by 1-2 points */}
+          {stats.unluckyGames && stats.unluckyGames.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowUnluckyGames(!showUnluckyGames)}
+                className="w-full flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-xl p-3 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">💔</span>
+                  <div className="text-left">
+                    <div className="font-medium text-japandi-text-primary">Unlucky Games</div>
+                    <div className="text-xs text-japandi-text-muted">Lost by 1-2 points</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-red-500">{stats.unluckyGames.length}</span>
+                  <svg 
+                    className={`w-4 h-4 text-japandi-text-muted transition-transform ${showUnluckyGames ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+              {showUnluckyGames && (
+                <div className="mt-2 space-y-2">
+                  {stats.unluckyGames.map((game, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl p-3 bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-japandi-text-primary truncate">
+                            {game.teamANames.join(' & ')}
+                          </div>
+                          <div className="text-xs text-japandi-text-muted">vs</div>
+                          <div className="text-sm text-japandi-text-primary truncate">
+                            {game.teamBNames.join(' & ')}
+                          </div>
+                        </div>
+                        <div className="text-right ml-3 flex-shrink-0">
+                          <div className="text-lg font-bold text-red-500">
+                            {game.teamAScore}-{game.teamBScore}
+                          </div>
+                          <div className="text-xs text-red-400">
+                            Lost by {game.margin}
+                          </div>
+                          {game.date && (
+                            <div className="text-xs text-japandi-text-muted mt-1">
+                              {new Date(game.date).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
