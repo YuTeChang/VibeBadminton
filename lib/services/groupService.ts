@@ -633,10 +633,11 @@ export class GroupService {
       team2Wins: number;
       totalGames: number;
     }>;
-    highestElo: { name: string; rating: number } | null;
+    // Individual records (arrays to support ties)
+    highestElo: Array<{ name: string; rating: number }>;
     eloSpread: number | null;
-    bestWinStreak: { name: string; streak: number } | null;
-    mostGamesPlayed: { name: string; games: number } | null;
+    bestWinStreak: Array<{ name: string; streak: number }>;
+    mostGamesPlayed: Array<{ name: string; games: number }>;
     // Pairing records (arrays to support ties)
     highestPairElo: Array<{ player1Name: string; player2Name: string; rating: number }>;
     bestPairStreak: Array<{ player1Name: string; player2Name: string; streak: number }>;
@@ -874,34 +875,38 @@ export class GroupService {
         }
       }
 
-      // Calculate player records
-      let highestElo: { name: string; rating: number } | null = null;
+      // Calculate player records (with tie support)
+      let highestElo: Array<{ name: string; rating: number }> = [];
       let eloSpread: number | null = null;
-      let bestWinStreak: { name: string; streak: number } | null = null;
-      let mostGamesPlayed: { name: string; games: number } | null = null;
+      let bestWinStreak: Array<{ name: string; streak: number }> = [];
+      let mostGamesPlayed: Array<{ name: string; games: number }> = [];
 
       if (players && players.length > 0) {
-        const sortedByElo = [...players].sort((a, b) => (b.elo_rating || 1500) - (a.elo_rating || 1500));
-        const maxElo = sortedByElo[0].elo_rating || 1500;
-        const minElo = sortedByElo[sortedByElo.length - 1].elo_rating || 1500;
-
-        highestElo = { name: sortedByElo[0].name, rating: maxElo };
+        // Highest ELO (all ties)
+        const maxElo = Math.max(...players.map(p => p.elo_rating || 1500));
+        const minElo = Math.min(...players.map(p => p.elo_rating || 1500));
         eloSpread = maxElo - minElo;
-
-        const withStreak = players.filter(p => (p.best_win_streak || 0) > 0);
-        if (withStreak.length > 0) {
-          const bestStreakPlayer = withStreak.reduce((a, b) => 
-            (a.best_win_streak || 0) > (b.best_win_streak || 0) ? a : b
-          );
-          bestWinStreak = { name: bestStreakPlayer.name, streak: bestStreakPlayer.best_win_streak || 0 };
+        
+        if (maxElo > 1500) {
+          highestElo = players
+            .filter(p => (p.elo_rating || 1500) === maxElo)
+            .map(p => ({ name: p.name, rating: p.elo_rating || 1500 }));
         }
 
-        const withGames = players.filter(p => (p.total_games || 0) > 0);
-        if (withGames.length > 0) {
-          const mostGamesPlayer = withGames.reduce((a, b) => 
-            (a.total_games || 0) > (b.total_games || 0) ? a : b
-          );
-          mostGamesPlayed = { name: mostGamesPlayer.name, games: mostGamesPlayer.total_games || 0 };
+        // Best Win Streak (all ties)
+        const maxStreak = Math.max(...players.map(p => p.best_win_streak || 0));
+        if (maxStreak > 0) {
+          bestWinStreak = players
+            .filter(p => (p.best_win_streak || 0) === maxStreak)
+            .map(p => ({ name: p.name, streak: p.best_win_streak || 0 }));
+        }
+
+        // Most Games Played (all ties)
+        const maxGames = Math.max(...players.map(p => p.total_games || 0));
+        if (maxGames > 0) {
+          mostGamesPlayed = players
+            .filter(p => (p.total_games || 0) === maxGames)
+            .map(p => ({ name: p.name, games: p.total_games || 0 }));
         }
       }
 
@@ -1042,10 +1047,10 @@ export class GroupService {
         avgPointDifferential: null,
         gamesPerSession: 0,
         closestMatchups: [],
-        highestElo: null,
+        highestElo: [],
         eloSpread: null,
-        bestWinStreak: null,
-        mostGamesPlayed: null,
+        bestWinStreak: [],
+        mostGamesPlayed: [],
         highestPairElo: [],
         bestPairStreak: [],
         mostGamesTogether: [],

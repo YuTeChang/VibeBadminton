@@ -166,10 +166,11 @@ export class ApiClient {
       team2Wins: number;
       totalGames: number;
     }>;
-    highestElo: { name: string; rating: number } | null;
+    // Individual records (arrays to support ties)
+    highestElo: Array<{ name: string; rating: number }>;
     eloSpread: number | null;
-    bestWinStreak: { name: string; streak: number } | null;
-    mostGamesPlayed: { name: string; games: number } | null;
+    bestWinStreak: Array<{ name: string; streak: number }>;
+    mostGamesPlayed: Array<{ name: string; games: number }>;
     // Pairing records (arrays to support ties)
     highestPairElo: Array<{ player1Name: string; player2Name: string; rating: number }>;
     bestPairStreak: Array<{ player1Name: string; player2Name: string; streak: number }>;

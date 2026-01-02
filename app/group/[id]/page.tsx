@@ -36,10 +36,11 @@ export default function GroupPage() {
       team2Wins: number;
       totalGames: number;
     }>;
-    highestElo: { name: string; rating: number } | null;
+    // Individual records (arrays to support ties)
+    highestElo: Array<{ name: string; rating: number }>;
     eloSpread: number | null;
-    bestWinStreak: { name: string; streak: number } | null;
-    mostGamesPlayed: { name: string; games: number } | null;
+    bestWinStreak: Array<{ name: string; streak: number }>;
+    mostGamesPlayed: Array<{ name: string; games: number }>;
     // Pairing records (arrays to support ties)
     highestPairElo: Array<{ player1Name: string; player2Name: string; rating: number }>;
     bestPairStreak: Array<{ player1Name: string; player2Name: string; streak: number }>;
@@ -720,40 +721,52 @@ export default function GroupPage() {
                       <div>
                         <div className="text-xs font-medium text-japandi-text-muted uppercase tracking-wide mb-2">Records</div>
                         <div className="space-y-2">
-                          {groupStats.highestElo && (
+                          {groupStats.highestElo.length > 0 && (
                             <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
                               <div className="flex items-center gap-2">
                                 <span className="text-base">👑</span>
                                 <div>
-                                  <div className="text-sm font-medium text-japandi-text-primary">{groupStats.highestElo.name}</div>
-                                  <div className="text-xs text-japandi-text-muted">Highest ELO</div>
+                                  <div className="text-sm font-medium text-japandi-text-primary">
+                                    {groupStats.highestElo.map(p => p.name).join(', ')}
+                                  </div>
+                                  <div className="text-xs text-japandi-text-muted">
+                                    Highest ELO{groupStats.highestElo.length > 1 && <span className="text-japandi-accent-primary ml-1">(tie)</span>}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.highestElo.rating}</div>
+                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.highestElo[0].rating}</div>
                             </div>
                           )}
-                          {groupStats.bestWinStreak && groupStats.bestWinStreak.streak > 0 && (
+                          {groupStats.bestWinStreak.length > 0 && (
                             <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
                               <div className="flex items-center gap-2">
                                 <span className="text-base">🔥</span>
                                 <div>
-                                  <div className="text-sm font-medium text-japandi-text-primary">{groupStats.bestWinStreak.name}</div>
-                                  <div className="text-xs text-japandi-text-muted">Best Win Streak</div>
+                                  <div className="text-sm font-medium text-japandi-text-primary">
+                                    {groupStats.bestWinStreak.map(p => p.name).join(', ')}
+                                  </div>
+                                  <div className="text-xs text-japandi-text-muted">
+                                    Best Win Streak{groupStats.bestWinStreak.length > 1 && <span className="text-japandi-accent-primary ml-1">(tie)</span>}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.bestWinStreak.streak}</div>
+                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.bestWinStreak[0].streak}</div>
                             </div>
                           )}
-                          {groupStats.mostGamesPlayed && (
+                          {groupStats.mostGamesPlayed.length > 0 && (
                             <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
                               <div className="flex items-center gap-2">
                                 <span className="text-base">🎯</span>
                                 <div>
-                                  <div className="text-sm font-medium text-japandi-text-primary">{groupStats.mostGamesPlayed.name}</div>
-                                  <div className="text-xs text-japandi-text-muted">Most Games</div>
+                                  <div className="text-sm font-medium text-japandi-text-primary">
+                                    {groupStats.mostGamesPlayed.map(p => p.name).join(', ')}
+                                  </div>
+                                  <div className="text-xs text-japandi-text-muted">
+                                    Most Games{groupStats.mostGamesPlayed.length > 1 && <span className="text-japandi-accent-primary ml-1">(tie)</span>}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.mostGamesPlayed.games}</div>
+                              <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.mostGamesPlayed[0].games}</div>
                             </div>
                           )}
                         </div>
@@ -764,54 +777,54 @@ export default function GroupPage() {
                         <div>
                           <div className="text-xs font-medium text-japandi-text-muted uppercase tracking-wide mb-2">Pair Records</div>
                           <div className="space-y-2">
-                            {groupStats.highestPairElo.length > 0 && groupStats.highestPairElo.map((pair, idx) => (
-                              <div key={`elo-${idx}`} className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                            {groupStats.highestPairElo.length > 0 && (
+                              <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
                                 <div className="flex items-center gap-2">
                                   <span className="text-base">👑</span>
                                   <div>
                                     <div className="text-sm font-medium text-japandi-text-primary">
-                                      {pair.player1Name} & {pair.player2Name}
+                                      {groupStats.highestPairElo.map(p => `${p.player1Name} & ${p.player2Name}`).join(', ')}
                                     </div>
                                     <div className="text-xs text-japandi-text-muted">
                                       Highest Pair ELO{groupStats.highestPairElo.length > 1 && <span className="text-japandi-accent-primary ml-1">(tie)</span>}
                                     </div>
                                   </div>
                                 </div>
-                                <div className="text-lg font-bold text-japandi-accent-primary">{pair.rating}</div>
+                                <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.highestPairElo[0].rating}</div>
                               </div>
-                            ))}
-                            {groupStats.bestPairStreak.length > 0 && groupStats.bestPairStreak.map((pair, idx) => (
-                              <div key={`streak-${idx}`} className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                            )}
+                            {groupStats.bestPairStreak.length > 0 && (
+                              <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
                                 <div className="flex items-center gap-2">
                                   <span className="text-base">🔥</span>
                                   <div>
                                     <div className="text-sm font-medium text-japandi-text-primary">
-                                      {pair.player1Name} & {pair.player2Name}
+                                      {groupStats.bestPairStreak.map(p => `${p.player1Name} & ${p.player2Name}`).join(', ')}
                                     </div>
                                     <div className="text-xs text-japandi-text-muted">
                                       Best Pair Streak{groupStats.bestPairStreak.length > 1 && <span className="text-japandi-accent-primary ml-1">(tie)</span>}
                                     </div>
                                   </div>
                                 </div>
-                                <div className="text-lg font-bold text-japandi-accent-primary">{pair.streak}</div>
+                                <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.bestPairStreak[0].streak}</div>
                               </div>
-                            ))}
-                            {groupStats.mostGamesTogether.length > 0 && groupStats.mostGamesTogether.map((pair, idx) => (
-                              <div key={`games-${idx}`} className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
+                            )}
+                            {groupStats.mostGamesTogether.length > 0 && (
+                              <div className="flex items-center justify-between bg-japandi-background-primary/50 rounded-lg p-3">
                                 <div className="flex items-center gap-2">
                                   <span className="text-base">💪</span>
                                   <div>
                                     <div className="text-sm font-medium text-japandi-text-primary">
-                                      {pair.player1Name} & {pair.player2Name}
+                                      {groupStats.mostGamesTogether.map(p => `${p.player1Name} & ${p.player2Name}`).join(', ')}
                                     </div>
                                     <div className="text-xs text-japandi-text-muted">
                                       Most Games Together{groupStats.mostGamesTogether.length > 1 && <span className="text-japandi-accent-primary ml-1">(tie)</span>}
                                     </div>
                                   </div>
                                 </div>
-                                <div className="text-lg font-bold text-japandi-accent-primary">{pair.games}</div>
+                                <div className="text-lg font-bold text-japandi-accent-primary">{groupStats.mostGamesTogether[0].games}</div>
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
                       )}
