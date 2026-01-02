@@ -22,10 +22,12 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
   const [selectedMatchup, setSelectedMatchup] = useState<SelectedMatchup>(null);
   const [showAllGames, setShowAllGames] = useState(false);
   const [showUnluckyGames, setShowUnluckyGames] = useState(false);
+  const [showAllPartners, setShowAllPartners] = useState(false);
+  const [showAllOpponents, setShowAllOpponents] = useState(false);
   
-  // Get top 3 partners and opponents
-  const topPartners = stats.partnerStats.slice(0, 3);
-  const topOpponents = stats.opponentStats.slice(0, 3);
+  // Show 3 by default, all when expanded
+  const displayedPartners = showAllPartners ? stats.partnerStats : stats.partnerStats.slice(0, 3);
+  const displayedOpponents = showAllOpponents ? stats.opponentStats : stats.opponentStats.slice(0, 3);
   
   // Best and worst matchups
   const bestPartner = stats.partnerStats.length > 0 
@@ -228,13 +230,23 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
           )}
 
           {/* Partner Stats (for doubles) */}
-          {topPartners.length > 0 && (
+          {stats.partnerStats.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-japandi-text-muted uppercase tracking-wide mb-3">
-                Best Partners
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-japandi-text-muted uppercase tracking-wide">
+                  Partners ({stats.partnerStats.length})
+                </h3>
+                {stats.partnerStats.length > 3 && (
+                  <button
+                    onClick={() => setShowAllPartners(!showAllPartners)}
+                    className="text-xs text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors"
+                  >
+                    {showAllPartners ? 'Show Less' : `Show All (${stats.partnerStats.length})`}
+                  </button>
+                )}
+              </div>
               <div className="space-y-2">
-                {topPartners.map((partner, i) => (
+                {displayedPartners.map((partner, i) => (
                   <button
                     key={partner.partnerId}
                     onClick={() => setSelectedMatchup({ type: 'partner', data: partner })}
@@ -242,7 +254,7 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        i === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-japandi-background-card text-japandi-text-muted'
+                        i === 0 && !showAllPartners ? 'bg-yellow-100 text-yellow-700' : 'bg-japandi-background-card text-japandi-text-muted'
                       }`}>
                         {i + 1}
                       </div>
@@ -282,22 +294,39 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
           )}
 
           {/* Opponent Stats */}
-          {topOpponents.length > 0 && (
+          {stats.opponentStats.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-japandi-text-muted uppercase tracking-wide mb-3">
-                vs Opponents
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-japandi-text-muted uppercase tracking-wide">
+                  Opponents ({stats.opponentStats.length})
+                </h3>
+                {stats.opponentStats.length > 3 && (
+                  <button
+                    onClick={() => setShowAllOpponents(!showAllOpponents)}
+                    className="text-xs text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors"
+                  >
+                    {showAllOpponents ? 'Show Less' : `Show All (${stats.opponentStats.length})`}
+                  </button>
+                )}
+              </div>
               <div className="space-y-2">
-                {topOpponents.map((opponent) => (
+                {displayedOpponents.map((opponent, i) => (
                   <button
                     key={opponent.opponentId}
                     onClick={() => setSelectedMatchup({ type: 'opponent', data: opponent })}
                     className="w-full text-left flex items-center justify-between bg-japandi-background-primary rounded-xl p-3 hover:bg-japandi-background-primary/80 transition-colors"
                   >
-                    <div>
-                      <div className="font-medium text-japandi-text-primary">{opponent.opponentName}</div>
-                      <div className="text-xs text-japandi-text-muted">
-                        {opponent.wins}-{opponent.losses} ({opponent.gamesPlayed} games)
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        i === 0 && !showAllOpponents ? 'bg-yellow-100 text-yellow-700' : 'bg-japandi-background-card text-japandi-text-muted'
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <div>
+                        <div className="font-medium text-japandi-text-primary">{opponent.opponentName}</div>
+                        <div className="text-xs text-japandi-text-muted">
+                          {opponent.wins}-{opponent.losses} ({opponent.gamesPlayed} games)
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

@@ -269,6 +269,7 @@ export class StatsService {
       const opponentStatsMap = new Map<string, { wins: number; losses: number; games: RecentGame[] }>();
       let currentStreak = 0;
       let streakType: 'W' | 'L' | null = null;
+      let streakBroken = false; // Flag to stop counting once streak breaks
       let bestWinStreak = 0;
       let tempWinStreak = 0;
       let gamesPlayerFoundIn = 0;
@@ -336,11 +337,17 @@ export class StatsService {
         }
 
         // Streak calculation (only count consecutive from most recent)
+        // Once the streak breaks, stop counting - streakBroken flag prevents further accumulation
         if (streakType === null) {
           streakType = won ? 'W' : 'L';
           currentStreak = won ? 1 : -1;
-        } else if ((won && streakType === 'W') || (!won && streakType === 'L')) {
-          currentStreak += won ? 1 : -1;
+        } else if (!streakBroken) {
+          if ((won && streakType === 'W') || (!won && streakType === 'L')) {
+            currentStreak += won ? 1 : -1;
+          } else {
+            // Streak broken - stop counting
+            streakBroken = true;
+          }
         }
 
         // Track best win streak (iterate through all games)

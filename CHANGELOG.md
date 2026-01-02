@@ -3,6 +3,25 @@
 ## [Unreleased] - 2025-01
 
 ### Added
+- **Statistics Documentation**: New comprehensive STATS_GUIDE.md explaining all statistics
+  - How each stat is calculated and what it means
+  - Tips for interpreting stats correctly
+  - ELO system explanation
+  - Statistical significance guidance
+
+### Fixed
+- **Current Streak Bug**: Fixed incorrect streak calculation that showed cumulative historic streaks
+  - Now correctly shows only consecutive wins/losses from the most recent game
+  - Added `streakBroken` flag to stop counting when streak pattern breaks
+  - Example: L W L W W correctly shows +2 (win streak), not historic cumulative value
+- **Dream Team Display**: Changed from showing "(8g)" to showing W-L record "(6-2)"
+  - More informative display showing actual wins and losses
+- **Partner/Opponent Visibility**: Changed from showing only top 3 to expandable full list
+  - "Show All" button to reveal all partners/opponents
+  - Fixes issue where "Struggles with X" or "Nemesis: X" callouts referenced invisible players
+  - Now shows count in header (e.g., "Partners (7)")
+
+### Added
 - **Vercel Analytics & Speed Insights**: Real-time visitor tracking and performance monitoring
   - Web Analytics for page views and visitor counts
   - Speed Insights for performance metrics (desktop/mobile)

@@ -170,7 +170,7 @@ export class ApiClient {
     eloSpread: number | null;
     bestWinStreak: { name: string; streak: number } | null;
     mostGamesPlayed: { name: string; games: number } | null;
-    dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number } | null;
+    dreamTeam: { player1Name: string; player2Name: string; winRate: number; gamesPlayed: number; wins: number; losses: number } | null;
     unluckyPlayer: { name: string; count: number } | null;
     unluckyPairing: { player1Name: string; player2Name: string; count: number } | null;
     firstSessionDate: Date | null;
