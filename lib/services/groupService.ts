@@ -529,11 +529,22 @@ export class GroupService {
       // Get total completed games
       let totalGames = 0;
       if (sessionIds.length > 0) {
-        const { count: gameCount } = await supabase
+        const { count: gameCount, error: gameError } = await supabase
           .from('games')
           .select('*', { count: 'exact', head: true })
           .in('session_id', sessionIds)
           .not('winning_team', 'is', null);
+        
+        if (gameError) {
+          console.error('[GroupService] Error counting games:', gameError);
+        }
+        console.log('[GroupService] getGroupStats:', { 
+          groupId, 
+          sessionCount: sessionIds.length, 
+          gameCount,
+          sessionIds: sessionIds.slice(0, 3) // Log first 3 for debugging
+        });
+        
         totalGames = gameCount || 0;
       }
 
