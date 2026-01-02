@@ -179,9 +179,11 @@ Found in the expandable "Group Overview" section on the group page.
 
 ### Individual Records
 
-#### Highest ELO
+If multiple players are tied for a record, all tied players are shown with a "(tie)" indicator.
 
-**What it is:** Player with the highest current ELO rating.
+#### Highest ELO 👑
+
+**What it is:** Player(s) with the highest current ELO rating.
 
 **Note:** This indicates the most skilled player based on competitive performance.
 
@@ -194,17 +196,17 @@ Found in the expandable "Group Overview" section on the group page.
 - `200-400`: Some skill disparity
 - `> 400`: Significant skill gaps
 
-#### Best Win Streak
+#### Best Win Streak 🔥
 
 **What it is:** The longest consecutive win streak achieved by any player.
 
-#### Most Games Played
+#### Most Games Played 🎯
 
 **What it is:** Player who has participated in the most games.
 
 ### Pair Records
 
-These mirror the individual records but track partnerships instead. If multiple pairs are tied for a record, all tied pairs are shown.
+These mirror the individual records but track partnerships instead. If multiple pairs are tied for a record, all tied pairs are shown with a "(tie)" indicator.
 
 #### Highest Pair ELO 👑
 
