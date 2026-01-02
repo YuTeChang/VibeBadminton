@@ -3,6 +3,11 @@
 ## [Unreleased] - 2025-01
 
 ### Added
+- **Code-Based Group Access**: New streamlined home page with group code input
+  - Enter group code (e.g., `i1lcbcsl`) to join any group
+  - Recent groups stored in localStorage for quick access (last 3)
+  - Zero API calls on home page load (instant rendering)
+  - Scales infinitely regardless of number of groups/sessions
 - **Recent Games in Profile Sheets**: Show last 3 games with results in player and pairing profiles
   - Team names, scores, and win/loss indicator for each game
   - Green/red background for quick win/loss identification

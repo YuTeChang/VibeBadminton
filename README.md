@@ -6,6 +6,15 @@ A web app that helps groups of friends track their badminton games (doubles or s
 
 ---
 
+## How It Works
+
+1. **Create a Group**: One person creates a group and gets a shareable code (e.g., `i1lcbcsl`)
+2. **Share the Code**: Send the code to friends via text/chat
+3. **Join via Code**: Friends enter the code on the home page to join
+4. **Play & Track**: Record games, view stats, and settle up at the end
+
+---
+
 ## Quick Start
 
 ### Installation
@@ -60,7 +69,7 @@ See [docs/SETUP_BACKEND.md](docs/SETUP_BACKEND.md) for detailed setup instructio
 - ✅ **Recent Form**: Visual display of last 5 games (W/L indicators)
 - ✅ **Streak Tracking**: Current win/loss streak indicators
 
-### Pairing Stats (NEW)
+### Pairing Stats
 - ✅ **Best Pairings Tab**: View doubles team combinations ranked by win rate
 - ✅ **Pairing Profiles**: Detailed stats for each pairing (click to view)
 - ✅ **Head-to-Head Matchups**: See how pairings perform against other pairings
@@ -132,8 +141,8 @@ See [scripts/migrations/README.md](scripts/migrations/README.md) for detailed mi
 
 ```
 app/                    # Next.js pages [FRONTEND]
-├── page.tsx            # Home (landing)
-├── dashboard/          # Dashboard
+├── page.tsx            # Home (code input, recent groups)
+├── dashboard/          # Admin dashboard (internal use)
 ├── create-*/           # Create forms
 ├── group/[id]/         # Group pages (Sessions, Leaderboard, Players, Pairings)
 ├── session/[id]/       # Session pages
@@ -141,13 +150,13 @@ app/                    # Next.js pages [FRONTEND]
     ├── groups/         # Group endpoints
     │   └── [id]/
     │       ├── stats/          # Leaderboard endpoint
-    │       ├── pairings/       # Pairing stats endpoint (NEW)
+    │       ├── pairings/       # Pairing stats endpoint
     │       └── players/[playerId]/stats/  # Player profile endpoint
     └── sessions/       # Session endpoints
 
 components/             # React components [FRONTEND]
 ├── PlayerProfileSheet.tsx   # Player profile modal
-├── PairingProfileSheet.tsx  # Pairing profile modal (NEW)
+├── PairingProfileSheet.tsx  # Pairing profile modal
 └── ...
 
 lib/
@@ -158,7 +167,7 @@ lib/
 │   ├── groupService.ts
 │   ├── statsService.ts       # Leaderboard & player stats
 │   ├── eloService.ts         # ELO calculations
-│   └── pairingStatsService.ts  # Pairing stats (NEW)
+│   └── pairingStatsService.ts  # Pairing stats
 ├── calculations.ts     # Stats calculations [FRONTEND]
 └── migration.ts        # Migration system
 
@@ -181,7 +190,7 @@ types/index.ts          # TypeScript types
 - [Database Schema](docs/engineering/database.md) - Database documentation
 - [API Analysis](docs/API_ANALYSIS.md) - API documentation
 - [Architecture](docs/engineering/architecture.md) - System design
-- [Admin Guide](docs/ADMIN.md) - Admin operations (NEW)
+- [Admin Guide](docs/ADMIN.md) - Admin operations
 
 ---
 

@@ -34,7 +34,7 @@ export default function Error({
             Try again
           </button>
           <Link
-            href="/dashboard"
+            href="/"
             className="block w-full px-6 py-3 bg-japandi-background-primary hover:bg-japandi-background-card text-japandi-text-primary border border-japandi-border-light font-semibold rounded-full transition-all text-center"
           >
             Go to Home

@@ -6,6 +6,23 @@ This document tracks all features, improvements, and fixes added to PoweredByPac
 
 ### Major Features Added
 
+#### Code-Based Group Access (Home Page Redesign)
+- **Status**: ✅ Complete
+- **Description**: Redesigned home page with code-based group access instead of dashboard listing
+- **Implementation**:
+  - New home page with group code input field (e.g., `i1lcbcsl`)
+  - Recent groups stored in localStorage (last 3 visited groups)
+  - `saveRecentGroup()` helper called when visiting any group page
+  - Removed "View Sessions & Groups" button linking to dashboard
+  - Dashboard still exists at `/dashboard` for internal admin use
+  - Zero API calls on home page load (instant rendering)
+- **Benefits**:
+  - **Instant load**: No database queries on home page
+  - **Privacy**: Users only see groups they have the code for
+  - **Scalability**: Works with 10 or 10,000 groups equally fast
+  - **Mobile-friendly**: Simple, focused UI
+- **User Impact**: Faster home page, easier group access via shareable codes
+
 #### Recent Games in Profile Sheets
 - **Status**: ✅ Complete
 - **Description**: Show last 3 games with full details in player and pairing profile sheets

@@ -14,7 +14,7 @@ export default function NotFound() {
           This page could not be found.
         </p>
         <Link
-          href="/dashboard"
+          href="/"
           className="inline-block px-6 py-3 bg-japandi-accent-primary hover:bg-japandi-accent-hover text-white font-semibold rounded-full transition-all shadow-button"
         >
           Go to Home

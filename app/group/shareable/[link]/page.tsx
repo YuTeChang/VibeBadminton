@@ -55,7 +55,7 @@ export default function ShareableLinkPage() {
           </p>
           <div className="space-y-3">
             <Link
-              href="/dashboard"
+              href="/"
               className="inline-block px-6 py-3 bg-japandi-accent-primary hover:bg-japandi-accent-hover text-white font-semibold rounded-full transition-all"
             >
               Go to Home

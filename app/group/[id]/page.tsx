@@ -8,6 +8,7 @@ import { ApiClient } from "@/lib/api/client";
 import { formatPercentage } from "@/lib/calculations";
 import { PlayerProfileSheet } from "@/components/PlayerProfileSheet";
 import { PairingProfileSheet } from "@/components/PairingProfileSheet";
+import { saveRecentGroup } from "@/lib/recentGroups";
 
 export default function GroupPage() {
   const params = useParams();
@@ -67,6 +68,11 @@ export default function GroupPage() {
       setGroup(fetchedGroup);
       setSessions(fetchedSessions || []);
       setGroupStats(fetchedStats);
+      
+      // Save to recent groups for quick access from home page
+      if (fetchedGroup?.shareableLink && fetchedGroup?.name) {
+        saveRecentGroup(fetchedGroup.shareableLink, fetchedGroup.name);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load group");
     } finally {
