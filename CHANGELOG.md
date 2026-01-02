@@ -81,13 +81,6 @@
   - Total dashboard load time improved from ~1800ms to ~500ms (~72% faster)
   - Parallel API calls reduce sequential wait time
 
-### Deployment
-- **Manual Deployment Control**: Changed from auto-deploy to manual deploy-only workflow
-  - Deployments only occur when `[deploy]` keyword is in commit message
-  - Default behavior: all commits skip deployment
-  - Gives full control over when deployments happen
-  - Allows testing locally before deploying
-
 ### UI/UX Improvements
 - **Group Selection UI**: Improved group selection when creating session from group page
   - Subtle badge above title instead of large card

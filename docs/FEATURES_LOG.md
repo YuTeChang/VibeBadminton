@@ -176,19 +176,7 @@ This document tracks all features, improvements, and fixes added to PoweredByPac
   - **~72% faster load time (~1000ms improvement)**
 - **User Impact**: Dashboard loads much faster, better user experience
 
-#### 8. Manual Deployment Control
-- **Status**: ✅ Complete
-- **Description**: Changed deployment strategy to manual control with `[deploy]` keyword
-- **Implementation**:
-  - Updated Vercel `ignoreCommand` to check for `[deploy]` in commit message
-  - Default behavior: all commits skip deployment
-  - Only deploys when `[deploy]` keyword is present in commit message
-- **Workflow**:
-  - Regular commits: `git commit -m "Update docs"` → no deployment
-  - Deploy commits: `git commit -m "Fix bug [deploy]"` → triggers deployment
-- **User Impact**: Full control over deployments, can test locally before deploying
-
-#### 9. UI/UX Improvements (Group Selection & Singles Recording)
+#### 8. UI/UX Improvements (Group Selection & Singles Recording)
 - **Status**: ✅ Complete
 - **Description**: Improved UI/UX for group sessions and singles game recording
 - **Implementation**:
