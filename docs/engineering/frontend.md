@@ -92,13 +92,30 @@
 ### Group Page
 - **Route**: `/group/[id]`
 - **Purpose**: View group details, sessions, leaderboard, and player pool
-- **Structure**: Tab navigation with 3 tabs
+- **Structure**: Tab navigation with 4 tabs
 - **Components**:
   - **Sessions Tab**: List of all sessions in the group
+    - Group Overview accordion (lazy loaded on first expand)
   - **Leaderboard Tab**: Ranked players by ELO rating
     - Player cards showing ELO, W/L, win rate, recent form
     - Click player to view detailed profile
+  - **Pairings Tab**: Doubles partnerships ranked by win rate
   - **Players Tab**: Manage player pool
+
+### Performance Optimizations
+
+The Group Page uses lazy loading to minimize initial load time:
+
+| Data | Load Strategy | Trigger |
+|------|---------------|---------|
+| Group info & Sessions | Eager | Page load |
+| **Group Overview stats** | **Lazy** | **Accordion expand** |
+| Leaderboard | Lazy | Tab click |
+| Pairings | Lazy | Tab click |
+| Players | Lazy | Tab click |
+| Player/Pairing sheets | Lazy | Row click |
+
+This reduces initial queries from 6 to 2, making page load nearly instant.
 
 ## Components
 

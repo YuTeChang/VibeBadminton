@@ -164,6 +164,8 @@ Shows head-to-head statistics against each opponent.
 
 Found in the expandable "Group Overview" section on the group page.
 
+> **Performance Note**: Group Overview stats are **lazy loaded** - they only fetch from the database when you expand the accordion. This keeps the group page fast to load initially.
+
 ### Basic Stats
 
 | Stat | Description |

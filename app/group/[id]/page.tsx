@@ -53,6 +53,7 @@ export default function GroupPage() {
     daysSinceFirstSession: number | null;
   } | null>(null);
   const [isStatsExpanded, setIsStatsExpanded] = useState(false);
+  const [isLoadingOverviewStats, setIsLoadingOverviewStats] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
@@ -90,16 +91,14 @@ export default function GroupPage() {
       setIsLoading(true);
       setError(null);
       
-      // Only load group and sessions initially - players/leaderboard load lazily
-      const [fetchedGroup, fetchedSessions, fetchedStats] = await Promise.all([
+      // Only load group and sessions initially - stats load lazily when overview is expanded
+      const [fetchedGroup, fetchedSessions] = await Promise.all([
         ApiClient.getGroup(groupId),
         ApiClient.getGroupSessions(groupId).catch(() => []),
-        ApiClient.getGroupOverviewStats(groupId).catch(() => null),
       ]);
       
       setGroup(fetchedGroup);
       setSessions(fetchedSessions || []);
-      setGroupStats(fetchedStats);
       
       // Save to recent groups for quick access from home page
       if (fetchedGroup?.shareableLink && fetchedGroup?.name) {
@@ -245,6 +244,32 @@ export default function GroupPage() {
   const playersLoadedRef = useRef<boolean>(false);
   const leaderboardLoadedRef = useRef<boolean>(false);
   const pairingsLoadedRef = useRef<boolean>(false);
+  const overviewStatsLoadedRef = useRef<boolean>(false);
+
+  // Lazy load overview stats when accordion is expanded
+  const loadOverviewStats = useCallback(async () => {
+    if (overviewStatsLoadedRef.current) return;
+    
+    overviewStatsLoadedRef.current = true;
+    setIsLoadingOverviewStats(true);
+    try {
+      const fetchedStats = await ApiClient.getGroupOverviewStats(groupId);
+      setGroupStats(fetchedStats);
+    } catch (err) {
+      console.error('[GroupPage] Error fetching overview stats:', err);
+    } finally {
+      setIsLoadingOverviewStats(false);
+    }
+  }, [groupId]);
+
+  // Handle overview accordion toggle
+  const handleOverviewToggle = useCallback(() => {
+    const newExpanded = !isStatsExpanded;
+    setIsStatsExpanded(newExpanded);
+    if (newExpanded) {
+      loadOverviewStats();
+    }
+  }, [isStatsExpanded, loadOverviewStats]);
 
   // Single effect to load data on mount and when groupId changes
   useEffect(() => {
@@ -257,6 +282,8 @@ export default function GroupPage() {
         loadGroupData();
         // Reset lazy load flags on refresh
         leaderboardLoadedRef.current = false;
+        overviewStatsLoadedRef.current = false;
+        setGroupStats(null);
       }, 500);
       return;
     }
@@ -295,6 +322,8 @@ export default function GroupPage() {
         if (isReturningFromCreateSession || timeSinceLastLoad > REFRESH_DEBOUNCE_MS) {
           lastLoadRef.current = now;
           leaderboardLoadedRef.current = false; // Reset leaderboard on return
+          overviewStatsLoadedRef.current = false; // Reset overview stats on return
+          setGroupStats(null); // Clear cached stats
           if (isReturningFromCreateSession) {
             setTimeout(() => loadGroupData(), 500);
           } else {
@@ -597,13 +626,50 @@ export default function GroupPage() {
         {/* Sessions Tab */}
         {activeTab === "sessions" && (
           <div className="space-y-4">
-            {/* Group Stats Card - Expandable with extended stats */}
+            {/* Group Stats Card - Lazy loaded, expandable with extended stats */}
             <div className="bg-japandi-background-card border border-japandi-border-light rounded-card shadow-soft overflow-hidden">
+              {/* Stats not loaded yet - show tap to load */}
+              {!groupStats && !isLoadingOverviewStats && (
+                <button
+                  onClick={handleOverviewToggle}
+                  className="w-full p-4 text-left hover:bg-japandi-background-primary/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-japandi-text-primary">Group Overview</h3>
+                    <span className="text-japandi-accent-primary text-xs font-medium">
+                      Tap to view →
+                    </span>
+                  </div>
+                  <p className="text-xs text-japandi-text-muted mt-1">
+                    View stats, records, and insights
+                  </p>
+                </button>
+              )}
+              
+              {/* Loading state */}
+              {isLoadingOverviewStats && (
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-japandi-text-primary">Group Overview</h3>
+                    <span className="text-japandi-text-muted text-xs">Loading...</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-8 bg-japandi-background-primary/50 rounded w-12 mb-1"></div>
+                        <div className="h-3 bg-japandi-background-primary/30 rounded w-16"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Stats loaded */}
               {groupStats && (groupStats.totalGames > 0 || groupStats.totalSessions > 0) ? (
                 <>
                   {/* Header - Always visible */}
                   <button
-                    onClick={() => setIsStatsExpanded(!isStatsExpanded)}
+                    onClick={handleOverviewToggle}
                     className="w-full p-4 text-left hover:bg-japandi-background-primary/50 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -870,7 +936,7 @@ export default function GroupPage() {
                     </div>
                   )}
                 </>
-              ) : (
+              ) : groupStats && (groupStats.totalGames === 0 && groupStats.totalSessions === 0) ? (
                 <div className="p-4">
                   <h3 className="text-sm font-semibold text-japandi-text-primary mb-3">Group Overview</h3>
                   <div className="grid grid-cols-3 gap-4">
@@ -891,7 +957,7 @@ export default function GroupPage() {
                     Play some games to see group statistics!
                   </p>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="flex justify-between items-center">
