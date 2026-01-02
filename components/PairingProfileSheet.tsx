@@ -158,31 +158,35 @@ export function PairingProfileSheet({ stats, onClose }: PairingProfileSheetProps
           {((stats.clutchGames && stats.clutchGames.length > 0) || (stats.unluckyGames && stats.unluckyGames.length > 0)) && (
             <div>
               <h3 className="text-sm font-semibold text-japandi-text-muted uppercase tracking-wide mb-3">
-                Close Games (Won/Lost by 1-2 pts)
+                Close Games
               </h3>
               <div className="grid grid-cols-2 gap-3 mb-2">
                 {/* Clutch tile */}
                 <button
                   onClick={() => stats.clutchGames && stats.clutchGames.length > 0 && setShowClutchGames(!showClutchGames)}
                   disabled={!stats.clutchGames || stats.clutchGames.length === 0}
-                  className={`flex flex-col items-center justify-center bg-green-50 dark:bg-green-900/20 rounded-xl p-4 transition-colors ${
+                  className={`bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center transition-colors ${
                     stats.clutchGames && stats.clutchGames.length > 0 
                       ? 'hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer' 
                       : 'opacity-50 cursor-default'
                   }`}
                 >
-                  <span className="text-2xl mb-1">🎯</span>
-                  <span className="text-2xl font-bold text-green-600">{stats.clutchCount || 0}</span>
-                  <span className="text-xs text-japandi-text-muted">Clutch Wins</span>
+                  <div className="text-lg font-bold text-green-600">
+                    🎯 {stats.clutchCount || 0}
+                  </div>
+                  <div className="text-xs text-japandi-text-muted mt-1">Clutch (won by 1-2)</div>
                   {stats.clutchGames && stats.clutchGames.length > 0 && (
-                    <svg 
-                      className={`w-4 h-4 text-japandi-text-muted mt-1 transition-transform ${showClutchGames ? 'rotate-180' : ''}`} 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <div className="text-xs text-green-600 mt-1 flex items-center justify-center gap-1">
+                      tap to view
+                      <svg 
+                        className={`w-3 h-3 transition-transform ${showClutchGames ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   )}
                 </button>
                 
@@ -190,24 +194,28 @@ export function PairingProfileSheet({ stats, onClose }: PairingProfileSheetProps
                 <button
                   onClick={() => stats.unluckyGames && stats.unluckyGames.length > 0 && setShowUnluckyGames(!showUnluckyGames)}
                   disabled={!stats.unluckyGames || stats.unluckyGames.length === 0}
-                  className={`flex flex-col items-center justify-center bg-red-50 dark:bg-red-900/20 rounded-xl p-4 transition-colors ${
+                  className={`bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center transition-colors ${
                     stats.unluckyGames && stats.unluckyGames.length > 0 
                       ? 'hover:bg-red-100 dark:hover:bg-red-900/30 cursor-pointer' 
                       : 'opacity-50 cursor-default'
                   }`}
                 >
-                  <span className="text-2xl mb-1">💔</span>
-                  <span className="text-2xl font-bold text-red-500">{stats.unluckyCount || 0}</span>
-                  <span className="text-xs text-japandi-text-muted">Unlucky Losses</span>
+                  <div className="text-lg font-bold text-red-500">
+                    💔 {stats.unluckyCount || 0}
+                  </div>
+                  <div className="text-xs text-japandi-text-muted mt-1">Unlucky (lost by 1-2)</div>
                   {stats.unluckyGames && stats.unluckyGames.length > 0 && (
-                    <svg 
-                      className={`w-4 h-4 text-japandi-text-muted mt-1 transition-transform ${showUnluckyGames ? 'rotate-180' : ''}`} 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <div className="text-xs text-red-500 mt-1 flex items-center justify-center gap-1">
+                      tap to view
+                      <svg 
+                        className={`w-3 h-3 transition-transform ${showUnluckyGames ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   )}
                 </button>
               </div>
