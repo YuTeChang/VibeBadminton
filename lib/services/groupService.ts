@@ -677,7 +677,7 @@ export class GroupService {
           .from('partner_stats')
           .select('player1_id, player2_id, wins, losses, total_games, elo_rating, best_win_streak')
           .eq('group_id', groupId)
-          .gte('total_games', 5)
+          .gte('total_games', 3)
       ]);
 
       const { data: sessions } = sessionsResult;

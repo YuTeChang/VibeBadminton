@@ -75,7 +75,7 @@ See [docs/SETUP_BACKEND.md](docs/SETUP_BACKEND.md) for detailed setup instructio
 - ✅ **Pairing Profiles**: Detailed stats for each pairing (click to view)
 - ✅ **Head-to-Head Matchups**: See how pairings perform against other pairings
 - ✅ **Pairing Form**: Recent form and streaks for each pairing
-- ✅ **Pairing Qualification**: Pairs need 5+ games to qualify for rankings
+- ✅ **Pairing Qualification**: Pairs need 3+ games to qualify for rankings
 
 ### Optional Betting
 - ✅ **Toggle Betting**: Enable/disable per session (default: OFF)

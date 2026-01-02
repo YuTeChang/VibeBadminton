@@ -117,7 +117,7 @@ See [SETUP_BACKEND.md](SETUP_BACKEND.md) for database setup.
 - View all doubles pairings ranked by win rate
 - See which two-player combinations perform best
 - Click any pairing to view detailed stats
-- Pairs need 5+ games to qualify for rankings
+- Pairs need 3+ games to qualify for rankings
 
 **Pairing Profile**
 - Combined W-L record for the pair

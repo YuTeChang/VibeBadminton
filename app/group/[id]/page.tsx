@@ -1319,7 +1319,7 @@ export default function GroupPage() {
                         </div>
                         <div className="text-sm text-japandi-text-muted">
                           {pairing.wins}-{pairing.losses} • {pairing.gamesPlayed} game{pairing.gamesPlayed !== 1 ? 's' : ''}
-                          {!pairing.isQualified && <span className="text-yellow-600 ml-1" title="Need 5+ games to qualify">*</span>}
+                          {!pairing.isQualified && <span className="text-yellow-600 ml-1" title="Need 3+ games to qualify">*</span>}
                         </div>
                       </div>
                       

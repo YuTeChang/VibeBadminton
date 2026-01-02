@@ -210,7 +210,7 @@ These mirror the individual records but track partnerships instead. If multiple 
 
 **How it's calculated:** Each pair has their own ELO that updates when they play together.
 
-**Criteria:** Only pairs with 5+ games together are considered.
+**Criteria:** Only pairs with 3+ games together are considered.
 
 #### Best Pair Streak 🔥
 
@@ -218,7 +218,7 @@ These mirror the individual records but track partnerships instead. If multiple 
 
 **How it's calculated:** Tracks the maximum number of wins in a row the pair achieved while playing as teammates.
 
-**Criteria:** Only pairs with 5+ games together are considered.
+**Criteria:** Only pairs with 3+ games together are considered.
 
 #### Most Games Together 💪
 
@@ -226,7 +226,7 @@ These mirror the individual records but track partnerships instead. If multiple 
 
 **Why it matters:** Shows the most consistent/frequent partnerships in the group.
 
-**Criteria:** Only pairs with 5+ games together are considered.
+**Criteria:** Only pairs with 3+ games together are considered.
 
 ### Clutch Stats 🎯
 
@@ -264,7 +264,7 @@ These mirror the individual records but track partnerships instead. If multiple 
 
 **Display:** `Player A & Player B (W-L)` with win rate percentage.
 
-**Criteria:** Must have played 5+ games together. Shows wins-losses record.
+**Criteria:** Must have played 3+ games together. Shows wins-losses record.
 
 #### Closest Rivalry ⚔️
 
