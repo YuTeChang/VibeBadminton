@@ -20,6 +20,7 @@ type SelectedMatchup = {
 
 export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) {
   const [selectedMatchup, setSelectedMatchup] = useState<SelectedMatchup>(null);
+  const [showAllGames, setShowAllGames] = useState(false);
   
   // Get top 3 partners and opponents
   const topPartners = stats.partnerStats.slice(0, 3);
@@ -265,11 +266,21 @@ export function PlayerProfileSheet({ stats, onClose }: PlayerProfileSheetProps) 
           {/* Recent Games */}
           {stats.recentGames && stats.recentGames.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-japandi-text-muted uppercase tracking-wide mb-3">
-                Last {stats.recentGames.length} Games
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-japandi-text-muted uppercase tracking-wide">
+                  Recent Games ({stats.recentGames.length})
+                </h3>
+                {stats.recentGames.length > 3 && (
+                  <button
+                    onClick={() => setShowAllGames(!showAllGames)}
+                    className="text-xs text-japandi-accent-primary hover:text-japandi-accent-hover transition-colors"
+                  >
+                    {showAllGames ? 'Show Less' : `Show All (${stats.recentGames.length})`}
+                  </button>
+                )}
+              </div>
               <div className="space-y-2">
-                {stats.recentGames.map((game, i) => (
+                {(showAllGames ? stats.recentGames : stats.recentGames.slice(0, 3)).map((game, i) => (
                   <div
                     key={i}
                     className={`rounded-xl p-3 border ${

@@ -12,7 +12,9 @@ PoweredByPace uses **PostgreSQL** hosted on **Supabase**. The database stores al
 2. **Soft References**: Some relationships use IDs without foreign keys for flexibility
 3. **JSONB for Teams**: Game teams stored as JSONB arrays to support both singles and doubles
 4. **ELO on Group Players**: ELO ratings stored on `group_players` for cross-session tracking
-5. **Migration System**: Versioned migrations with automatic execution on deploy
+5. **Pairing ELO**: Doubles pairings have their own independent ELO ratings
+6. **Migration System**: Versioned migrations with automatic execution on deploy
+7. **Smart Caching**: API responses cached at edge with stale-while-revalidate strategy
 
 ---
 
@@ -28,6 +30,8 @@ PoweredByPace uses **PostgreSQL** hosted on **Supabase**. The database stores al
 │ created_at      │  │    │ elo_rating (1500)    │  │
 │ updated_at      │  │    │ wins, losses         │  │
 └─────────────────┘  │    │ total_games          │  │
+                     │    │ current_streak       │  │
+                     │    │ best_win_streak      │  │
                      │    │ created_at           │  │
                      │    └──────────────────────┘  │
                      │              │               │
@@ -40,7 +44,10 @@ PoweredByPace uses **PostgreSQL** hosted on **Supabase**. The database stores al
                      │  │ player1_id  │  │ team1_p1/p2     │
                      │  │ player2_id  │  │ team2_p1/p2     │
                      │  │ wins/losses │  │ team1_wins/loss │
-                     │  └─────────────┘  └─────────────────┘
+                     │  │ elo_rating  │  │ total_games     │
+                     │  │ points_for  │  └─────────────────┘
+                     │  │ points_agst │
+                     │  └─────────────┘
                      │
                      │    ┌──────────────────────┐
                      │    │      sessions        │
@@ -435,9 +442,24 @@ ORDER BY version;
 ## Performance Considerations
 
 1. **Indexes**: Key columns are indexed for fast queries
-2. **Batch Queries**: Services batch related queries (e.g., get session + players + games)
+2. **Parallel Queries**: Services execute independent database queries in parallel using `Promise.all()`
 3. **Lazy Loading**: Player stats computed on-demand, not stored
-4. **Caching**: API responses include cache headers for edge caching
+4. **Smart Caching**: API responses cached at edge with `s-maxage=5, stale-while-revalidate=30`
+5. **Query Optimization**: Stats queries optimized to minimize database round-trips
+
+### Caching Strategy
+
+Stats APIs use smart caching to balance freshness and performance:
+
+```typescript
+// Cache for 5 seconds at edge, serve stale while revalidating for 30 seconds
+headers.set('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=30');
+```
+
+This means:
+- Fresh data served for first 5 seconds after request
+- After 5s, stale data served immediately while fresh data fetched in background
+- After 35s, cache expires and fresh data fetched on next request
 
 ---
 

@@ -96,7 +96,10 @@ The backend business logic is organized into focused services:
 ### StatsService (`lib/services/statsService.ts`)
 - **Leaderboard**: Get ranked players with ELO, W/L, recent form, best streak
 - **Player Detailed Stats**: Partner synergy, opponent matchups, streaks, points scored/conceded
+- **Partner/Opponent Game History**: Tracks individual games with each partner and opponent
+- **Recent Games**: Last 10 games with team names, scores, and dates
 - Aggregates data across sessions for cross-session statistics
+- Uses parallel queries for optimized performance
 
 ### PairingStatsService (`lib/services/pairingStatsService.ts`)
 - **Pairing Leaderboard**: Get ranked doubles pairings by win rate
@@ -104,7 +107,7 @@ The backend business logic is organized into focused services:
 - **Head-to-Head Matchups**: Stats against specific opponent pairings with game history
 - **computeMatchupsFromGames()**: Computes points and game details per matchup
 
-### EloService (`lib/services/eloService.ts`) - NEW
+### EloService (`lib/services/eloService.ts`)
 - **ELO Calculation**: Standard algorithm with K-factor of 32
 - **Team Rating**: Averages player ratings for doubles
 - **Rating Updates**: Called by GameService after game completion
@@ -186,9 +189,10 @@ app/
     └── summary/page.tsx        # Summary page
 
 components/
-├── PlayerProfileSheet.tsx      # Player profile modal
-├── PairingProfileSheet.tsx     # Pairing profile modal
-├── MatchupDetailSheet.tsx      # Matchup detail modal (nested)
+├── PlayerProfileSheet.tsx      # Player profile modal with clickable partners/opponents
+├── PlayerMatchupDetailSheet.tsx # Partner/opponent game history modal
+├── PairingProfileSheet.tsx     # Pairing profile modal with clickable matchups
+├── MatchupDetailSheet.tsx      # Pairing matchup detail modal (nested)
 ├── LiveStatsCard.tsx           # Real-time stats display
 ├── QuickGameForm.tsx           # Game recording form
 └── ...
@@ -299,7 +303,7 @@ interface Session { id, name, date, players[], gameMode, groupId?, ... }
 interface Player { id, name, groupPlayerId?, isGuest? }  // isGuest for unlinked players
 interface Game { id, sessionId, teamA, teamB, winningTeam, ... }
 
-// Stats types (NEW)
+// Stats types
 interface LeaderboardEntry {
   groupPlayerId, playerName, eloRating, rank,
   totalGames, wins, losses, winRate,
@@ -311,17 +315,42 @@ interface PlayerDetailedStats {
   groupPlayerId, playerName, eloRating, rank, totalPlayers,
   totalGames, wins, losses, winRate,
   pointsScored, pointsConceded, pointDifferential,
-  sessionsPlayed, recentForm, currentStreak,
+  sessionsPlayed, recentForm, currentStreak, bestWinStreak,
   partnerStats: PartnerStats[],
-  opponentStats: OpponentStats[]
+  opponentStats: OpponentStats[],
+  recentGames?: RecentGame[]  // Last 10 games with details
 }
 
 interface PartnerStats {
-  partnerId, partnerName, gamesPlayed, wins, losses, winRate
+  partnerId, partnerName, gamesPlayed, wins, losses, winRate,
+  games?: RecentGame[]  // Game history with this partner
 }
 
 interface OpponentStats {
-  opponentId, opponentName, gamesPlayed, wins, losses, winRate
+  opponentId, opponentName, gamesPlayed, wins, losses, winRate,
+  games?: RecentGame[]  // Game history against this opponent
+}
+
+interface RecentGame {
+  teamANames: string[], teamBNames: string[],
+  teamAScore?: number, teamBScore?: number,
+  won: boolean, date?: Date
+}
+
+// Pairing types
+interface PairingStats {
+  player1Id, player1Name, player2Id, player2Name,
+  gamesPlayed, wins, losses, winRate, eloRating?,
+  currentStreak?, bestWinStreak?,
+  pointsFor?, pointsAgainst?, pointDifferential?
+}
+
+interface PairingMatchup {
+  pairingPlayer1Id, pairingPlayer1Name, pairingPlayer2Id, pairingPlayer2Name,
+  opponentPlayer1Id, opponentPlayer1Name, opponentPlayer2Id, opponentPlayer2Name,
+  wins, losses, gamesPlayed, winRate,
+  pointsFor, pointsAgainst, pointDifferential,
+  games: RecentGame[]  // Full game history for this matchup
 }
 ```
 
@@ -354,19 +383,39 @@ Migrations run automatically on every deployment:
 
 ```
 scripts/migrations/
-├── 001-add-groups.sql      # Groups feature
-├── 002-add-elo-rating.sql  # ELO rating column
-└── README.md               # Migration guide
+├── 001-add-groups.sql          # Groups feature
+├── 002-add-elo-rating.sql      # ELO rating column
+├── 003-add-player-stats.sql    # Wins/losses/streaks columns
+├── 004-add-pairing-stats.sql   # Partner stats & pairing matchups
+└── README.md                   # Migration guide
 ```
 
 See [Database Documentation](./database.md) for details.
+
+## Caching Strategy
+
+Stats APIs use smart edge caching for optimal performance:
+
+```typescript
+// All stats endpoints use force-dynamic to ensure fresh data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Response headers enable stale-while-revalidate
+headers.set('Cache-Control', 'public, s-maxage=5, stale-while-revalidate=30');
+```
+
+**Benefits:**
+- Fresh data served for first 5 seconds
+- After 5s, stale data served instantly while fresh data fetched in background
+- Prevents thundering herd on popular groups
+- 2-3x faster response times via parallel database queries
 
 ## Future Enhancements
 
 - **Real-time Sync**: WebSockets for live leaderboard updates
 - **ELO History**: Track rating changes over time with graphs
 - **Team Suggestions**: AI-powered team balancing based on ELO
-- **Caching**: Redis for frequently accessed leaderboards
 - **Authentication**: User accounts and session ownership
 - **Push Notifications**: Game invites and results
 

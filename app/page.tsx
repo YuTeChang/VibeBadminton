@@ -63,7 +63,7 @@ export default function Home() {
                   setGroupCode(e.target.value);
                   setError(null);
                 }}
-                placeholder="Enter group code (e.g., i1lcbcsl)"
+                placeholder="Enter 8-character group code"
                 className="w-full px-4 py-3 border border-japandi-border-light rounded-xl bg-japandi-background-primary text-japandi-text-primary text-base text-center font-mono tracking-wider focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
                 autoCapitalize="none"
                 autoCorrect="off"

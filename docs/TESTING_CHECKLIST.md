@@ -12,6 +12,7 @@
 - [ ] "PoweredByPace" title is visible
 - [ ] Description text is readable
 - [ ] Group code input field is visible
+- [ ] Placeholder text says "Enter 8-character group code" (no example code)
 - [ ] "Join Group" button works with valid code
 - [ ] Invalid code shows error message
 - [ ] Recent groups section shows previously visited groups (from localStorage)
@@ -239,9 +240,23 @@
 - [ ] Best Win Streak displayed
 - [ ] Recent Form displayed
 - [ ] Partner stats (win rate with each partner)
+- [ ] Partner rows are clickable (show chevron)
+- [ ] Clicking partner opens game history with that partner
 - [ ] Opponent stats (win rate vs each opponent)
-- [ ] Recent games list
+- [ ] Opponent rows are clickable (show chevron)
+- [ ] Clicking opponent opens game history vs that opponent
+- [ ] Recent games list (shows 3 by default)
+- [ ] "Show All" button expands to all 10 games
+- [ ] Games show date below score
 - [ ] Close button works
+
+#### Player Matchup Detail Sheet
+- [ ] Shows partnership or opponent matchup stats
+- [ ] W-L record, Win Rate, Games count displayed
+- [ ] Contextual message based on win rate
+- [ ] Game history list with all games
+- [ ] Games show teams, scores, dates
+- [ ] Back button returns to player profile
 
 #### Pairings Tab
 - [ ] Pairings ranked by win rate
