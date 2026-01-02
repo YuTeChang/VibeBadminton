@@ -41,7 +41,18 @@ export async function GET(
       throw playersError;
     }
 
+    // Get existing group players to filter out guests that are already in the group
+    const { data: existingGroupPlayers } = await supabase
+      .from('group_players')
+      .select('name')
+      .eq('group_id', groupId);
+
+    const existingNames = new Set(
+      (existingGroupPlayers || []).map(p => p.name.toLowerCase().trim())
+    );
+
     // Group guests by name (same guest might play in multiple sessions)
+    // But filter out any that already exist as group players
     const guestMap = new Map<string, {
       name: string;
       sessionCount: number;
@@ -52,6 +63,12 @@ export async function GET(
 
     (players || []).forEach(player => {
       const nameLower = player.name.toLowerCase().trim();
+      
+      // Skip if this name already exists as a group player
+      if (existingNames.has(nameLower)) {
+        return;
+      }
+      
       const session = sessions?.find(s => s.id === player.session_id);
       
       if (!guestMap.has(nameLower)) {

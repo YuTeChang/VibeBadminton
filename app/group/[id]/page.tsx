@@ -39,6 +39,7 @@ export default function GroupPage() {
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [isLoadingPairings, setIsLoadingPairings] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null); // For non-fatal errors (remove player, etc)
   const [newPlayerName, setNewPlayerName] = useState("");
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -317,12 +318,16 @@ export default function GroupPage() {
 
   const handleRemovePlayer = async (playerId: string) => {
     try {
+      setActionError(null);
       await ApiClient.removeGroupPlayer(groupId, playerId);
       setPlayers(players.filter((p) => p.id !== playerId));
       // Reset leaderboard cache
       leaderboardLoadedRef.current = false;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to remove player");
+      const message = err instanceof Error ? err.message : "Failed to remove player";
+      setActionError(message);
+      // Auto-clear after 5 seconds
+      setTimeout(() => setActionError(null), 5000);
     }
   };
 
@@ -709,6 +714,14 @@ export default function GroupPage() {
                 Loading players...
               </div>
             )}
+            
+            {/* Action error toast */}
+            {actionError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-card text-sm">
+                {actionError}
+              </div>
+            )}
+            
             <h2 className="text-lg font-semibold text-japandi-text-primary">Player Pool</h2>
             <p className="text-sm text-japandi-text-muted">
               Add players to your group. They will appear as suggestions when creating sessions.

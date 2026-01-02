@@ -31,8 +31,13 @@ export class ApiClient {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(error.error || `HTTP ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        // Create error with message but preserve full response data
+        const error = new Error(errorData.error || `HTTP ${response.status}`) as Error & { existingPlayer?: unknown };
+        if (errorData.existingPlayer) {
+          error.existingPlayer = errorData.existingPlayer;
+        }
+        throw error;
       }
 
       return response.json();
