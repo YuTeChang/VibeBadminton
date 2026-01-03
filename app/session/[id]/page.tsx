@@ -8,7 +8,7 @@ import LiveStatsCard from "@/components/LiveStatsCard";
 import QuickGameForm from "@/components/QuickGameForm";
 import GameHistoryList from "@/components/GameHistoryList";
 import BottomTabNav from "@/components/BottomTabNav";
-import { calculatePlayerStats } from "@/lib/calculations";
+import { calculatePlayerStats, calculateNonBettingStats } from "@/lib/calculations";
 import { Game, Session, Player } from "@/types";
 import Link from "next/link";
 import { ApiClient } from "@/lib/api/client";
@@ -26,11 +26,6 @@ export default function SessionPage() {
   const [localSession, setLocalSession] = useState<Session | null>(null);
   const [localGames, setLocalGames] = useState<Game[]>([]);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editSessionName, setEditSessionName] = useState("");
-  const [editSessionDate, setEditSessionDate] = useState("");
-  const [editPlayers, setEditPlayers] = useState<Player[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [showEditGameModal, setShowEditGameModal] = useState(false);
   
@@ -125,12 +120,16 @@ export default function SessionPage() {
   // Use local state for rendering (more reliable than context during loading)
   const currentSession = localSession;
   const currentGames = localGames;
+  const bettingEnabled = currentSession.bettingEnabled ?? true;
 
   const playerStats = calculatePlayerStats(
     currentGames,
     currentSession.players,
     currentSession.betPerPlayer
   );
+
+  // Calculate non-betting stats for points data
+  const nonBettingStats = calculateNonBettingStats(currentGames, currentSession.players);
 
   const handleGameSaved = () => {
     // Switch to stats tab to show updated stats
@@ -143,63 +142,6 @@ export default function SessionPage() {
   const handleEditGame = (game: Game) => {
     setEditingGame(game);
     setShowEditGameModal(true);
-  };
-
-  const handleEditClick = () => {
-    if (currentSession) {
-      setEditSessionName(currentSession.name || "");
-      const date = new Date(currentSession.date);
-      setEditSessionDate(date.toISOString().split('T')[0]);
-      // Initialize edit players with current players
-      // If session has 0 players, start with empty array (user can add minimum required)
-      setEditPlayers(currentSession.players.length > 0 ? [...currentSession.players] : []);
-      setShowEditModal(true);
-    }
-  };
-
-  const updateEditPlayerName = (index: number, name: string) => {
-    const updated = [...editPlayers];
-    updated[index] = { ...updated[index], name };
-    setEditPlayers(updated);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!currentSession || !editSessionName.trim()) return;
-
-    setIsSaving(true);
-    try {
-      // Update player names (preserve existing player structure, just update names)
-      const updatedPlayers = editPlayers.map((p, index) => ({
-        id: p.id,
-        name: p.name.trim() || `Player ${index + 1}`,
-        groupPlayerId: p.groupPlayerId,
-      }));
-
-      const updatedSession: Session = {
-        ...currentSession,
-        name: editSessionName.trim(),
-        date: new Date(`${editSessionDate}T${new Date(currentSession.date).toTimeString().slice(0, 5)}`),
-        players: updatedPlayers,
-        // Explicitly preserve groupId to prevent it from being lost
-        groupId: currentSession.groupId,
-      };
-      
-      // Update session via API
-      await ApiClient.updateSession(updatedSession);
-      
-      // Update context and local state
-      await setSession(updatedSession);
-      setLocalSession(updatedSession);
-      setShowEditModal(false);
-      
-      // Reload session to get fresh data
-      await loadSession(currentSession.id);
-    } catch (error) {
-      console.error('[SessionPage] Failed to update session:', error);
-      alert('Failed to update session. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   // Get all unplayed scheduled games
@@ -219,94 +161,14 @@ export default function SessionPage() {
   return (
     <div className="min-h-screen bg-japandi-background-primary pb-20">
       <SessionHeader session={currentSession} />
-      
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-japandi-background-card rounded-card p-6 max-w-md w-full shadow-soft max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-japandi-text-primary mb-4">Edit Session</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-japandi-text-primary mb-2">
-                  Session Name
-                </label>
-                <input
-                  type="text"
-                  value={editSessionName}
-                  onChange={(e) => setEditSessionName(e.target.value)}
-                  className="w-full px-4 py-2 bg-japandi-background-primary border border-japandi-border-light rounded-full text-japandi-text-primary focus:outline-none focus:border-japandi-accent-primary"
-                  placeholder="Session name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-japandi-text-primary mb-2">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={editSessionDate}
-                  onChange={(e) => setEditSessionDate(e.target.value)}
-                  className="w-full px-4 py-2 bg-japandi-background-primary border border-japandi-border-light rounded-full text-japandi-text-primary focus:outline-none focus:border-japandi-accent-primary"
-                />
-              </div>
-              
-              {/* Players Section - Display only, editing player names allowed */}
-              {editPlayers.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-japandi-text-primary mb-3">
-                    Players
-                  </label>
-                  <div className="space-y-3">
-                    {editPlayers.map((player, index) => (
-                      <div key={player.id} className="flex gap-3">
-                        <input
-                          type="text"
-                          value={player.name}
-                          onChange={(e) => updateEditPlayerName(index, e.target.value)}
-                          placeholder={`Player ${index + 1}`}
-                          className="flex-1 px-4 py-2 border border-japandi-border-light rounded-card bg-japandi-background-primary text-japandi-text-primary focus:ring-2 focus:ring-japandi-accent-primary focus:border-transparent transition-all"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-4 py-2 bg-japandi-background-primary text-japandi-text-primary border border-japandi-border-light rounded-full hover:bg-japandi-background-card transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={isSaving || !editSessionName.trim()}
-                  className="flex-1 px-4 py-2 bg-japandi-accent-primary text-white rounded-full hover:bg-japandi-accent-hover transition-colors disabled:opacity-50"
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Stats Tab */}
         {activeTab === "stats" && (
           <div className="space-y-4 sm:space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl sm:text-2xl font-bold text-japandi-text-primary">
-                Live Stats
-              </h2>
-              <button
-                onClick={handleEditClick}
-                className="px-4 py-2 bg-japandi-background-card hover:bg-japandi-background-primary text-japandi-text-primary border border-japandi-border-light rounded-full text-sm font-medium transition-colors"
-              >
-                Edit Session
-              </button>
-            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-japandi-text-primary">
+              Live Stats
+            </h2>
             <div className="space-y-4">
               {currentSession.players.length === 0 ? (
                 <div className="bg-japandi-background-card border border-japandi-border-light rounded-card p-6 text-center">
@@ -319,12 +181,18 @@ export default function SessionPage() {
                   const stats = playerStats.find(
                     (s) => s.playerId === player.id
                   );
+                  const extendedStats = nonBettingStats.find(
+                    (s) => s.playerId === player.id
+                  );
                   if (!stats) return null;
                   return (
                     <LiveStatsCard
                       key={player.id}
                       stats={stats}
                       player={player}
+                      bettingEnabled={bettingEnabled}
+                      pointsScored={extendedStats?.pointsScored}
+                      pointsConceded={extendedStats?.pointsConceded}
                     />
                   );
                 })

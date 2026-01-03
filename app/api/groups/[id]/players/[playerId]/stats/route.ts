@@ -28,12 +28,9 @@ export async function GET(
       );
     }
 
-    // Cache for 5 seconds, serve stale while revalidating for up to 30 seconds
+    // No caching - stats should always be fresh after score edits
     const response = NextResponse.json(stats);
-    response.headers.set(
-      'Cache-Control',
-      'public, s-maxage=5, stale-while-revalidate=30'
-    );
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     
     return response;
   } catch (error) {

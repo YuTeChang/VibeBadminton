@@ -129,8 +129,19 @@ export default function SummaryPage() {
     ? `← Back to ${groupName || 'Group'}` 
     : "← Back to Home";
 
+  // Build group link for sharing
+  const groupLink = isGroupSession && typeof window !== 'undefined'
+    ? `${window.location.origin}/group/${currentSession.groupId}`
+    : null;
+
   const settlement = calculateFinalSettlement(currentSession, currentGames);
-  const shareableText = generateShareableText(settlement, bettingEnabled);
+  const shareableText = generateShareableText(settlement, bettingEnabled, {
+    sessionName: currentSession.name || 'Badminton Session',
+    groupName: groupName,
+    groupLink: groupLink,
+    games: currentGames,
+    players: currentSession.players,
+  });
 
   const handleCopy = async () => {
     try {
