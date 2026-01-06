@@ -26,7 +26,9 @@ export default function Dashboard() {
   const [sessionGameCounts, setSessionGameCounts] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [isDeleting, setIsDeleting] = useState<Record<string, boolean>>({});
+  const [isDeletingGroup, setIsDeletingGroup] = useState<Record<string, boolean>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
   const hasLoadedDataRef = useRef(false);
   const isLoadingSummariesRef = useRef(false);
   
@@ -188,9 +190,83 @@ export default function Dashboard() {
     window.location.href = `/session/${sessionId}`;
   };
 
+  const handleDeleteGroup = async (groupId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation
+    const group = groups.find(g => g.id === groupId);
+    const sessionCount = groupSessionCounts[groupId] || 0;
+    
+    const confirmed = window.confirm(
+      `⚠️ DELETE GROUP: "${group?.name}"\n\n` +
+      `This will permanently delete:\n` +
+      `• The group\n` +
+      `• ${sessionCount} session(s)\n` +
+      `• All players, games, and stats\n\n` +
+      `This action CANNOT be undone!\n\n` +
+      `Type the group name to confirm deletion.`
+    );
+    if (!confirmed) return;
+    
+    // Extra confirmation by typing group name
+    const typedName = prompt(`Type the group name "${group?.name}" to confirm deletion:`);
+    if (typedName !== group?.name) {
+      alert('Group name does not match. Deletion cancelled.');
+      return;
+    }
+
+    setIsDeletingGroup(prev => ({ ...prev, [groupId]: true }));
+    
+    // OPTIMISTIC UPDATE: Immediately remove from UI
+    setGroups(prev => prev.filter(g => g.id !== groupId));
+    setGroupSessionCounts(prev => {
+      const updated = { ...prev };
+      delete updated[groupId];
+      return updated;
+    });
+    // Remove all sessions belonging to this group
+    setSessionSummaries(prev => prev.filter(s => s.groupId !== groupId));
+    
+    try {
+      const result = await ApiClient.deleteGroup(groupId);
+      if (!result.success) {
+        throw new Error('Deletion failed: API returned unsuccessful response');
+      }
+      
+      // Background refresh to ensure consistency
+      try {
+        const [refreshedGroups, refreshedSummaries] = await Promise.all([
+          ApiClient.getAllGroups(),
+          ApiClient.getSessionSummaries(),
+        ]);
+        setGroups(refreshedGroups);
+        const summariesWithDates = refreshedSummaries.map(s => ({ ...s, date: new Date(s.date) }));
+        setSessionSummaries(summariesWithDates);
+        
+        // Recalculate counts
+        const counts: Record<string, number> = {};
+        refreshedGroups.forEach((g) => {
+          const groupSessions = summariesWithDates.filter(s => s.groupId === g.id);
+          counts[g.id] = groupSessions.length;
+        });
+        setGroupSessionCounts(counts);
+      } catch {
+        console.warn('Background refresh after group delete failed');
+      }
+    } catch (error) {
+      alert('Failed to delete group. Please try again.');
+      // Reload data to restore state
+      handleRefresh();
+    } finally {
+      setIsDeletingGroup(prev => {
+        const updated = { ...prev };
+        delete updated[groupId];
+        return updated;
+      });
+    }
+  };
+
   const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent navigation
-    const confirmed = window.confirm("Are you sure you want to delete this session? This action cannot be undone.");
+    const confirmed = window.confirm("⚠️ Delete this session?\n\nThis will permanently delete all games and cannot be undone.");
     if (!confirmed) return;
 
     setIsDeleting(prev => ({ ...prev, [sessionId]: true }));
@@ -294,17 +370,40 @@ export default function Dashboard() {
           <h1 className="text-3xl sm:text-4xl font-bold text-japandi-text-primary">
             Sessions & Groups
           </h1>
-          {isLoaded && (
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="px-3 py-2 bg-japandi-background-card hover:bg-japandi-background-primary text-japandi-text-primary text-sm font-medium rounded-full border border-japandi-border-light transition-all disabled:opacity-50 touch-manipulation"
-              title="Refresh sessions list"
-            >
-              {isRefreshing ? "..." : "↻"}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {isLoaded && (
+              <>
+                <button
+                  onClick={() => setAdminMode(!adminMode)}
+                  className={`px-3 py-2 text-sm font-medium rounded-full border transition-all touch-manipulation ${
+                    adminMode
+                      ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
+                      : 'bg-japandi-background-card hover:bg-japandi-background-primary text-japandi-text-primary border-japandi-border-light'
+                  }`}
+                  title={adminMode ? "Exit Admin Mode" : "Enter Admin Mode (Delete)"}
+                >
+                  {adminMode ? "🗑️ Admin" : "Admin"}
+                </button>
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="px-3 py-2 bg-japandi-background-card hover:bg-japandi-background-primary text-japandi-text-primary text-sm font-medium rounded-full border border-japandi-border-light transition-all disabled:opacity-50 touch-manipulation"
+                  title="Refresh sessions list"
+                >
+                  {isRefreshing ? "..." : "↻"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
+        
+        {adminMode && (
+          <div className="bg-red-50 border border-red-200 rounded-card p-3 text-left">
+            <p className="text-sm text-red-800">
+              <strong>⚠️ Admin Mode Active:</strong> Delete buttons are now visible. Use with caution - deletions cannot be undone!
+            </p>
+          </div>
+        )}
 
         {/* Search Input */}
         {isLoaded && sessionSummaries.length > 0 && (
@@ -326,24 +425,38 @@ export default function Dashboard() {
               Your Groups
             </h2>
             {groups.map((group) => (
-              <Link
+              <div
                 key={group.id}
-                href={`/group/${group.id}`}
-                prefetch={false}
-                className="block bg-japandi-background-card border border-japandi-border-light rounded-card p-4 sm:p-5 shadow-soft hover:border-japandi-accent-primary transition-colors"
+                className="relative bg-japandi-background-card border border-japandi-border-light rounded-card p-4 sm:p-5 shadow-soft hover:border-japandi-accent-primary transition-colors"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-semibold text-japandi-text-primary">
-                    {group.name}
-                  </h3>
-                  <span className="text-xs text-japandi-accent-primary bg-japandi-background-primary px-2 py-1 rounded-full">
-                    {groupSessionCounts[group.id] || 0} sessions
-                  </span>
-                </div>
-                <div className="text-sm text-japandi-text-muted">
-                  Share link: {group.shareableLink}
-                </div>
-              </Link>
+                <Link
+                  href={`/group/${group.id}`}
+                  prefetch={false}
+                  className="block"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-base font-semibold text-japandi-text-primary">
+                      {group.name}
+                    </h3>
+                    <span className="text-xs text-japandi-accent-primary bg-japandi-background-primary px-2 py-1 rounded-full">
+                      {groupSessionCounts[group.id] || 0} sessions
+                    </span>
+                  </div>
+                  <div className="text-sm text-japandi-text-muted">
+                    Share link: {group.shareableLink}
+                  </div>
+                </Link>
+                {adminMode && (
+                  <button
+                    onClick={(e) => handleDeleteGroup(group.id, e)}
+                    disabled={isDeletingGroup[group.id]}
+                    className="absolute top-3 right-3 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-full transition-all disabled:opacity-50 touch-manipulation z-10"
+                    title="Delete group and all its data"
+                  >
+                    {isDeletingGroup[group.id] ? "Deleting..." : "Delete"}
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -376,14 +489,16 @@ export default function Dashboard() {
                           Active
                         </span>
                       )}
-                      <button
-                        onClick={(e) => handleDeleteSession(s.id, e)}
-                        disabled={isDeleting[s.id]}
-                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors disabled:opacity-50 touch-manipulation"
-                        title="Delete session"
-                      >
-                        {isDeleting[s.id] ? "..." : "🗑️"}
-                      </button>
+                      {adminMode && (
+                        <button
+                          onClick={(e) => handleDeleteSession(s.id, e)}
+                          disabled={isDeleting[s.id]}
+                          className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-all disabled:opacity-50 touch-manipulation"
+                          title="Delete session"
+                        >
+                          {isDeleting[s.id] ? "..." : "Delete"}
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="text-sm text-japandi-text-muted mb-3">
