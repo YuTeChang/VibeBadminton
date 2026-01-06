@@ -427,20 +427,22 @@ export default function Dashboard() {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className="relative bg-japandi-background-card border border-japandi-border-light rounded-card p-4 sm:p-5 shadow-soft hover:border-japandi-accent-primary transition-colors"
+                className="bg-japandi-background-card border border-japandi-border-light rounded-card p-4 sm:p-5 shadow-soft hover:border-japandi-accent-primary transition-colors"
               >
                 <Link
                   href={`/group/${group.id}`}
                   prefetch={false}
                   className="block"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-base font-semibold text-japandi-text-primary">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h3 className="text-base font-semibold text-japandi-text-primary flex-1">
                       {group.name}
                     </h3>
-                    <span className="text-xs text-japandi-accent-primary bg-japandi-background-primary px-2 py-1 rounded-full">
-                      {groupSessionCounts[group.id] || 0} sessions
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs text-japandi-accent-primary bg-japandi-background-primary px-2 py-1 rounded-full whitespace-nowrap">
+                        {groupSessionCounts[group.id] || 0} sessions
+                      </span>
+                    </div>
                   </div>
                   <div className="text-sm text-japandi-text-muted">
                     Share link: {group.shareableLink}
@@ -450,10 +452,10 @@ export default function Dashboard() {
                   <button
                     onClick={(e) => handleDeleteGroup(group.id, e)}
                     disabled={isDeletingGroup[group.id]}
-                    className="absolute top-3 right-3 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-full transition-all disabled:opacity-50 touch-manipulation z-10"
+                    className="mt-3 w-full px-3 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-full transition-all disabled:opacity-50 touch-manipulation"
                     title="Delete group and all its data"
                   >
-                    {isDeletingGroup[group.id] ? "Deleting..." : "Delete"}
+                    {isDeletingGroup[group.id] ? "Deleting..." : "Delete Group"}
                   </button>
                 )}
               </div>
