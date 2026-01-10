@@ -86,6 +86,10 @@ export default function GroupPage() {
   const [promotingGuest, setPromotingGuest] = useState<string | null>(null);
   const guestsLoadedRef = useRef<boolean>(false);
 
+  // Timer refs for cleanup (prevent memory leaks)
+  const actionErrorTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const copiedTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load group and sessions immediately (fast initial render)
   const loadGroupData = useCallback(async () => {
     try {
@@ -274,26 +278,30 @@ export default function GroupPage() {
 
   // Single effect to load data on mount and when groupId changes
   useEffect(() => {
+    let refreshTimer: NodeJS.Timeout | null = null;
     const needsRefreshKey = `group_${groupId}_needs_refresh`;
     const needsRefresh = typeof window !== "undefined" && sessionStorage.getItem(needsRefreshKey) !== null;
     
     if (needsRefresh) {
       sessionStorage.removeItem(needsRefreshKey);
-      setTimeout(() => {
+      refreshTimer = setTimeout(() => {
         loadGroupData();
         // Reset lazy load flags on refresh
         leaderboardLoadedRef.current = false;
         overviewStatsLoadedRef.current = false;
         setGroupStats(null);
       }, 500);
-      return;
+    } else {
+      const now = Date.now();
+      if (now - lastLoadRef.current >= REFRESH_DEBOUNCE_MS) {
+        lastLoadRef.current = now;
+        loadGroupData();
+      }
     }
     
-    const now = Date.now();
-    if (now - lastLoadRef.current >= REFRESH_DEBOUNCE_MS) {
-      lastLoadRef.current = now;
-      loadGroupData();
-    }
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+    };
   }, [groupId, loadGroupData]);
 
   // Lazy load data when tabs are clicked
@@ -308,11 +316,41 @@ export default function GroupPage() {
     }
   }, [activeTab, loadPlayers, loadLeaderboard, loadPairings, loadRecentGuests]);
 
+  // Cleanup all timers and heavy state on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clear timers
+      if (actionErrorTimerRef.current) clearTimeout(actionErrorTimerRef.current);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      
+      // Clear heavy state objects to release memory
+      // Note: These setters may not execute if component is fully unmounted,
+      // but they help if the component is remounted quickly
+      setGroupStats(null);
+      setLeaderboard([]);
+      setPairings([]);
+      setPlayers([]);
+      setSessions([]);
+      setSelectedPlayerStats(null);
+      setSelectedPairingStats(null);
+      setRecentGuests([]);
+      
+      // Reset refs
+      playersLoadedRef.current = false;
+      leaderboardLoadedRef.current = false;
+      pairingsLoadedRef.current = false;
+      overviewStatsLoadedRef.current = false;
+      guestsLoadedRef.current = false;
+    };
+  }, []);
+
   // Track navigation for refresh handling
   const hasNavigatedAwayRef = useRef(false);
   const prevPathnameRef = useRef<string | null>(null);
   
   useEffect(() => {
+    let navigationTimer: NodeJS.Timeout | null = null;
+    
     if (pathname === `/group/${groupId}`) {
       const prevPath = prevPathnameRef.current;
       if (prevPath !== null && prevPath !== pathname) {
@@ -326,7 +364,7 @@ export default function GroupPage() {
           overviewStatsLoadedRef.current = false; // Reset overview stats on return
           setGroupStats(null); // Clear cached stats
           if (isReturningFromCreateSession) {
-            setTimeout(() => loadGroupData(), 500);
+            navigationTimer = setTimeout(() => loadGroupData(), 500);
           } else {
             loadGroupData();
           }
@@ -339,6 +377,10 @@ export default function GroupPage() {
       }
       prevPathnameRef.current = pathname;
     }
+    
+    return () => {
+      if (navigationTimer) clearTimeout(navigationTimer);
+    };
   }, [pathname, groupId, loadGroupData]);
 
   const handleAddPlayer = async () => {
@@ -368,6 +410,11 @@ export default function GroupPage() {
   const handleRemovePlayer = async (playerId: string) => {
     try {
       setActionError(null);
+      // Clear any existing timer
+      if (actionErrorTimerRef.current) {
+        clearTimeout(actionErrorTimerRef.current);
+        actionErrorTimerRef.current = null;
+      }
       await ApiClient.removeGroupPlayer(groupId, playerId);
       setPlayers(players.filter((p) => p.id !== playerId));
       // Reset leaderboard cache
@@ -375,8 +422,8 @@ export default function GroupPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to remove player";
       setActionError(message);
-      // Auto-clear after 5 seconds
-      setTimeout(() => setActionError(null), 5000);
+      // Auto-clear after 5 seconds (with cleanup tracking)
+      actionErrorTimerRef.current = setTimeout(() => setActionError(null), 5000);
     }
   };
 
@@ -400,7 +447,11 @@ export default function GroupPage() {
     try {
       await navigator.clipboard.writeText(getShareableUrl());
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear any existing timer
+      if (copiedTimerRef.current) {
+        clearTimeout(copiedTimerRef.current);
+      }
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback
     }

@@ -73,7 +73,7 @@ export class StatsService {
         }));
       }
       
-      // Run player mappings and games queries in parallel
+      // Run player mappings and games queries in parallel (limited to prevent memory issues)
       const [playersResult, allGamesResult] = await Promise.all([
         supabase
           .from('players')
@@ -86,6 +86,7 @@ export class StatsService {
           .in('session_id', sessionIds)
           .not('winning_team', 'is', null)
           .order('created_at', { ascending: false })
+          .limit(1000)
       ]);
 
       const { data: players } = playersResult;
@@ -227,7 +228,7 @@ export class StatsService {
         return this.buildEmptyStats(player, rank, totalPlayers);
       }
 
-      // Run second batch of queries in parallel
+      // Run second batch of queries in parallel (limited to prevent memory issues)
       const [sessionPlayersResult, gamesResult] = await Promise.all([
         supabase
           .from('players')
@@ -239,6 +240,7 @@ export class StatsService {
           .in('session_id', sessionIds)
           .not('winning_team', 'is', null)
           .order('created_at', { ascending: false })
+          .limit(500)
       ]);
 
       const { data: sessionPlayers } = sessionPlayersResult;
@@ -564,12 +566,13 @@ export class StatsService {
 
       const sessionIds = sessions.map((s) => s.id);
 
-      // Get all games from these sessions
+      // Get all games from these sessions (limited to prevent memory issues)
       const { data: games, error: gamesError } = await supabase
         .from('games')
         .select('*')
         .in('session_id', sessionIds)
-        .not('winning_team', 'is', null);
+        .not('winning_team', 'is', null)
+        .limit(1000);
 
       if (gamesError) {
         throw gamesError;

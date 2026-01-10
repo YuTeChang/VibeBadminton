@@ -374,6 +374,9 @@
 - [ ] Page loads quickly
 - [ ] No console errors
 - [ ] No memory leaks (check with DevTools)
+- [ ] Chrome Task Manager memory stays < ~500MB when opening large groups, switching tabs (Sessions/Leaderboard/Players/Pairings), and navigating away/back.
+- [ ] Memory plateaus (no steady climb) after idling 10+ minutes on dashboard and on a group page.
+- [ ] Create/delete a session then return to dashboard without crashes or runaway memory.
 - [ ] Smooth animations/transitions
 - [ ] No lag when recording multiple games
 

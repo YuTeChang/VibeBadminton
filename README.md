@@ -201,6 +201,25 @@ types/index.ts          # TypeScript types
 - [API Analysis](docs/API_ANALYSIS.md) - API documentation
 - [Architecture](docs/engineering/architecture.md) - System design
 - [Admin Guide](docs/ADMIN.md) - Admin operations
+- [Performance & Memory Hardening](#performance--memory-hardening) - What changed and how to verify
+
+---
+
+## Performance & Memory Hardening
+
+We fixed a severe memory leak that could push Chrome into tens of GBs. Key changes:
+
+- **Timer cleanup**: All `setTimeout` calls now clear on unmount/navigation to avoid orphaned timers retaining state.
+- **Bounded caches**: Session/group caches capped (`MAX_CACHED_SESSIONS=50`, `MAX_CACHED_GROUPS=20`) to prevent unbounded growth.
+- **Query limits**: Added `.limit()` to heavy Supabase queries so we never pull entire histories into the browser.
+- **Heavy state cleanup**: Group page clears large stats/leaderboard caches on unmount.
+
+Quick validation:
+1) Open a large group, switch tabs, navigate away/back → memory should stay stable (<500MB in Chrome Task Manager).  
+2) Leave the app idle 10+ minutes on group or dashboard → memory should plateau, not climb.  
+3) Create/delete sessions, refresh dashboard → no crashes or runaway memory.
+
+If you see memory climb, capture a heap snapshot and note the page and recent actions.
 
 ---
 

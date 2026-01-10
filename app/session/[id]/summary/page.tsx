@@ -27,6 +27,14 @@ export default function SummaryPage() {
   // Track loading state to prevent duplicate calls
   const isLoadingRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
+  const copiedTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timer on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
   
   // Fetch group name for group sessions
   useEffect(() => {
@@ -152,7 +160,11 @@ export default function SummaryPage() {
     try {
       await navigator.clipboard.writeText(shareableText);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear any existing timer
+      if (copiedTimerRef.current) {
+        clearTimeout(copiedTimerRef.current);
+      }
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       // Silently fail - clipboard API may not be available in some contexts
       // User can still manually copy the text

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ApiClient } from "@/lib/api/client";
@@ -15,6 +15,14 @@ export default function CreateGroup() {
   const [copied, setCopied] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [migrationAvailable, setMigrationAvailable] = useState(false);
+  const copiedTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timer on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +99,11 @@ export default function CreateGroup() {
     try {
       await navigator.clipboard.writeText(getShareableUrl());
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Clear any existing timer
+      if (copiedTimerRef.current) {
+        clearTimeout(copiedTimerRef.current);
+      }
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback for older browsers
     }

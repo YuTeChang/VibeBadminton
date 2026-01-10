@@ -130,6 +130,8 @@ export default function Dashboard() {
 
   // Detect when returning to dashboard and refresh automatically
   useEffect(() => {
+    let refreshTimer: NodeJS.Timeout | null = null;
+    
     if (pathname === '/dashboard') {
       const prevPath = prevPathnameRef.current;
       if (prevPath !== null && prevPath !== pathname) {
@@ -147,7 +149,7 @@ export default function Dashboard() {
           
           // If returning from session-related page, add delay for database replication
           if (isReturningFromSession) {
-            setTimeout(() => {
+            refreshTimer = setTimeout(() => {
               handleRefresh();
             }, 500);
           } else {
@@ -160,6 +162,10 @@ export default function Dashboard() {
       // Track that we've navigated away
       prevPathnameRef.current = pathname;
     }
+    
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+    };
   }, [pathname]);
 
   const formatDate = (date: Date) => {

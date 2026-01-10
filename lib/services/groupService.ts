@@ -231,12 +231,13 @@ export class GroupService {
       });
 
 
-      // Get all completed games
+      // Get all completed games (limited to prevent memory issues)
       const { data: games } = await supabase
         .from('games')
         .select('team_a, team_b, winning_team')
         .in('session_id', sessionIds)
-        .not('winning_team', 'is', null);
+        .not('winning_team', 'is', null)
+        .limit(1000);
 
       // Compute stats for each player from games
       const statsMap = new Map<string, { wins: number; losses: number }>();
@@ -804,12 +805,13 @@ export class GroupService {
       let clutchPairingData: { player1Name: string; player2Name: string; count: number } | null = null;
 
       if (sessionIds.length > 0) {
-        // Get all games with scores for analysis
+        // Get all games with scores for analysis (limited to prevent memory issues)
         const { data: allGames } = await supabase
           .from('games')
           .select('team_a, team_b, winning_team, team_a_score, team_b_score')
           .in('session_id', sessionIds)
-          .not('winning_team', 'is', null);
+          .not('winning_team', 'is', null)
+          .limit(1000);
 
         totalGames = allGames?.length || 0;
 

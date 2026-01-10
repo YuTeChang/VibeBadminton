@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Session } from "@/types";
 import { formatCurrency } from "@/lib/calculations";
@@ -16,6 +16,7 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
   const router = useRouter();
   const { clearSession } = useSession();
   const [groupName, setGroupName] = useState<string | null>(null);
+  const navigationTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Determine if this is a group session
   const isGroupSession = !!session.groupId;
@@ -28,6 +29,13 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
         .catch(() => {}); // Fail silently, fall back to "Group"
     }
   }, [session.groupId]);
+
+  // Cleanup timer on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+    };
+  }, []);
   
   // Dynamic back navigation
   const backLink = isGroupSession ? `/group/${session.groupId}` : "/";
@@ -48,7 +56,7 @@ export default function SessionHeader({ session }: SessionHeaderProps) {
     try {
       await ApiClient.deleteSession(session.id);
       clearSession();
-      setTimeout(() => {
+      navigationTimerRef.current = setTimeout(() => {
         // Redirect to group page for group sessions, home for standalone
         router.push(isGroupSession ? `/group/${session.groupId}` : "/");
       }, 100);

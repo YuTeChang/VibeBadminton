@@ -369,12 +369,13 @@ export class PairingStatsService {
         }
       });
 
-      // Get all completed doubles games
+      // Get all completed doubles games (limited to prevent memory issues)
       const { data: games } = await supabase
         .from('games')
         .select('team_a, team_b, winning_team')
         .in('session_id', sessionIds)
-        .not('winning_team', 'is', null);
+        .not('winning_team', 'is', null)
+        .limit(1000);
 
       // Compute stats for each pairing
       const pairingStats = new Map<string, { wins: number; losses: number }>();
@@ -621,13 +622,14 @@ export class PairingStatsService {
         }
       });
 
-      // Get all completed doubles games with scores
+      // Get all completed doubles games with scores (limited to prevent memory issues)
       const { data: games } = await supabase
         .from('games')
         .select('team_a, team_b, winning_team, team_a_score, team_b_score, created_at')
         .in('session_id', sessionIds)
         .not('winning_team', 'is', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       // Compute matchup stats with points and game history
       const matchupMap = new Map<string, { 
@@ -775,13 +777,14 @@ export class PairingStatsService {
         if (p.group_player_id) sessionPlayerToGroup.set(p.id, p.group_player_id);
       });
 
-      // Get all completed games (not limited, we need full history for stats)
+      // Get completed games (limited to prevent memory issues while still capturing recent history)
       const { data: games } = await supabase
         .from('games')
         .select('team_a, team_b, winning_team, team_a_score, team_b_score, created_at')
         .in('session_id', sessionIds)
         .not('winning_team', 'is', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       const recentForm: ('W' | 'L')[] = [];
       const recentGames: RecentGame[] = [];

@@ -15,6 +15,7 @@
 7. [Admin Operations](#admin-operations)
 8. [Testing](#testing)
 9. [Reference Docs](#reference-documentation)
+10. [Performance & Memory](#performance--memory)
 
 ---
 
@@ -445,6 +446,14 @@ Captures screenshots of all features. See `screenshots/test-results/`.
 
 ### Manual Testing
 See [TESTING_CHECKLIST.md](TESTING_CHECKLIST.md) for comprehensive test scenarios.
+
+---
+
+## Performance & Memory
+
+- **Memory leak hardening**: Timer cleanup, bounded context caches, and query limits to prevent runaway memory (see root `README.md` → Performance & Memory Hardening).
+- **What to watch**: Chrome Task Manager memory should stay under ~500MB when opening large groups, switching tabs, and idling 10+ minutes.
+- **If issues arise**: Capture a heap snapshot, note the page and recent actions, and file an issue.
 
 ---
 

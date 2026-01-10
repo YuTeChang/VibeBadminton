@@ -25,6 +25,10 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 // Only store the current session ID for navigation persistence
 const CURRENT_SESSION_ID_KEY = "current_session_id";
 
+// Memory limits to prevent unbounded growth
+const MAX_CACHED_SESSIONS = 50;
+const MAX_CACHED_GROUPS = 20;
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<Session | null>(null);
   const [games, setGames] = useState<Game[]>([]);
@@ -37,6 +41,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const isLoadingGroupsRef = useRef(false);
   const hasLoadedSessionsRef = useRef(false);
   const hasLoadedGroupsRef = useRef(false);
+
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clear the loading refs Set to release memory
+      loadingGamesRef.current.clear();
+    };
+  }, []);
 
   // On mount, restore session if we have a session ID stored (for navigation)
   useEffect(() => {
@@ -95,16 +107,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setGames(dbGames);
       }
       
-      // Update allSessions cache
+      // Update allSessions cache with limit enforcement
       setAllSessions((prev) => {
         const existingIndex = prev.findIndex((s) => s.id === sessionWithDefaults.id);
+        let updated: Session[];
         if (existingIndex >= 0) {
-          const updated = [...prev];
+          updated = [...prev];
           updated[existingIndex] = sessionWithDefaults;
-          return updated;
         } else {
-          return [sessionWithDefaults, ...prev];
+          updated = [sessionWithDefaults, ...prev];
         }
+        // Enforce max cache size to prevent memory leaks
+        return updated.slice(0, MAX_CACHED_SESSIONS);
       });
     } catch (error) {
       console.error('[SessionContext] Failed to create session:', error);
@@ -242,16 +256,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const sessionToLoad = await ApiClient.getSession(sessionId);
       setSessionState(sessionToLoad);
       
-      // Update allSessions cache
+      // Update allSessions cache with limit enforcement
       setAllSessions(prev => {
         const existingIndex = prev.findIndex(s => s.id === sessionId);
+        let updated: Session[];
         if (existingIndex >= 0) {
-          const updated = [...prev];
+          updated = [...prev];
           updated[existingIndex] = sessionToLoad;
-          return updated;
         } else {
-          return [sessionToLoad, ...prev];
+          updated = [sessionToLoad, ...prev];
         }
+        // Enforce max cache size to prevent memory leaks
+        return updated.slice(0, MAX_CACHED_SESSIONS);
       });
       
       // Load games
@@ -289,7 +305,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const refreshGroups = useCallback(async () => {
     try {
       const fetchedGroups = await ApiClient.getAllGroups();
-      setGroups(fetchedGroups);
+      // Enforce max cache size to prevent memory leaks
+      setGroups(fetchedGroups.slice(0, MAX_CACHED_GROUPS));
     } catch (error) {
       console.error('[SessionContext] Failed to refresh groups:', error);
       throw error;
@@ -321,7 +338,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       isLoadingSessionsRef.current = true;
       try {
         const sessions = await ApiClient.getAllSessions();
-        setAllSessions(sessions);
+        // Enforce max cache size to prevent memory leaks
+        setAllSessions(sessions.slice(0, MAX_CACHED_SESSIONS));
         hasLoadedSessionsRef.current = true;
       } catch (error) {
         console.error('[SessionContext] Failed to load sessions:', error);
@@ -335,7 +353,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       isLoadingGroupsRef.current = true;
       try {
         const fetchedGroups = await ApiClient.getAllGroups();
-        setGroups(fetchedGroups);
+        // Enforce max cache size to prevent memory leaks
+        setGroups(fetchedGroups.slice(0, MAX_CACHED_GROUPS));
         hasLoadedGroupsRef.current = true;
       } catch (error) {
         console.error('[SessionContext] Failed to load groups:', error);

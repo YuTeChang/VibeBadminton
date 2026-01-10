@@ -22,6 +22,10 @@
   - Previously each user only saw their own games unless opening in incognito mode
   - Root cause: localStorage was caching stale data and skipping API fetches
   - Solution: Always fetch fresh from API, no caching
+- **Severe Memory Leak**: Chrome could reach 32GB after idling/navigating
+  - Root causes: orphaned `setTimeout` timers, unbounded `allSessions`/`groups` caches, and unbounded Supabase queries pulling all games
+  - Fixes: timer cleanup on unmount, cache caps (`MAX_CACHED_SESSIONS=50`, `MAX_CACHED_GROUPS=20`), and query limits across services
+  - Added unmount cleanup for heavy group stats state to release memory
 - **Win Streak Bug**: Best win streak can no longer exceed total wins
   - Example: Player with 7-1 record was showing 8 best win streak (impossible)
   - Root cause: `reverseGameResult` never decremented `best_win_streak` on game deletion
